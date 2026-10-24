@@ -5,36 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DEDE LIVE - منصة الدردشة الصوتية</title>
   
-  <!-- Tailwind CSS للتصميم والألوان -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- مكتبات React الأساسية -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  
-  <!-- مترجم Babel ليفهم المتصفح كود React/JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- مكتبة Supabase للربط بقاعدة البيانات -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-javascript@2"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-    body {
-      font-family: 'Tajawal', sans-serif;
-    }
+    body { font-family: 'Tajawal', sans-serif; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100">
 
-  <!-- المكان الذي سيعرض فيه التطبيق -->
   <div id="root"></div>
 
-  <!-- كود تطبيق DEDE LIVE -->
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // تهيئة Supabase مع المفاتيح الخاصة بك
     const SUPABASE_URL = "https://yhsehpcosswgehonzzcq.supabase.co";
     const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
     
@@ -47,7 +35,6 @@
       console.error("Supabase init error:", e);
     }
 
-    // البيانات الأولية للرومات
     const INITIAL_ROOMS = [
       {
         id: "ROOM-101",
@@ -93,7 +80,6 @@
         e.preventDefault();
         setErrorMsg('');
 
-        // إنشاء آي دي ثابت فوراً بدون كود تفعيل
         const permanentId = `ID-${Math.floor(100000 + Math.random() * 900000)}`;
         const userObj = {
           id: permanentId,
@@ -103,18 +89,31 @@
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
         };
 
-        // محاولة الحفظ في قاعدة بيانات Supabase
+        // إرسال البيانات فوراً إلى جدول users في قاعدة البيانات
         if (supabase) {
           try {
-            await supabase.from('users').insert([{
-              id: userObj.id,
-              username: userObj.username,
-              email: userObj.email,
-              password_hash: password,
-              coins: 1000
-            }]);
+            const { data, error } = await supabase.from('users').insert([
+              {
+                id: userObj.id,
+                username: userObj.username,
+                email: userObj.email,
+                password_hash: password,
+                coins: 1000,
+                level: 1
+              }
+            ]);
+
+            if (error) {
+              console.error("Supabase Error Details:", error);
+              setErrorMsg("خطأ في القاعدة: " + error.message);
+              return; // إيقاف العملية إذا رفضت القاعدة البيانات
+            } else {
+              console.log("Saved successfully to DB:", data);
+            }
           } catch (err) {
-            console.log("DB Insert Log:", err);
+            console.error("Network or catch error:", err);
+            setErrorMsg("حدث خطأ في الاتصال بقاعدة البيانات");
+            return;
           }
         }
 
@@ -130,7 +129,6 @@
 
       return (
         <div className="min-h-screen flex flex-col justify-between">
-          {/* الشريط العلوي */}
           <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('discover')}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-500/30">
@@ -164,14 +162,13 @@
             </div>
           </header>
 
-          {/* محتوى الصفحة الرئيسية */}
           <main className="max-w-6xl w-full mx-auto p-6 flex-1">
             <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-8 border border-purple-500/20 mb-8 shadow-2xl text-center md:text-right">
               <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
                 🔴 البث المباشر متوفر الآن
               </span>
               <h2 className="text-3xl md:text-5xl font-black text-white mb-3">أهلاً بك في منصة <span className="text-purple-400">DEDE LIVE</span></h2>
-              <p className="text-slate-300 text-sm max-w-xl">انضم إلى أحدث الرومات الصوتية، تحدث مع أصدقائك، واحصل على ID ثابت فور إنشائك للحساب بدون كود تأكيد!</p>
+              <p className="text-slate-300 text-sm max-w-xl">انضم إلى أحدث الرومات الصوتية، وتحدث مع أصدقائك بحرية تامة.</p>
             </div>
 
             <h3 className="text-lg font-bold text-white mb-4">الرومات الصوتية المتاحة</h3>
@@ -204,7 +201,6 @@
             </div>
           </main>
 
-          {/* نافذة تسجيل الدخول */}
           {showAuthModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
@@ -213,7 +209,7 @@
                 <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت بدون أكواد تفعيل</p>
 
                 {errorMsg && (
-                  <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2 rounded-xl text-center">
+                  <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
                     {errorMsg}
                   </div>
                 )}
@@ -248,7 +244,6 @@
             </div>
           )}
 
-          {/* Footer */}
           <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
             DEDE LIVE © 2026 - جميع الحقوق محفوظة
           </footer>
