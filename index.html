@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>DEDE LIVE - منصة الدردشة الصوتية</title>
+  <title>DEDE LIVE - منصة الدردشة الصوتية والألعاب</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -28,12 +28,17 @@
     }
     .slide-down { animation: slideDown 0.5s ease-out forwards; }
 
-    /* حركة الشريط المتحرك العلوي */
     @keyframes marquee {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
     .animate-marquee { display: inline-block; animation: marquee 18s linear infinite; }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.8); }
+    }
+    .pulse-glow { animation: pulseGlow 2s infinite; }
 
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #020617; }
@@ -44,14 +49,14 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
-    <!-- 🌟 الشريط المتحرك العلوي الجديد -->
+    <!-- الشريط المتحرك العلوي -->
     <div class="bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 text-white text-xs font-black py-2 overflow-hidden whitespace-nowrap shadow-md border-b border-purple-500/30">
       <div class="animate-marquee tracking-wider">
-        ✨ روبرت يرحب بكم في DEDE LIVE بيتك الثاني 🎙️ | تواصل بلا حدود، رومات صوتية تفاعلية، وشحن فوري آمن عبر شام كاش 💎🚀 ✨
+        ✨ روبرت يرحب بكم في DEDE LIVE بيتك الثاني 🎙️ | رومات تفاعلية، ألعاب ترفيهية بالكوينز الوهمية، وشحن فوري آمن عبر شام كاش 💎🚀 ✨
       </div>
     </div>
 
-    <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
+    <!-- إشعار عائم فوري -->
     <div v-if="userNotification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
       <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
         <span class="text-2xl">🎉</span>
@@ -67,11 +72,11 @@
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sticky top-0 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center justify-between w-full sm:w-auto">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="activeRoom = null; searchResult = null; searchQuery = ''">
+          <div class="flex items-center gap-2.5 cursor-pointer" @click="activeRoom = null; activeGameModal = null; searchResult = null; searchQuery = ''">
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-600/30">🎙️</div>
             <div>
               <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-              <p class="text-[9px] text-purple-300 font-bold tracking-wider">منصة الرومات الصوتية</p>
+              <p class="text-[9px] text-purple-300 font-bold tracking-wider">منصة الرومات والألعاب</p>
             </div>
           </div>
 
@@ -115,7 +120,7 @@
               </div>
               <button @click="showProfileModal = true" class="text-xs bg-slate-700 hover:bg-slate-600 p-1.5 rounded-full transition-all">✏️</button>
             </div>
-            <button @click="handleLogout" class="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-2xl font-bold transition-all">خروج</button>
+            <button @click="handleLogout" class="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 text-white px-3 py-2 rounded-2xl font-bold transition-all">خروج</button>
           </template>
           <template v-else>
             <button @click="showAuthModal = true" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-lg shadow-purple-600/30 transition-all">تسجيل الدخول</button>
@@ -201,7 +206,46 @@
       <!-- الواجهة الرئيسية -->
       <template v-else>
         
-        <!-- 🌟 أولاً: الرومات النشطة في الأعلى تماماً -->
+        <!-- 🌟 أولاً: قسم الألعاب الترفيهية الفخم -->
+        <div class="bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/40 shadow-2xl pulse-glow">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <span class="bg-pink-500/20 text-pink-300 text-xs font-bold px-3 py-1 rounded-full border border-pink-400/30 inline-block mb-2">
+                🎮 صالة الألعاب الترفيهية (كوينز وهمية غير قابلة للسحب)
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-black text-white">جرب حظك وضاعف رصيدك الآن!</h2>
+            </div>
+            <div class="hidden sm:block text-3xl">🎰</div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- لعبة السلوت -->
+            <div @click="openGame('slot')" class="bg-slate-900/90 border border-purple-500/50 hover:border-pink-500 p-5 rounded-2xl cursor-pointer transition-all shadow-xl group">
+              <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">🎰</div>
+              <h4 class="text-base font-black text-white mb-1">ماكينة السلوت (Slot)</h4>
+              <p class="text-xs text-slate-400 mb-3">دور البكرات واجمع الرموز المتطابقة لتربح أضعاف رصيدك.</p>
+              <span class="text-xs font-bold text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-xl border border-purple-500/20 inline-block">العب الآن 🚀</span>
+            </div>
+
+            <!-- لعبة الجاكبوت -->
+            <div @click="openGame('jackpot')" class="bg-slate-900/90 border border-amber-500/50 hover:border-amber-400 p-5 rounded-2xl cursor-pointer transition-all shadow-xl group">
+              <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">💰</div>
+              <h4 class="text-base font-black text-white mb-1">صندوق الجاكبوت الكبرى</h4>
+              <p class="text-xs text-slate-400 mb-3">اختبر حظك الخارق وافتح الصندوق لجائزة الكوينز الضخمة.</p>
+              <span class="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 inline-block">افتح الصندوق 🏆</span>
+            </div>
+
+            <!-- لعبة بوكر الأوراق -->
+            <div @click="openGame('poker')" class="bg-slate-900/90 border border-emerald-500/50 hover:border-emerald-400 p-5 rounded-2xl cursor-pointer transition-all shadow-xl group">
+              <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">🃏</div>
+              <h4 class="text-base font-black text-white mb-1">بوكر الأوراق (Ace Poker)</h4>
+              <p class="text-xs text-slate-400 mb-3">اسحب ورقة حظك واهزم الموزع في لعبة الورق السريعة.</p>
+              <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 inline-block">اسحب ورقة 🎴</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🌟 ثانياً: الرومات الصوتية النشطة -->
         <div class="mb-10">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
@@ -245,7 +289,7 @@
               ✨ المعاملات المالية الفورية عبر شام كاش (ShamCash)
             </span>
             <h2 class="text-2xl sm:text-4xl font-black text-white mb-2">مرحباً بك في <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</span></h2>
-            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في أمتع الرومات الصوتية.</p>
+            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في أمتع الرومات الصوتية والألعاب.</p>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap transition-all">
@@ -257,12 +301,9 @@
           </div>
         </div>
 
-        <!-- 🌟 ثانياً: الأقسام الفخمة والتعريفات (من نحن، الكوينز والدولار، والخصوصية) -->
+        <!-- الأقسام الفخمة والتعريفات -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          
-          <!-- قسم من نحن -->
           <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-purple-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-purple-500 transition-all">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 rounded-full blur-2xl group-hover:bg-purple-600/20 transition-all"></div>
             <div class="flex items-center gap-3 mb-4">
               <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-xl shadow-inner">🏢</div>
               <div>
@@ -275,9 +316,7 @@
             </p>
           </div>
 
-          <!-- قسم نظام الكوينز والدولار -->
           <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-emerald-500 transition-all">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-600/10 rounded-full blur-2xl group-hover:bg-emerald-600/20 transition-all"></div>
             <div class="flex items-center gap-3 mb-4">
               <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl shadow-inner">💎</div>
               <div>
@@ -293,9 +332,7 @@
             </p>
           </div>
 
-          <!-- قسم نظام الخصوصية والأمان -->
           <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-pink-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-pink-500 transition-all">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-pink-600/10 rounded-full blur-2xl group-hover:bg-pink-600/20 transition-all"></div>
             <div class="flex items-center gap-3 mb-4">
               <div class="w-12 h-12 rounded-2xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-black text-xl shadow-inner">🔒</div>
               <div>
@@ -304,16 +341,74 @@
               </div>
             </div>
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              نضمن لك سرية تامة في المعاملات المالية ورسائل الدردشة الشخصية. نحن نتبع أحدث بروتوكولات الأمان لنبقى بيتك الثاني الآمن والموثوق.
+              نضمن لك سرية تامة في المعاملات المالية ورسائل الدردشة الشخصية. ألعاب الكوينز الوهمية مخصصة للترفيه البحت وغير قابلة للسحب لضمان بيئة آمنة.
             </p>
           </div>
-
         </div>
 
       </template>
     </main>
 
-    <!-- نافذة طلب شحن شام كاش (للمستخدم داخل الموقع) -->
+    <!-- نافذة الألعاب الترفيهية الفخمة -->
+    <div v-if="activeGameModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-purple-500/50 p-6 rounded-3xl max-w-md w-full relative shadow-2xl text-center">
+        <button @click="activeGameModal = null" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        
+        <!-- رأس نافذة اللعبة -->
+        <div class="mb-4">
+          <span class="text-xs bg-purple-500/20 text-purple-300 font-black px-3 py-1 rounded-full border border-purple-500/30 inline-block mb-1">🎮 صالة الألعاب</span>
+          <h3 class="text-xl font-black text-white mt-1">
+            {{ activeGameModal === 'slot' ? 'ماكينة السلوت 🎰' : activeGameModal === 'jackpot' ? 'صندوق الجاكبوت 💰' : 'بوكر الأوراق 🃏' }}
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">رصيدك الحالي: <span class="text-purple-400 font-bold">💎 {{ currentUser?.coins || 0 }}</span></p>
+        </div>
+
+        <!-- اختيار قيمة الرهان (1ألف، 5ألاف، 10ألاف، 50ألف، 100ألف) -->
+        <div class="mb-5">
+          <label class="text-xs font-bold text-slate-300 block mb-2">اختر قيمة الرهان بالكوينز:</label>
+          <div class="grid grid-cols-5 gap-1.5">
+            <button v-for="bet in [1000, 5000, 10000, 50000, 100000]" :key="bet" @click="selectedBet = bet" :class="['py-2 rounded-xl text-xs font-black transition-all border', selectedBet === bet ? 'bg-purple-600 text-white border-purple-400 shadow-lg scale-105' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+              {{ bet >= 1000 ? (bet/1000) + 'ألف' : bet }}
+            </button>
+          </div>
+        </div>
+
+        <!-- شاشة عرض نتائج اللعبة -->
+        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 mb-5 relative overflow-hidden shadow-inner min-h-[120px] flex flex-col items-center justify-center">
+          
+          <!-- عرض لعبة السلوت -->
+          <div v-if="activeGameModal === 'slot'" class="flex gap-4 text-3xl font-black">
+            <span class="bg-slate-900 px-4 py-3 rounded-xl border border-slate-800 shadow">{{ slotReels[0] }}</span>
+            <span class="bg-slate-900 px-4 py-3 rounded-xl border border-slate-800 shadow">{{ slotReels[1] }}</span>
+            <span class="bg-slate-900 px-4 py-3 rounded-xl border border-slate-800 shadow">{{ slotReels[2] }}</span>
+          </div>
+
+          <!-- عرض لعبة الجاكبوت -->
+          <div v-else-if="activeGameModal === 'jackpot'" class="text-4xl">
+            {{ jackpotResultIcon || '🎁' }}
+          </div>
+
+          <!-- عرض لعبة بوكر الأوراق -->
+          <div v-else-if="activeGameModal === 'poker'" class="flex gap-3 text-2xl font-black">
+            <div v-for="(card, idx) in pokerCards" :key="idx" class="bg-white text-slate-950 px-3 py-4 rounded-xl border-2 border-purple-500 shadow-lg font-mono">
+              {{ card }}
+            </div>
+          </div>
+
+          <!-- رسالة النتيجة والفوز -->
+          <p v-if="gameResultMessage" :class="['mt-3 text-xs font-black', gameWinAmount > 0 ? 'text-emerald-400 animate-bounce' : 'text-rose-400']">
+            {{ gameResultMessage }}
+          </p>
+        </div>
+
+        <!-- زر بدء اللعب -->
+        <button @click="playGame" :disabled="isGamePlaying" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-black py-3.5 rounded-xl transition-all shadow-lg text-sm disabled:opacity-50">
+          {{ isGamePlaying ? 'جاري اللعب...' : 'بدء اللعب الآن 🚀' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- نافذة طلب شحن شام كاش -->
     <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
         <button @click="showDepositModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
@@ -348,7 +443,7 @@
       </div>
     </div>
 
-    <!-- لوحة تحكم الأدمن (للموافقة على الحوالات وإرسال الإشعار والكوينزات فوراً) -->
+    <!-- لوحة تحكم الأدمن -->
     <div v-if="showAdminPanel && isSuperAdmin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl">
         <button @click="showAdminPanel = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
@@ -381,7 +476,8 @@
       </div>
     </div>
 
-    <!-- نافذة تعديل الملف الشخصي -->
+    <!-- نافذة الملف الشخصي والرسائل والصداقات وباقي المكونات -->
+    <!-- (محافظة على كامل الوظائف والروابط) -->
     <div v-if="showProfileModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
         <button @click="showProfileModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
@@ -404,7 +500,6 @@
       </div>
     </div>
 
-    <!-- نافذة الرسائل والصداقات -->
     <div v-if="showSocialModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2">
       <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
         <div class="bg-slate-950 px-4 py-3 flex justify-between items-center border-b border-slate-800">
@@ -414,7 +509,6 @@
           </div>
           <button @click="showSocialModal = false; activePrivateChat = null;" class="text-slate-400 bg-slate-800 p-2 rounded-full text-xs">✕</button>
         </div>
-
         <div class="flex-1 flex overflow-hidden">
           <div v-if="activeTab === 'requests'" class="flex-1 p-4 overflow-y-auto text-xs space-y-2.5 bg-slate-950/50">
             <p v-if="friendRequests.length === 0" class="text-center text-slate-500 py-16">لا توجد طلبات صداقة جديدة.</p>
@@ -434,7 +528,6 @@
                 <p class="text-[10px] text-slate-400 truncate mt-0.5">{{ friendsLastMessages[f.sender_id === currentUser.id ? f.receiver_id : f.sender_id] || "ابدأ المحادثة..." }}</p>
               </div>
             </div>
-
             <div :class="['flex-1 flex flex-col bg-slate-900', !activePrivateChat ? 'hidden sm:flex' : 'flex']">
               <template v-if="activePrivateChat">
                 <div class="p-3 bg-slate-950 border-b border-slate-800 flex items-center gap-2">
@@ -572,7 +665,7 @@
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
-        // نظام الحوالات وشام كاش
+        // نظام الشحن والحوالات
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -582,6 +675,16 @@
         const adminDeposits = ref([]);
         const pendingDepositsCount = ref(0);
         const userNotification = ref(null);
+
+        // متغيرات الألعاب الترفيهية
+        const activeGameModal = ref(null);
+        const selectedBet = ref(1000);
+        const isGamePlaying = ref(false);
+        const slotReels = ref(['💎', '7️⃣', '🍒']);
+        const jackpotResultIcon = ref('🎁');
+        const pokerCards = ref(['A♠', 'K♥', 'Q♦']);
+        const gameResultMessage = ref('');
+        const gameWinAmount = ref(0);
 
         const viewingUser = ref(null);
         const friendRequests = ref([]);
@@ -640,6 +743,97 @@
               }
             }
           } catch (e) {}
+        };
+
+        // دالة تحديث رصيد المستخدم في قاعدة البيانات عند اللعب أو الشحن
+        const updateUserCoinsInDB = async (newCoinsTotal) => {
+          if (!currentUser.value) return;
+          currentUser.value.coins = newCoinsTotal;
+          localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+          try {
+            await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(currentUser.value.id)}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ coins: newCoinsTotal })
+            });
+          } catch (e) {}
+        };
+
+        // تشغيل الألعاب الترفيهية
+        const openGame = (gameType) => {
+          if (!currentUser.value) {
+            showAuthModal.value = true;
+            return;
+          }
+          activeGameModal.value = gameType;
+          gameResultMessage.value = '';
+          gameWinAmount.value = 0;
+          if (gameType === 'slot') slotReels.value = ['🎰', '💎', '7️⃣'];
+          if (gameType === 'jackpot') jackpotResultIcon.value = '🎁';
+          if (gameType === 'poker') pokerCards.value = ['A♠', 'K♥', 'Q♦'];
+        };
+
+        const playGame = async () => {
+          if (!currentUser.value) return;
+          const currentCoins = currentUser.value.coins || 0;
+          if (currentCoins < selectedBet.value) {
+            alert("رصيدك من الكوينز غير كافٍ لهذا الرهان! قم بشحن رصيدك للمتابعة.");
+            return;
+          }
+
+          isGamePlaying.value = true;
+          gameResultMessage.value = '';
+
+          // خصم قيمة الرهان فوراً
+          let balance = currentCoins - selectedBet.value;
+          await updateUserCoinsInDB(balance);
+
+          setTimeout(async () => {
+            const symbols = ['💎', '7️⃣', '🍒', '⭐', '🍋', '🔔'];
+            let winMultiplier = 0;
+
+            if (activeGameModal.value === 'slot') {
+              const r1 = symbols[Math.floor(Math.random() * symbols.length)];
+              const r2 = symbols[Math.floor(Math.random() * symbols.length)];
+              const r3 = symbols[Math.floor(Math.random() * symbols.length)];
+              slotReels.value = [r1, r2, r3];
+
+              if (r1 === r2 && r2 === r3) winMultiplier = 10; // فوز كبير
+              else if (r1 === r2 || r2 === r3 || r1 === r3) winMultiplier = 2; // فوز متوسط
+            } 
+            else if (activeGameModal.value === 'jackpot') {
+              const jackSymbols = ['💰', '👑', '🎁', '💎', '❌'];
+              const resIcon = jackSymbols[Math.floor(Math.random() * jackSymbols.length)];
+              jackpotResultIcon.value = resIcon;
+
+              if (resIcon === '👑') winMultiplier = 20;
+              else if (resIcon === '💰') winMultiplier = 10;
+              else if (resIcon === '💎') winMultiplier = 5;
+            }
+            else if (activeGameModal.value === 'poker') {
+              const suits = ['♠', '♥', '♦', '♣'];
+              const vals = ['10', 'J', 'Q', 'K', 'A'];
+              const c1 = vals[Math.floor(Math.random() * vals.length)] + suits[Math.floor(Math.random() * suits.length)];
+              const c2 = vals[Math.floor(Math.random() * vals.length)] + suits[Math.floor(Math.random() * suits.length)];
+              const c3 = vals[Math.floor(Math.random() * vals.length)] + suits[Math.floor(Math.random() * suits.length)];
+              pokerCards.value = [c1, c2, c3];
+
+              if (c1[0] === c2[0] && c2[0] === c3[0]) winMultiplier = 15;
+              else if (c1[0] === c2[0] || c2[0] === c3[0]) winMultiplier = 3;
+            }
+
+            if (winMultiplier > 0) {
+              gameWinAmount.value = selectedBet.value * winMultiplier;
+              balance += gameWinAmount.value;
+              gameResultMessage.value = `مبروك! ربحت ${gameWinAmount.value.toLocaleString()} كوينز! 🎉`;
+            } else {
+              gameWinAmount.value = 0;
+              gameResultMessage.value = "حظ أوفر في المرة القادمة! 💔";
+            }
+
+            await updateUserCoinsInDB(balance);
+            isGamePlaying.value = false;
+          }, 1000);
         };
 
         const handleDepositSubmit = async () => {
@@ -922,11 +1116,12 @@
           searchQuery, searchResult, searchError, showAuthModal, isSignup, authEmail, authUsername, errorMsg,
           showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
+          activeGameModal, selectedBet, isGamePlaying, slotReels, jackpotResultIcon, pokerCards, gameResultMessage, gameWinAmount,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
           friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
           fetchRooms, handleGlobalSearch, enterRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
           openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
-          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
+          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit, openGame, playGame
         };
       }
     }).mount('#app');
