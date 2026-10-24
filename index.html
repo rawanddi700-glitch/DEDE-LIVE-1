@@ -193,7 +193,6 @@
                   const lastMsg = msgData[0];
                   lastMsgsMap[friendId] = lastMsg.message_text;
 
-                  // إذا كانت الرسالة غير مقروءة وليست محادثة مفتوحة حالياً
                   if (lastMsg.sender_id !== currentUser.id && (!activePrivateChat || activePrivateChat.id !== friendId)) {
                     newUnreadMap[friendId] = true;
                     totalNewActivity++;
@@ -323,7 +322,6 @@
         
         setActivePrivateChat({ id: friendId, name: friendName });
         
-        // عند فتح الشات وقراءة الرسائل، يزول مؤشر اللون الأحمر الخاص بهذا الصديق فوراً
         setUnreadFriends(prev => {
           const updated = { ...prev };
           delete updated[friendId];
@@ -393,21 +391,50 @@
         sendPrivateMessage("🎤 [مقطع صوتي مسجل - 0:12]", 'voice');
       };
 
+      // دالة ضغط وتحويل الصورة بالـ Canvas لحل مشكلة الحجم الكبير وضمان حفظها
       const handleImageUpload = (e) => {
         const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setEditAvatar(reader.result);
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 250;
+            const MAX_HEIGHT = 250;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            setEditAvatar(compressedDataUrl);
           };
-          reader.readAsDataURL(file);
-        }
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
       };
 
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
-        setProfileUpdateMsg('جاري تحديث الاسم...');
+        setProfileUpdateMsg('جاري حفظ الملف الشخصي...');
 
         const newUsername = editName.trim();
         const newAvatar = editAvatar || currentUser.avatar;
@@ -426,13 +453,13 @@
             const updatedUser = { ...currentUser, username: newUsername, avatar: newAvatar };
             setCurrentUser(updatedUser);
             localStorage.setItem('dede_user', JSON.stringify(updatedUser));
-            setProfileUpdateMsg('تم تحديث الاسم بنجاح! ✅');
+            setProfileUpdateMsg('تم حفظ الصورة والاسم بنجاح! ✅');
             setTimeout(() => {
               setShowProfileModal(false);
               setProfileUpdateMsg('');
-            }, 1000);
+            }, 1200);
           } else {
-            setProfileUpdateMsg("تعذر تحديث البيانات");
+            setProfileUpdateMsg("تعذر حفظ الصورة، حجم البيانات كبير جداً");
           }
         } catch (err) {
           setProfileUpdateMsg("فشل الاتصال بالسيرفر");
@@ -1222,13 +1249,13 @@
                   <div className="flex flex-col items-center gap-3">
                     <img src={editAvatar || currentUser?.avatar} className="w-28 h-28 rounded-full object-cover ring-4 ring-purple-600 shadow-2xl" />
                     <label className="bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer border border-purple-500/30 transition-all shadow">
-                      📂 تغيير الصورة الشخصية
+                      📂 اختر صورة جديدة
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-2">اسم المستخدم الخاص بك (يمكنك تعديله بحرية)</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-2">اسم المستخدم الخاص بك</label>
                     <input 
                       type="text" 
                       value={editName} 
@@ -1244,13 +1271,13 @@
                       <span className="font-mono text-rose-500 font-black text-base tracking-wider">{currentUser?.id}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400 font-bold">⭐ الرتبة (تُدار من قِبل الأدمن):</span>
+                      <span className="text-xs text-slate-400 font-bold">⭐ الرتبة:</span>
                       <span className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-lg font-black text-xs border border-rose-500/40">{currentUser?.role || 'عضو'}</span>
                     </div>
                   </div>
 
                   <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black py-3.5 rounded-2xl text-sm shadow-xl transition-all">
-                    حفظ الاسم الجديد
+                    حفظ التغييرات
                   </button>
                 </form>
               </div>
