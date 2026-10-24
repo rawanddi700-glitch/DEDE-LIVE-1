@@ -57,7 +57,7 @@
       const [activeRoom, setActiveRoom] = useState(null);
       const [roomSeatsData, setRoomSeatsData] = useState([]);
       const [isMuted, setIsMuted] = useState(false);
-      const [isHandRaised, setIsHandRaised] + useState(false);
+      const [isHandRaised, setIsHandRaised] = useState(false);
       
       // شات الروم والتفاعلات
       const [roomChat, setRoomChat] = useState([]);
@@ -124,14 +124,14 @@
         const query = searchQuery.trim();
         if (!query) return;
 
-        // 1. البحث أولاً في الغرف المحلية أو عبر جلب الغرفة بالـ ID
+        // 1. البحث أولاً في الغرف بالحاوية المحلية أو بالـ ID
         const foundRoom = rooms.find(r => r.id.toLowerCase() === query.toLowerCase());
         if (foundRoom) {
           setSearchResult({ type: 'room', data: foundRoom });
           return;
         }
 
-        // 2. إذا لم تكن غرفة، ابحث في جدول المستخدمين (Users) بالـ ID أو بالاسم
+        // 2. البحث في جدول المستخدمين (Users) بالـ ID أو بالاسم
         try {
           const res = await fetch(`${SUPABASE_BASE_URL}/users?or=(id.ilike.*${query}*,username.ilike.*${query}*)`, { headers: HEADERS });
           if (res.ok) {
@@ -396,7 +396,7 @@
           {/* محتوى الصفحة الرئيسية أو داخل الروم */}
           <main className="max-w-6xl w-full mx-auto p-6 flex-1">
 
-            {/* عرض نتائج البحث إذا وُجدت */}
+            {/* نتائج البحث */}
             {searchResult ? (
               <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 mb-8 shadow-2xl">
                 <div className="flex justify-between items-center mb-4">
