@@ -78,17 +78,27 @@
       const [roomCategory, setRoomCategory] = useState('حوار ونقاش');
       const [roomSeats, setRoomSeats] = useState(8);
       const [createRoomError, setCreateRoomError] = useState('');
-      const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [editName, setEditName] = useState('');
       const [editAvatar, setEditAvatar] = useState('');
       const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
+      // بطاقات المستخدم والطلبات والشات الخاص
+      const [viewingUser, setViewingUser] = useState(null);
+      const [friendRequests, setFriendRequests] = useState([]);
+      const [friendsList, setFriendsList] = useState([]);
+      const [showFriendsModal, setShowFriendsModal] = useState(false);
+      const [activePrivateChat, setActivePrivateChat] = useState(null);
+      const [privateMessages, setPrivateMessages] = useState([]);
+      const [privateMsgInput, setPrivateMsgInput] = useState('');
+      const [actionMsg, setActionMsg] = useState('');
+
       useEffect(() => {
         fetchRooms();
         if (currentUser) {
           refreshUserData();
+          fetchFriendData();
         }
       }, []);
 
@@ -105,6 +115,27 @@
           }
         } catch (err) {
           console.error("Refresh user error:", err);
+        }
+      };
+
+      const fetchFriendData = async () => {
+        if (!currentUser) return;
+        try {
+          // جلب الطلبات الواردة
+          const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.id)}&status=eq.pending`, { headers: HEADERS });
+          if (reqRes.ok) {
+            const reqs = await reqRes.json();
+            setFriendRequests(reqs);
+          }
+
+          // جلب الأصدقاء المقبولين
+          const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${encodeURIComponent(currentUser.id)},receiver_id.eq.${encodeURIComponent(currentUser.id)})&status=eq.accepted`, { headers: HEADERS });
+          if (friendsRes.ok) {
+            const fList = await friendsRes.json();
+            setFriendsList(fList);
+          }
+        } catch (err) {
+          console.error("Error fetching friend data:", err);
         }
       };
 
@@ -158,6 +189,100 @@
         }
 
         setSearchError('عذراً، لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.');
+      };
+
+      // إرسال طلب صداقة
+      const sendFriendRequest = async (targetUser) => {
+        if (!currentUser) return alert("سجل الدخول أولاً لإرسال طلب صداقة!");
+        if (currentUser.id === targetUser.id) return alert("لا يمكنك إرسال طلب صداقة لنفسك!");
+        
+        setActionMsg("جاري إرسال الطلب...");
+        try {
+          const payload = {
+            sender_id: currentUser.id,
+            sender_name: currentUser.username,
+            receiver_id: targetUser.id,
+            status: 'pending'
+          };
+          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            setActionMsg("تم إرسال طلب الصداقة بنجاح! 🟢");
+          } else {
+            setActionMsg("تم إرسال طلب من قبل أو حدث خطأ.");
+          }
+        } catch (err) {
+          setActionMsg("فشل الاتصال بالسيرفر.");
+        }
+      };
+
+      // قبول أو رفض طلب الصداقة
+      const respondToFriendRequest = async (reqId, accept) => {
+        try {
+          if (accept) {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${reqId}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'accepted' })
+            });
+          } else {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${reqId}`, {
+              method: 'DELETE',
+              headers: HEADERS
+            });
+          }
+          fetchFriendData();
+        } catch (err) {
+          console.error("Error responding to request:", err);
+        }
+      };
+
+      // فتح الشات الخاص بين الصديقين
+      const openPrivateChat = async (friend) => {
+        const friendId = friend.sender_id === currentUser.id ? friend.receiver_id : friend.sender_id;
+        setActivePrivateChat({ id: friendId, name: friend.sender_name || "صديق" });
+        fetchPrivateMessages(friendId);
+      };
+
+      const fetchPrivateMessages = async (friendId) => {
+        try {
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.id)},receiver_id.eq.${encodeURIComponent(friendId)}),and(sender_id.eq.${encodeURIComponent(friendId)},receiver_id.eq.${encodeURIComponent(currentUser.id)}))&order=created_at.asc`, { headers: HEADERS });
+          if (res.ok) {
+            const msgs = await res.json();
+            setPrivateMessages(msgs);
+          }
+        } catch (err) {
+          console.error("Error fetching private msgs:", err);
+        }
+      };
+
+      const sendPrivateMessage = async (e) => {
+        e.preventDefault();
+        if (!privateMsgInput.trim() || !activePrivateChat) return;
+
+        const payload = {
+          sender_id: currentUser.id,
+          receiver_id: activePrivateChat.id,
+          message_text: privateMsgInput.trim()
+        };
+
+        try {
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            setPrivateMsgInput('');
+            fetchPrivateMessages(activePrivateChat.id);
+          }
+        } catch (err) {
+          console.error("Error sending private message:", err);
+        }
       };
 
       const handleImageUpload = (e) => {
@@ -393,17 +518,24 @@
             <div className="flex items-center gap-3">
               {currentUser ? (
                 <>
+                  {/* زر الأصدقاء والإشعارات */}
+                  <button 
+                    onClick={() => { fetchFriendData(); setShowFriendsModal(true); }}
+                    className="relative bg-slate-800 hover:bg-slate-700 text-white p-2.5 rounded-xl border border-slate-700 shadow flex items-center gap-1.5 text-xs font-bold">
+                    <span>💬 الأصدقاء</span>
+                    {friendRequests.length > 0 && (
+                      <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-bounce">
+                        {friendRequests.length}
+                      </span>
+                    )}
+                  </button>
+
                   <button 
                     onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} 
                     className="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg transition-all flex items-center gap-1">
                     <span>➕</span> إنشاء روم
                   </button>
 
-                  <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold hidden sm:block">
-                    💰 {currentUser.coins || 0} عملة
-                  </div>
-
-                  {/* تصميم الحساب في الشريط العلوي بخط كبير وبارز وأحمر عريض للـ ID والرتبة الحمراء */}
                   <div className="flex items-center gap-3 bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700 shadow-xl">
                     <img src={currentUser.avatar} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow" />
                     <div className="text-right">
@@ -459,7 +591,7 @@
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex items-center justify-between cursor-pointer" onClick={() => { setActionMsg(''); setViewingUser(searchResult.data); }}>
                     <div className="flex items-center gap-4">
                       <img src={searchResult.data.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-16 h-16 rounded-full object-cover ring-2 ring-purple-500" />
                       <div>
@@ -474,6 +606,7 @@
                         <p className="text-xs mt-1">ID المستخدم: <span className="font-mono text-rose-500 font-black text-sm">{searchResult.data.id}</span></p>
                       </div>
                     </div>
+                    <button className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl">عرض الملف 👤</button>
                   </div>
                 )}
               </div>
@@ -501,15 +634,22 @@
 
                 {/* مقاعد المايكات */}
                 <div className="mb-8">
-                  <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8})</h3>
+                  <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8}) - اضغط على أي شخص لرؤية ملفه وإرسال طلب صداقة:</h3>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
                     {roomSeatsData.map((seat) => (
                       <div key={seat.index} className="flex flex-col items-center">
                         <div 
-                          onClick={() => claimSeat(seat.index)}
+                          onClick={() => {
+                            if (seat.user) {
+                              setActionMsg('');
+                              setViewingUser(seat.user);
+                            } else {
+                              claimSeat(seat.index);
+                            }
+                          }}
                           className={`w-20 h-20 rounded-2xl flex items-center justify-center relative cursor-pointer border transition-all ${
                             seat.user 
-                              ? 'bg-slate-800 border-purple-500 shadow-xl shadow-purple-500/30' 
+                              ? 'bg-slate-800 border-purple-500 shadow-xl shadow-purple-500/30 hover:scale-105' 
                               : 'bg-slate-950/60 border-slate-800 border-dashed hover:border-purple-400'
                           }`}>
                           {seat.user ? (
@@ -644,6 +784,122 @@
             )}
 
           </main>
+
+          {/* نافذة بطاقة المستخدم عند الضغط عليه (لإرسال طلب صداقة) */}
+          {viewingUser && (
+            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl text-center">
+                <button onClick={() => setViewingUser(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+                
+                <img src={viewingUser.avatar || viewingUser.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-24 h-24 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-4 shadow-xl" />
+                
+                <h3 className="text-xl font-black text-white">{viewingUser.username || viewingUser.name}</h3>
+                <p className="text-xs text-rose-500 font-mono font-black mt-1">{viewingUser.id}</p>
+                {viewingUser.role && (
+                  <span className="inline-block bg-rose-500/20 text-rose-400 text-xs px-3 py-1 rounded-md font-black border border-rose-500/40 mt-2">
+                    {viewingUser.role}
+                  </span>
+                )}
+
+                {actionMsg && (
+                  <div className="mt-4 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl font-bold">
+                    {actionMsg}
+                  </div>
+                )}
+
+                <div className="mt-6 flex flex-col gap-2">
+                  <button 
+                    onClick={() => sendFriendRequest(viewingUser)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2">
+                    <span>➕</span> إرسال طلب صداقة
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* نافذة الأصدقاء والطلبات الواردة والشات الخاص */}
+          {showFriendsModal && (
+            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full relative shadow-2xl">
+                <button onClick={() => { setShowFriendsModal(false); setActivePrivateChat(null); }} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+                
+                {activePrivateChat ? (
+                  /* شات خاص مباشر بين الصديقين */
+                  <div>
+                    <button onClick={() => setActivePrivateChat(null)} className="text-xs text-purple-400 font-bold mb-3 hover:underline">← العودة لقائمة الأصدقاء</button>
+                    <h3 className="text-base font-black text-white mb-2 pb-2 border-b border-slate-800">الدردشة الخاصة مع: <span className="text-purple-400">{activePrivateChat.name}</span></h3>
+                    
+                    <div className="h-48 overflow-y-auto space-y-2 mb-3 p-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs">
+                      {privateMessages.length === 0 ? (
+                        <p className="text-center text-slate-500 py-8">لا توجد رسائل سابقة. ابدأ الحديث الآن!</p>
+                      ) : (
+                        privateMessages.map(msg => (
+                          <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
+                            <div className={`p-2.5 rounded-2xl max-w-[80%] ${msg.sender_id === currentUser.id ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-200'}`}>
+                              {msg.message_text}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <form onSubmit={sendPrivateMessage} className="flex gap-2">
+                      <input type="text" value={privateMsgInput} onChange={e => setPrivateMsgInput(e.target.value)} placeholder="اكتب رسالة خاصة..." className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                      <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
+                    </form>
+                  </div>
+                ) : (
+                  /* قائمة الأصدقاء والطلبات */
+                  <div>
+                    <h3 className="text-xl font-black text-white text-center mb-4">مركز الأصدقاء والطلبات</h3>
+
+                    {/* الطلبات الواردة */}
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-slate-400 mb-2">طلبات الصداقة الواردة ({friendRequests.length})</h4>
+                      {friendRequests.length === 0 ? (
+                        <p className="text-xs text-slate-500 bg-slate-950/50 p-3 rounded-xl">لا توجد طلبات صداقة معلقة.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {friendRequests.map(req => (
+                            <div key={req.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-bold text-white">{req.sender_name}</p>
+                                <p className="text-[10px] text-purple-400 font-mono">{req.sender_id}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button onClick={() => respondToFriendRequest(req.id, true)} className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-lg">قبول</button>
+                                <button onClick={() => respondToFriendRequest(req.id, false)} className="bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-lg">رفض</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* قائمة الأصدقاء المقبولين */}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 mb-2">قائمة الأصدقاء ({friendsList.length})</h4>
+                      {friendsList.length === 0 ? (
+                        <p className="text-xs text-slate-500 bg-slate-950/50 p-3 rounded-xl">لم تقم بإضافة أصدقاء بعد.</p>
+                      ) : (
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {friendsList.map(f => (
+                            <div key={f.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
+                              <p className="text-xs font-bold text-white">{f.sender_name}</p>
+                              <button onClick={() => openPrivateChat(f)} className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                                💬 فتح الشات
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* نافذة تعديل الملف الشخصي */}
           {showProfileModal && (
