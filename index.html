@@ -122,9 +122,8 @@
       const [editAvatar, setEditAvatar] = useState('');
       const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
-      // لوحة الأدمن الخاصة بالتحويلات (الشام كاش)
+      // لوحة الأدمن (شام كاش)
       const [showAdminPanel, setShowAdminPanel] = useState(false);
-      const [adminTransfers, setAdminTransfers] = useState([]);
 
       // متغيرات التواصل والأصدقاء والشات
       const [viewingUser, setViewingUser] = useState(null);
@@ -236,12 +235,13 @@
         }
       };
 
+      // تحديث الاسم الافتراضي فور فتح نافذة الملف الشخصي للمرة الأولى
       useEffect(() => {
-        if (currentUser) {
+        if (currentUser && showProfileModal) {
           setEditName(currentUser.username || '');
           setEditAvatar(currentUser.avatar || '');
         }
-      }, [currentUser]);
+      }, [showProfileModal, currentUser]);
 
       const fetchRooms = async () => {
         setLoadingRooms(true);
@@ -422,7 +422,7 @@
         }
       };
 
-      // تعديل اسم المستخدم والملف الشخصي دون تداخل أو أخطاء
+      // تعديل اسم المستخدم بنجاح تام وبدون تداخل
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
@@ -531,12 +531,10 @@
         }, 1500);
       };
 
-      // التحقق من حساب واحد فقط للجهاز وإدارة حساب المدير (Admin)
       const handleAuth = async (e) => {
         e.preventDefault();
         setErrorMsg('');
 
-        // التحقق مما إذا كان الجهاز قد سجل حساباً مسبقاً (حساب واحد لكل موبايل/متصفح)
         const localDeviceUser = localStorage.getItem('dede_device_registered');
         if (isSignup && localDeviceUser) {
           setErrorMsg("عذراً، لا يمكنك إنشاء أكثر من حساب واحد من هذا الجهاز أو المتصفح!");
@@ -574,7 +572,6 @@
             }
             localStorage.setItem('dede_device_registered', 'true');
           } else {
-            // تسجيل دخول
             const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(emailInput)}`, { headers: HEADERS });
             if (res.ok) {
               const data = await res.json();
@@ -678,7 +675,6 @@
             <div className="flex items-center gap-3">
               {currentUser ? (
                 <>
-                  {/* لوحة تحكم الأدمن (شام كاش) تظهر حصراً لمدير التطبيق */}
                   {isSuperAdmin && (
                     <button 
                       onClick={() => setShowAdminPanel(true)}
@@ -706,7 +702,6 @@
                     <span>➕</span> إنشاء روم
                   </button>
 
-                  {/* الملف الشخصي */}
                   <div className="flex items-center gap-3 bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700 shadow-xl">
                     <img src={currentUser.avatar} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow" />
                     <div className="text-right">
@@ -720,7 +715,7 @@
                       </div>
                       <p className="text-xs text-rose-500 font-mono font-black tracking-wider mt-0.5">{currentUser.id}</p>
                     </div>
-                    <button onClick={() => { refreshUserData(); setShowProfileModal(true); }} title="تعديل الملف الشخصي" className="mr-2 text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 p-2 rounded-full text-xs transition-all shadow">
+                    <button onClick={() => { setShowProfileModal(true); }} title="تعديل الملف الشخصي" className="mr-2 text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 p-2 rounded-full text-xs transition-all shadow">
                       ✏️
                     </button>
                   </div>
@@ -952,13 +947,13 @@
 
           </main>
 
-          {/* لوحة تحكم الأدمن لمدير التطبيق الحصري (شام كاش) */}
+          {/* لوحة تحكم الأدمن لشام كاش */}
           {showAdminPanel && isSuperAdmin && (
             <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-2xl w-full p-6 relative shadow-2xl">
                 <button onClick={() => setShowAdminPanel(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-xl font-black text-amber-400 mb-2">👑 لوحة إدارة الحوالات (شام كاش)</h3>
-                <p className="text-xs text-slate-400 mb-6">هذه اللوحة خاصة بمدير التطبيق ({ADMIN_EMAIL}) لمراجعة الحوالات والوافقة عليها أو رفضها.</p>
+                <p className="text-xs text-slate-400 mb-6">هذه اللوحة خاصة بمدير التطبيق ({ADMIN_EMAIL}) لمراجعة الحوالات والموافقة عليها أو رفضها.</p>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
@@ -1323,7 +1318,7 @@
             </div>
           )}
 
-          {/* نافذة تسجيل الدخول / حساب جديد */}
+          {/* نافذة تسجيل الدخول */}
           {showAuthModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
