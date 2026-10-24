@@ -628,12 +628,16 @@
 
           const amountVal = parseFloat(depositAmount.value);
           const coinsVal = amountVal * 40000;
+          const cleanTxId = depositTxId.value.trim();
+
+          // توليد معرّف فريد لضمان عدم حدوث تعارض في المفتاح الأساسي للجدول
+          const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}`;
 
           const depositPayload = {
-            id: `DEP-${Math.floor(100000 + Math.random() * 900000)}`,
+            id: uniqueId,
             user_id: currentUser.value.id,
             username: currentUser.value.username,
-            tx_id: depositTxId.value.trim(),
+            tx_id: cleanTxId,
             amount: amountVal,
             coins: coinsVal,
             status: 'pending'
@@ -653,7 +657,7 @@
               depositAmount.value = '';
               setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
             } else {
-              depositMsg.value = "رقم العملية مستخدم مسبقاً أو حدث خطأ في الإرسال.";
+              depositMsg.value = "حدث خطأ أثناء إرسال الحوالة، يرجى المحاولة مرة أخرى.";
             }
           } catch (e) {
             depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
