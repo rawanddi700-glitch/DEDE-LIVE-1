@@ -22,6 +22,12 @@
     }
     .bell-shake { animation: bellShake 0.6s ease-in-out infinite; }
 
+    @keyframes slideDown {
+      0% { transform: translateY(-50px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .slide-down { animation: slideDown 0.5s ease-out forwards; }
+
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #020617; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -31,6 +37,18 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
+    <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
+    <div v-if="userNotification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
+      <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
+        <span class="text-2xl">🎉</span>
+        <div class="flex-1">
+          <h4 class="text-xs font-black">شام كاش - تم قبول الحوالة</h4>
+          <p class="text-xs font-bold mt-0.5">{{ userNotification }}</p>
+        </div>
+        <button @click="userNotification = null" class="text-white hover:text-emerald-200 text-sm font-bold">✕</button>
+      </div>
+    </div>
+
     <!-- الهيدر الاحترافي -->
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sticky top-0 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -58,7 +76,6 @@
 
         <div class="hidden sm:flex items-center gap-3">
           <template v-if="currentUser">
-            <!-- زر لوحة تحكم الأدمن (يظهر حصراً عندك لتأكيد الحوالات) -->
             <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="relative bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse shadow-lg flex items-center gap-1.5 transition-all">
               <span>👑 لوحة طلبات الحوالات</span>
               <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">{{ pendingDepositsCount }}</span>
@@ -286,7 +303,7 @@
       </div>
     </div>
 
-    <!-- لوحة تحكم الأدمن (تظهر لك حصراً عند الدخول بإيميلك للموافقة وإضافة الكوينزات فوراً) -->
+    <!-- لوحة تحكم الأدمن (للموافقة على الحوالات وإرسال الإشعار والكوينزات فوراً) -->
     <div v-if="showAdminPanel && isSuperAdmin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl">
         <button @click="showAdminPanel = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
@@ -294,7 +311,7 @@
           <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-lg">👑</div>
           <div>
             <h3 class="text-lg font-black text-amber-400">لوحة تحكم طلبات الحوالات (الأدمن)</h3>
-            <p class="text-xs text-slate-400">راجع الحوالات الواردة واضغط قبول لتضاف الكوينز للمستخدم فوراً</p>
+            <p class="text-xs text-slate-400">اضغط قبول ليتم تحديث رصيد المستخدم وإرسال إشعار فوري له</p>
           </div>
         </div>
 
@@ -306,9 +323,9 @@
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-xs font-black text-amber-400">رقم الحوالة: {{ dep.tx_id }}</span>
-                <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">المستخدم: {{ dep.username }} ({{ dep.user_id }})</span>
+                <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">المستخدم: {{ dep.username }} (ID: {{ dep.user_id }})</span>
               </div>
-              <p class="text-xs text-slate-300 font-bold">المبلغ: <span class="text-emerald-400 font-mono">${{ dep.amount }}</span> | الكوينز: <span class="text-purple-400 font-mono">{{ dep.coins.toLocaleString() }} 💎</span></p>
+              <p class="text-xs text-slate-300 font-bold">المبلغ: <span class="text-emerald-400 font-mono">${{ dep.amount }}</span> | الكوينز المستحقة: <span class="text-purple-400 font-mono">{{ dep.coins.toLocaleString() }} 💎</span></p>
             </div>
             <div class="flex gap-2 w-full sm:w-auto">
               <button @click="approveDeposit(dep)" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md">قبول ✔️</button>
@@ -510,7 +527,7 @@
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
-        // نظام الحوالات وشام كاش داخل الموقع
+        // نظام الحوالات وشام كاش
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -519,6 +536,7 @@
         const showAdminPanel = ref(false);
         const adminDeposits = ref([]);
         const pendingDepositsCount = ref(0);
+        const userNotification = ref(null); // إشعار القبول العائم للمستخدم
 
         const viewingUser = ref(null);
         const friendRequests = ref([]);
@@ -556,6 +574,33 @@
           } catch (e) {}
         };
 
+        // التحقق الدوري من حالة طلبات المستخدم لتظهر له شاشة القبول والإشعار تلقائياً
+        const checkUserApprovedDeposits = async () => {
+          if (!currentUser.value || isSuperAdmin.value) return;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?user_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.approved&notified=is.null`, { headers: HEADERS });
+            if (res.ok) {
+              const approvedList = await res.json();
+              if (approvedList.length > 0) {
+                const dep = approvedList[0];
+                // إظهار الإشعار الفوري
+                userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
+                
+                // تحديث رصيد المستخدم محلياً وفي قاعدة البيانات
+                currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
+                localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+
+                // تحديث الطلب حتى لا تكرر إظهار الإشعار
+                await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ notified: true })
+                });
+              }
+            }
+          } catch (e) {}
+        };
+
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
           depositMsg.value = "جاري إرسال طلب التحويل للأدمن...";
@@ -565,7 +610,6 @@
           const coinsVal = amountVal * 40000;
           const cleanTxId = depositTxId.value.trim();
 
-          // توليد معرف فريد لتخزين الطلب بدون أي تعارض في قاعدة البيانات
           const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}_${Date.now().toString().slice(-4)}`;
 
           const depositPayload = {
@@ -586,22 +630,23 @@
             });
 
             if (res.ok) {
-              depositMsg.value = "تم إرسال طلب الشحن بنجاح! وصل الإشعار للأدمن للمراجعة. 🟢";
+              depositMsg.value = "تم إرسال طلب الشحن بنجاح! بانتظار موافقة الأدمن. 🟢";
               depositSuccess.value = true;
               depositTxId.value = '';
               depositAmount.value = '';
               setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
             } else {
-              depositMsg.value = "حدث خطأ أثناء إرسال الطلب، تأكد من جدول الـ deposits في قاعدة البيانات.";
+              depositMsg.value = "حدث خطأ أثناء إرسال الطلب.";
             }
           } catch (e) {
             depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
           }
         };
 
+        // دالة قبول الحوالة من طرف الأدمن وتحديث رصيد المستخدم فوراً
         const approveDeposit = async (dep) => {
           try {
-            // 1. تحديث حالة الطلب إلى approved
+            // 1. تحديث حالة الحوالة إلى approved
             const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
               method: 'PATCH',
               headers: HEADERS,
@@ -613,7 +658,7 @@
               return;
             }
 
-            // 2. جلب رصيد المستخدم الحالي من جدول users وإضافة الكوينزات إليه فوراً
+            // 2. جلب رصيد المستخدم الحالي من جدول users وإضافة الكوينز المحددة للحوالة
             const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
             if (userRes.ok) {
               const userData = await userRes.json();
@@ -626,17 +671,11 @@
                   headers: HEADERS,
                   body: JSON.stringify({ coins: newCoins })
                 });
-
-                // تحديث مباشر لمحفظة المستخدم إذا كان متصلاً من نفس المتصفح
-                if (currentUser.value && currentUser.value.id === dep.user_id) {
-                  currentUser.value.coins = newCoins;
-                  localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
-                }
               }
             }
 
             fetchAdminDeposits();
-            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات لحساب المستخدم فوراً 💎");
+            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات المخصصة للحوالة إلى حساب المستخدم فوراً 💎");
           } catch (e) {
             alert("حدث خطأ أثناء تنفيذ عملية التأكيد.");
           }
@@ -690,10 +729,13 @@
           if (currentUser.value) {
             fetchFriendData();
             if (isSuperAdmin.value) fetchAdminDeposits();
-            // تحديث تلقائي كل 4 ثوانٍ لجلب طلبات الحوالات والرسائل الجديدة فوراً
+            else checkUserApprovedDeposits();
+
+            // فحص دوري كل 4 ثوانٍ لتحديث الحوالات، الإشعارات، والأرصدة
             setInterval(() => {
               fetchFriendData();
               if (isSuperAdmin.value) fetchAdminDeposits();
+              else checkUserApprovedDeposits();
             }, 4000);
           }
         });
@@ -842,7 +884,7 @@
           currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
           searchQuery, searchResult, searchError, showAuthModal, isSignup, authEmail, authUsername, errorMsg,
           showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
-          showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount,
+          showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
           friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
           fetchRooms, handleGlobalSearch, enterRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
