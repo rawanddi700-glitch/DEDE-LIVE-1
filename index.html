@@ -80,7 +80,6 @@
       const [createRoomError, setCreateRoomError] = useState('');
       const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-      // نافذة تعديل الملف الشخصي (للمستخدم العادي: الاسم والصورة فقط)
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [editName, setEditName] = useState('');
       const [editAvatar, setEditAvatar] = useState('');
@@ -500,7 +499,7 @@
                   </button>
                 </div>
 
-                {/* مقاعد المايكات مع إظهار الاسم الكبير، والـ ID الأحمر العريض، والرتبة الحمراء */}
+                {/* مقاعد المايكات */}
                 <div className="mb-8">
                   <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8})</h3>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
@@ -785,7 +784,7 @@
       );
     }
 
-    ReactDOM.createRoot(getElementById ? document.getElementById('root') : document.getElementById('root')).render(<App />);
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
