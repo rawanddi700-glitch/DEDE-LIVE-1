@@ -58,9 +58,9 @@
 
         <div class="hidden sm:flex items-center gap-3">
           <template v-if="currentUser">
-            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse shadow-lg flex items-center gap-1.5">
-              <span>👑 لوحة الشام كاش</span>
-              <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{{ pendingDepositsCount }}</span>
+            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="relative bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse shadow-lg flex items-center gap-1.5 transition-all">
+              <span>👑 لوحة الأدمن (الحوالات)</span>
+              <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">{{ pendingDepositsCount }}</span>
             </button>
 
             <button @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-1.5 transition-all">
@@ -100,6 +100,7 @@
             <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">💎 {{ currentUser.coins || 0 }}</span>
           </div>
           <div class="flex gap-1.5">
+            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="bg-amber-600 text-white px-2.5 py-1.5 rounded-xl font-bold animate-pulse">👑 لوحة الأدمن ({{ pendingDepositsCount }})</button>
             <button @click="showDepositModal = true" class="bg-emerald-600 px-2.5 py-1.5 rounded-xl font-bold">شحن</button>
             <button @click="openSocialModal" class="bg-purple-600 px-2.5 py-1.5 rounded-xl font-bold">الرسائل</button>
             <button @click="handleLogout" class="bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-xl font-bold">خروج</button>
@@ -357,8 +358,8 @@
         <div class="flex items-center gap-3 mb-4">
           <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-lg">👑</div>
           <div>
-            <h3 class="text-lg font-black text-amber-400">إدارة طلبات شحن شام كاش</h3>
-            <p class="text-xs text-slate-400">الموافقة على التحويلات وتحديث رصيد المستخدمين تلقائياً</p>
+            <h3 class="text-lg font-black text-amber-400">إدارة طلبات شحن شام كاش (الأدمن)</h3>
+            <p class="text-xs text-slate-400">إيميل الأدمن: <span class="text-emerald-400 font-mono">{{ ADMIN_EMAIL }}</span></p>
           </div>
         </div>
 
@@ -369,7 +370,7 @@
           <div v-for="dep in adminDeposits" :key="dep.id" class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-black text-amber-400">عملية: {{ dep.tx_id }}</span>
+                <span class="text-xs font-black text-amber-400">رقم الحوالة: {{ dep.tx_id }}</span>
                 <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">المستخدم: {{ dep.username }} ({{ dep.user_id }})</span>
               </div>
               <p class="text-xs text-slate-300 font-bold">المبلغ: <span class="text-emerald-400 font-mono">${{ dep.amount }}</span> | الكوينزات المستحقة: <span class="text-purple-400 font-mono">{{ dep.coins }} 💎</span></p>
@@ -574,7 +575,7 @@
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
-        // متغيرات نظام شحن شام كاش
+        // نظام الحوالات وشام كاش
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -598,7 +599,7 @@
 
         const totalUnreadCount = computed(() => Object.keys(unreadFriends.value).length + friendRequests.value.length);
         const hasUnreadActivity = computed(() => totalUnreadCount.value > 0);
-        const isSuperAdmin = computed(() => currentUser.value?.email === ADMIN_EMAIL);
+        const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
 
         const fetchRooms = async () => {
           loadingRooms.value = true;
@@ -622,7 +623,7 @@
 
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
-          depositMsg.value = "جاري إرسال طلب التحويل...";
+          depositMsg.value = "جاري إرسال طلب التحويل للأدمن...";
           depositSuccess.value = false;
 
           const amountVal = parseFloat(depositAmount.value);
@@ -646,29 +647,34 @@
             });
 
             if (res.ok) {
-              depositMsg.value = "تم إرسال طلب الشحن بنجاح! بانتظار موافقة الأدمن لإضافة الكوينزات. 🟢";
+              depositMsg.value = "تم إرسال الحوالة بنجاح! ستصل للأدمن فوراً للمراجعة وإضافة الرصيد. 🟢";
               depositSuccess.value = true;
               depositTxId.value = '';
               depositAmount.value = '';
-              setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3000);
+              setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
             } else {
-              depositMsg.value = "رقم العملية مستخدم مسبقاً أو حدث خطأ.";
+              depositMsg.value = "رقم العملية مستخدم مسبقاً أو حدث خطأ في الإرسال.";
             }
           } catch (e) {
-            depositMsg.value = "فشل الاتصال بالسيرفر.";
+            depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
           }
         };
 
         const approveDeposit = async (dep) => {
           try {
-            // 1. تحديث حالة الإيداع إلى مقبول
-            await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+            // 1. تحديث حالة الإيداع في جدول deposits إلى approved
+            const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
               method: 'PATCH',
               headers: HEADERS,
               body: JSON.stringify({ status: 'approved' })
             });
 
-            // 2. جلب رصيد المستخدم الحالي وتحديثه وتحديث الحالة المحلية أيضاً
+            if (!patchRes.ok) {
+              alert("تعذر تحديث حالة الحوالة.");
+              return;
+            }
+
+            // 2. جلب رصيد المستخدم الحالي من جدول users وتحديثه بالكوينزات فوراً
             const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
             if (userRes.ok) {
               const userData = await userRes.json();
@@ -682,7 +688,7 @@
                   body: JSON.stringify({ coins: newCoins })
                 });
 
-                // إذا كان المستخدم الحالي هو نفس الشخص الذي تتم الموافقة لحسابه، نقوم بتحديث رصيده فوراً في الواجهة
+                // تحديث مباشر لمحفظة المستخدم إذا كان متصلاً من نفس المتصفح
                 if (currentUser.value && currentUser.value.id === dep.user_id) {
                   currentUser.value.coins = newCoins;
                   localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
@@ -690,10 +696,11 @@
               }
             }
 
+            // تحديث قائمة الحوالات المعلقة للأدمن
             fetchAdminDeposits();
-            alert("تمت الموافقة بنجاح وإضافة الكوينزات للمستخدم!");
+            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات إلى حساب المستخدم فوراً 💎");
           } catch (e) {
-            alert("حدث خطأ أثناء الموافقة.");
+            alert("حدث خطأ أثناء تنفيذ عملية التأكيد.");
           }
         };
 
@@ -705,7 +712,7 @@
               body: JSON.stringify({ status: 'rejected' })
             });
             fetchAdminDeposits();
-            alert("تم رفض الطلب.");
+            alert("تم رفض الحوالة.");
           } catch (e) {}
         };
 
@@ -745,10 +752,11 @@
           if (currentUser.value) {
             fetchFriendData();
             if (isSuperAdmin.value) fetchAdminDeposits();
+            // تحديث دوري كل 4 ثوانٍ لجلب الحوالات والرسائل الجديدة فوراً
             setInterval(() => {
               fetchFriendData();
               if (isSuperAdmin.value) fetchAdminDeposits();
-            }, 5000);
+            }, 4000);
           }
         });
 
@@ -793,8 +801,8 @@
 
         const handleAuth = async () => {
           errorMsg.value = '';
-          const email = authEmail.value.trim();
-          const isAdmin = email === ADMIN_EMAIL;
+          const email = authEmail.value.trim().toLowerCase();
+          const isAdmin = email === ADMIN_EMAIL.toLowerCase();
           const pId = isAdmin ? "ADMIN-MASTER-ID" : `ID-${Math.floor(100000 + Math.random() * 900000)}`;
           const userObj = { id: pId, username: authUsername.value || email.split('@')[0], email, password_hash: "123456", coins: 0, level: 1, role: isAdmin ? "👑 مدير التطبيق" : "عضو", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200" };
 
@@ -815,7 +823,7 @@
             showAuthModal.value = false;
             fetchFriendData();
             if (isSuperAdmin.value) fetchAdminDeposits();
-          } catch (e) { errorMsg.value = "خطأ في الاتصال"; }
+          } catch (e) { errorMsg.value = "خطأ في الاتصال بالسيرفر"; }
         };
 
         const handleLogout = () => { currentUser.value = null; localStorage.removeItem('dede_user'); };
@@ -898,7 +906,7 @@
           showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
-          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
+          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin, ADMIN_EMAIL,
           fetchRooms, handleGlobalSearch, enterRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
           openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
           handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
