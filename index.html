@@ -53,23 +53,19 @@
       const [rooms, setRooms] = useState([]);
       const [loadingRooms, setLoadingRooms] = useState(true);
       
-      // حالة الروم النشطة
       const [activeRoom, setActiveRoom] = useState(null);
       const [roomSeatsData, setRoomSeatsData] = useState([]);
       const [isMuted, setIsMuted] = useState(false);
       const [isHandRaised, setIsHandRaised] = useState(false);
       
-      // شات الروم والتفاعلات
       const [roomChat, setRoomChat] = useState([]);
       const [chatInput, setChatInput] = useState('');
       const [floatingEmojis, setFloatingEmojis] = useState([]);
 
-      // محرك البحث الشامل
       const [searchQuery, setSearchQuery] = useState('');
       const [searchResult, setSearchResult] = useState(null);
       const [searchError, setSearchError] = useState('');
 
-      // النوافذ
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
       const [username, setUsername] = useState('');
@@ -84,7 +80,7 @@
       const [createRoomError, setCreateRoomError] = useState('');
       const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-      // تعديل الملف الشخصي
+      // تعديل الملف الشخصي (للصورة والاسم فقط)
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [editName, setEditName] = useState('');
       const [editAvatar, setEditAvatar] = useState('');
@@ -115,7 +111,6 @@
         }
       };
 
-      // تنفيذ البحث الشامل (عن ID مستخدم أو ID روم)
       const handleGlobalSearch = async (e) => {
         e.preventDefault();
         setSearchError('');
@@ -124,14 +119,12 @@
         const query = searchQuery.trim();
         if (!query) return;
 
-        // 1. البحث أولاً في الغرف بالحاوية المحلية أو بالـ ID
         const foundRoom = rooms.find(r => r.id.toLowerCase() === query.toLowerCase());
         if (foundRoom) {
           setSearchResult({ type: 'room', data: foundRoom });
           return;
         }
 
-        // 2. البحث في جدول المستخدمين (Users) بالـ ID أو بالاسم
         try {
           const res = await fetch(`${SUPABASE_BASE_URL}/users?or=(id.ilike.*${query}*,username.ilike.*${query}*)`, { headers: HEADERS });
           if (res.ok) {
@@ -179,13 +172,17 @@
         const seatsCount = room.max_seats || 8;
         const initialSeats = Array.from({ length: seatsCount }, (_, i) => {
           if (i === 0) {
-            return { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id }, isHost: true };
+            return { 
+              index: 0, 
+              user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف الغرفة' }, 
+              isHost: true 
+            };
           }
           return { index: i, user: null, isHost: false };
         });
         setRoomSeatsData(initialSeats);
         setRoomChat([
-          { id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". استمتع بالحديث والصوت!` }
+          { id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}".` }
         ]);
         setIsMuted(false);
         setIsHandRaised(false);
@@ -199,7 +196,12 @@
         const oldIndex = updated.findIndex(s => s.user?.id === currentUser.id);
         if (oldIndex !== -1) updated[oldIndex].user = null;
 
-        updated[index].user = { name: currentUser.username, avatar: currentUser.avatar, id: currentUser.id };
+        updated[index].user = { 
+          name: currentUser.username, 
+          avatar: currentUser.avatar, 
+          id: currentUser.id, 
+          role: currentUser.role || 'مستخدم عادي' 
+        };
         setRoomSeatsData(updated);
         setIsHandRaised(false);
       };
@@ -221,7 +223,7 @@
         if (target) {
           updated[index].user = null;
           setRoomSeatsData(updated);
-          setRoomChat(prev => [...prev, { id: Date.now(), sender: 'تنبيه ⚠️', text: `تم طرد ${target.name} من المايك بواسطة المضيف.` }]);
+          setRoomChat(prev => [...prev, { id: Date.now(), sender: 'تنبيه ⚠️', text: `تم طرد ${target.name} من المايك.` }]);
         }
       };
 
@@ -252,6 +254,7 @@
           password_hash: password,
           coins: 0,
           level: 1,
+          role: 'مستخدم عادي',
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
         };
 
@@ -338,17 +341,15 @@
               </div>
             </div>
 
-            {/* محرك البحث السريع بالآيدي */}
+            {/* محرك البحث */}
             <form onSubmit={handleGlobalSearch} className="flex items-center gap-2 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="ابحث بـ ID مستخدم أو ID روم..." 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="ابحث بـ ID مستخدم أو ID روم..." 
+                className="w-full md:w-64 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+              />
               <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all whitespace-nowrap">
                 🔍 بحث
               </button>
@@ -370,13 +371,15 @@
                   <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
                     <img src={currentUser.avatar} className="w-6 h-6 rounded-full object-cover ring-2 ring-purple-500" />
                     <div className="text-right">
-                      <p className="text-xs font-bold text-white">{currentUser.username}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs font-bold text-white">{currentUser.username}</p>
+                        <span className="bg-purple-600/30 text-purple-300 text-[9px] px-1.5 py-0.2 rounded font-bold border border-purple-500/30">
+                          {currentUser.role || 'مستخدم عادي'}
+                        </span>
+                      </div>
                       <p className="text-[10px] text-purple-400 font-mono">{currentUser.id}</p>
                     </div>
-                    <button 
-                      onClick={() => setShowProfileModal(true)} 
-                      title="تعديل الملف الشخصي"
-                      className="mr-1 text-slate-400 hover:text-white bg-slate-700 p-1 rounded-full text-[10px]">
+                    <button onClick={() => setShowProfileModal(true)} title="تعديل الملف الشخصي" className="mr-1 text-slate-400 hover:text-white bg-slate-700 p-1 rounded-full text-[10px]">
                       ✏️
                     </button>
                   </div>
@@ -393,15 +396,14 @@
             </div>
           </header>
 
-          {/* محتوى الصفحة الرئيسية أو داخل الروم */}
           <main className="max-w-6xl w-full mx-auto p-6 flex-1">
 
-            {/* نتائج البحث */}
+            {/* عرض نتائج البحث */}
             {searchResult ? (
               <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 mb-8 shadow-2xl">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-bold text-purple-400">نتيجة البحث عن: "{searchQuery}"</h3>
-                  <button onClick={() => { setSearchResult(null); setSearchQuery(''); }} className="text-xs text-slate-400 hover:text-white">✕ إغلاق البحث</button>
+                  <button onClick={() => { setSearchResult(null); setSearchQuery(''); }} className="text-xs text-slate-400 hover:text-white">✕ إغلاق</button>
                 </div>
 
                 {searchResult.type === 'room' ? (
@@ -423,12 +425,14 @@
                     <div className="flex items-center gap-4">
                       <img src={searchResult.data.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-16 h-16 rounded-full object-cover ring-2 ring-purple-500" />
                       <div>
-                        <h4 className="text-white font-bold text-base">{searchResult.data.username}</h4>
-                        <p className="text-slate-400 text-xs">ID المستخدم: <span className="font-mono text-purple-300">{searchResult.data.id}</span> | البريد: {searchResult.data.email}</p>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-white font-bold text-base">{searchResult.data.username}</h4>
+                          <span className="bg-purple-600/30 text-purple-300 text-[10px] px-2 py-0.5 rounded font-bold border border-purple-500/30">
+                            {searchResult.data.role || 'مستخدم عادي'}
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-xs mt-1">ID المستخدم: <span className="font-mono text-purple-300">{searchResult.data.id}</span></p>
                       </div>
-                    </div>
-                    <div className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-bold">
-                      💰 {searchResult.data.coins || 0} عملة
                     </div>
                   </div>
                 )}
@@ -436,7 +440,6 @@
             ) : searchError ? (
               <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-4 rounded-2xl mb-8 text-center font-bold">
                 {searchError}
-                <button onClick={() => { setSearchError(''); setSearchQuery(''); }} className="block mx-auto mt-2 text-purple-400 underline">إعادة المحاولة</button>
               </div>
             ) : null}
 
@@ -456,9 +459,9 @@
                   </button>
                 </div>
 
-                {/* مقاعد المايكات */}
+                {/* مقاعد المايكات مع عرض الشارات الرسمية */}
                 <div className="mb-8">
-                  <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8}) - انقر على أي مقعد فارغ للصعود:</h3>
+                  <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8})</h3>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
                     {roomSeatsData.map((seat) => (
                       <div key={seat.index} className="flex flex-col items-center">
@@ -472,11 +475,6 @@
                           {seat.user ? (
                             <>
                               <img src={seat.user.avatar} className="w-full h-full rounded-2xl object-cover" />
-                              {seat.isHost && (
-                                <span className="absolute -top-2 -right-2 bg-amber-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded shadow">
-                                  👑 مضيف
-                                </span>
-                              )}
                               {activeRoom.host_id === currentUser?.id && !seat.isHost && (
                                 <button onClick={(e) => { e.stopPropagation(); kickUser(seat.index); }} className="absolute -bottom-2 -left-2 bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded hover:bg-rose-500">
                                   طرد
@@ -487,35 +485,28 @@
                             <span className="text-slate-600 text-xs font-bold">{seat.index + 1} 🎙️</span>
                           )}
                         </div>
-                        <p className="text-[11px] font-bold text-slate-300 mt-2 truncate max-w-[70px] text-center">
+                        <p className="text-[11px] font-bold text-slate-200 mt-2 truncate max-w-[80px] text-center">
                           {seat.user ? seat.user.name : 'فارغ'}
                         </p>
+                        {seat.user && (
+                          <span className="text-[9px] bg-purple-600/30 text-purple-300 px-1.5 rounded font-bold border border-purple-500/20 mt-0.5">
+                            {seat.user.role || 'مستخدم عادي'}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* أزرار التحكم بالمايك والتفاعلات */}
                 <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setIsMuted(!isMuted)} 
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${isMuted ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
-                      {isMuted ? '🔇 المايك مكتوم' : '🎙️ المايك مفتوح'}
+                    <button onClick={() => setIsMuted(!isMuted)} className={`px-4 py-2 rounded-xl text-xs font-bold ${isMuted ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                      {isMuted ? '🔇 مكتوم' : '🎙️ المايك مفتوح'}
                     </button>
-
-                    <button 
-                      onClick={() => setIsHandRaised(!isHandRaised)} 
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${isHandRaised ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
-                      ✋ {isHandRaised ? 'تم رفع اليد' : 'رفع اليد'}
-                    </button>
-
-                    <button onClick={leaveSeat} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-xs font-bold">
-                      النزول للمستمعين
+                    <button onClick={leaveSeat} className="px-3 py-2 bg-slate-800 text-slate-400 rounded-xl text-xs font-bold">
+                      النزول
                     </button>
                   </div>
-
-                  {/* إيموجيات التفاعل */}
                   <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
                     {['❤️', '🔥', '🎙️', '👏', '🎉'].map(emoji => (
                       <button key={emoji} onClick={() => sendEmoji(emoji)} className="hover:scale-125 transition-transform text-lg px-2">
@@ -525,10 +516,9 @@
                   </div>
                 </div>
 
-                {/* شات الروم */}
                 <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4">
-                  <h4 className="text-xs font-bold text-slate-400 mb-3">دردشة الروم المباشرة</h4>
-                  <div className="h-36 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 text-xs">
+                  <h4 className="text-xs font-bold text-slate-400 mb-3">دردشة الروم</h4>
+                  <div className="h-36 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl text-xs">
                     {roomChat.map(msg => (
                       <div key={msg.id} className="flex items-start gap-2">
                         <span className="font-bold text-purple-400">{msg.sender}:</span>
@@ -536,34 +526,29 @@
                       </div>
                     ))}
                   </div>
-
                   <form onSubmit={sendRoomChat} className="flex gap-2">
                     <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="اكتب رسالة..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                     <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
                   </form>
                 </div>
 
-                {/* تأثير الإيموجيات الطائرة */}
                 <div className="absolute bottom-16 right-16 pointer-events-none">
                   {floatingEmojis.map(item => (
-                    <div key={item.id} className="floating-emoji text-3xl absolute bottom-0 right-0">
-                      {item.emoji}
-                    </div>
+                    <div key={item.id} className="floating-emoji text-3xl absolute bottom-0 right-0">{item.emoji}</div>
                   ))}
                 </div>
               </div>
             ) : (
-              /* قائمة الرومات النشطة الرئيسية */
+              /* القائمة الرئيسية */
               <>
                 <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-8 border border-purple-500/20 mb-8 shadow-2xl text-center md:text-right flex flex-col md:flex-row justify-between items-center gap-6">
                   <div>
                     <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
-                      🟢 الرومات المتاحة حالياً من قاعدة البيانات
+                      🟢 الرومات المتاحة حالياً
                     </span>
                     <h2 className="text-3xl md:text-5xl font-black text-white mb-3">انضم إلى <span className="text-purple-400">DEDE LIVE</span></h2>
-                    <p className="text-slate-300 text-sm max-w-xl">استخدم حقل البحث في الأعلى للبحث عن أي مستخدم أو غرفة عبر الـ ID الخاص بهم فوراً!</p>
+                    <p className="text-slate-300 text-sm max-w-xl">اختر روم أو ابحث عن أصدقائك عبر الـ ID المميز الخاص بهم.</p>
                   </div>
-
                   {currentUser && (
                     <button onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all whitespace-nowrap">
                       🎙️ افتح روم صوتي الآن
@@ -573,19 +558,14 @@
 
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-bold text-white">الرومات النشطة ({rooms.length})</h3>
-                  <button onClick={fetchRooms} className="text-xs text-purple-400 hover:underline">🔄 تحديث القائمة</button>
+                  <button onClick={fetchRooms} className="text-xs text-purple-400 hover:underline">🔄 تحديث</button>
                 </div>
 
                 {loadingRooms ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">جاري جلب الرومات الصوتية...</div>
+                  <div className="text-center py-12 text-slate-400 text-xs">جاري جلب الرومات...</div>
                 ) : rooms.length === 0 ? (
                   <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center">
-                    <p className="text-slate-400 text-sm mb-4">لا توجد رومات صوتية مفتوحة حالياً.</p>
-                    {currentUser ? (
-                      <button onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} className="bg-purple-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl">كن أول من ينشئ روم!</button>
-                    ) : (
-                      <p className="text-xs text-purple-400">سجل دخولك لتتمكن من إنشاء أول روم.</p>
-                    )}
+                    <p className="text-slate-400 text-sm mb-4">لا توجد رومات مفتوحة.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -620,7 +600,7 @@
 
           </main>
 
-          {/* نافذة تعديل الملف الشخصي */}
+          {/* نافذة تعديل الملف الشخصي (للاسم والصورة فقط للمستخدم العادي) */}
           {showProfileModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
@@ -632,7 +612,7 @@
                   <div className="flex flex-col items-center gap-3">
                     <img src={editAvatar || currentUser?.avatar} className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500" />
                     <label className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">
-                      📂 رفع صورة من الهاتف/الكمبيوتر
+                      📂 رفع صورة جديدة
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   </div>
@@ -650,46 +630,39 @@
             </div>
           )}
 
-          {/* نافذة إنشاء روم جديدة */}
+          {/* نافذة إنشاء روم */}
           {showCreateRoomModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowCreateRoomModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-xl font-black text-white text-center mb-1">إنشاء روم صوتي</h3>
-                <p className="text-xs text-slate-400 text-center mb-4">احجز مقعدك وشارك البث مع أصدقائك</p>
-
                 {createRoomError && (
-                  <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
+                  <div className="mb-4 bg-rose-500/10 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
                     {createRoomError}
                   </div>
                 )}
-
                 <form onSubmit={handleCreateRoom} className="space-y-4">
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">عنوان الروم</label>
-                    <input type="text" value={roomTitle} onChange={e => setRoomTitle(e.target.value)} required placeholder="مثال: سهرة وسوالف طرب..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                    <input type="text" value={roomTitle} onChange={e => setRoomTitle(e.target.value)} required placeholder="عنوان الغرفة..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">تصنيف الروم</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">التصنيف</label>
                     <select value={roomCategory} onChange={e => setRoomCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
                       <option value="حوار ونقاش">حوار ونقاش</option>
                       <option value="موسيقى وغناء">موسيقى وغناء</option>
                       <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
-                      <option value="تعارف ودردشة">تعارف ودردشة</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">عدد المقاعد (المايكات)</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">المقاعد</label>
                     <select value={roomSeats} onChange={e => setRoomSeats(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
                       <option value="4">4 مقاعد</option>
-                      <option value="6">6 مقاعد</option>
                       <option value="8">8 مقاعد</option>
                       <option value="12">12 مقعد</option>
                     </select>
                   </div>
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    نشر الروم فوراً
-                  </button>
+                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs">نشر الروم</button>
                 </form>
               </div>
             </div>
@@ -700,20 +673,13 @@
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت (الرصيد الأولي 0 عملة)</p>
-
-                {errorMsg && (
-                  <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
-                    {errorMsg}
-                  </div>
-                )}
-
+                <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'حساب جديد' : 'تسجيل الدخول'}</h3>
+                {errorMsg && <div className="mb-4 bg-rose-500/10 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">{errorMsg}</div>}
                 <form onSubmit={handleAuth} className="space-y-4">
                   {isSignup && (
                     <div>
                       <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-                      <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="اكتب اسمك..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                      <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="اسمك..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                     </div>
                   )}
                   <div>
@@ -724,54 +690,19 @@
                     <label className="text-xs font-bold text-slate-300 block mb-1">كلمة السر</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                   </div>
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    {isSignup ? 'إنشاء الحساب الآن' : 'دخول فوري'}
-                  </button>
+                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs">دخول</button>
                 </form>
-
                 <p className="text-center text-xs text-slate-400 mt-4">
-                  {isSignup ? 'لديك حساب بالفعل؟ ' : 'ليس لديك حساب؟ '}
                   <button onClick={() => setIsSignup(!isSignup)} className="text-purple-400 font-bold hover:underline">
-                    {isSignup ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+                    {isSignup ? 'لديك حساب؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب'}
                   </button>
                 </p>
               </div>
             </div>
           )}
 
-          {/* نافذة السياسة والخصوصية */}
-          {showPrivacyModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full relative shadow-2xl">
-                <button onClick={() => setShowPrivacyModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-4">سياسة الخصوصية والاستخدام</h3>
-                <p className="text-xs text-slate-300 leading-relaxed mb-4 text-right">
-                  نحن في منصة DEDE LIVE نحترم خصوصيتك. البيانات تقتصر على اسم المستخدم والبريد الإلكتروني للتعريف فقط، وتتم حماية الاتصالات بمعايير عالية.
-                </p>
-                <button onClick={() => setShowPrivacyModal(false)} className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-xl text-xs">
-                  إغلاق
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* الفوتر */}
           <footer className="border-t border-slate-800 py-6 bg-slate-900/50 mt-12 text-center text-xs text-slate-400">
-            <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p>DEDE LIVE © 2026 - جميع الحقوق محفوظة</p>
-              <div className="flex items-center gap-4">
-                <button onClick={() => setShowPrivacyModal(true)} className="hover:text-purple-400 underline">
-                  السياسة والخصوصية
-                </button>
-                <a 
-                  href="https://wa.me/963993918672" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1">
-                  <span>💬</span> التواصل مع الدعم (واتساب)
-                </a>
-              </div>
-            </div>
+            DEDE LIVE © 2026 - جميع الحقوق محفوظة
           </footer>
 
         </div>
