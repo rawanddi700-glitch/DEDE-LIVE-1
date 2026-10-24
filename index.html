@@ -630,8 +630,7 @@
           const coinsVal = amountVal * 40000;
           const cleanTxId = depositTxId.value.trim();
 
-          // توليد معرّف فريد لضمان عدم حدوث تعارض في المفتاح الأساسي للجدول
-          const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}`;
+          const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}_${Date.now().toString().slice(-4)}`;
 
           const depositPayload = {
             id: uniqueId,
@@ -657,7 +656,8 @@
               depositAmount.value = '';
               setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
             } else {
-              depositMsg.value = "حدث خطأ أثناء إرسال الحوالة، يرجى المحاولة مرة أخرى.";
+              const errData = await res.json().catch(() => ({}));
+              depositMsg.value = `خطأ في الإرسال: ${errData.message || 'يرجى التأكد من تشغيل الجدول'}`;
             }
           } catch (e) {
             depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
@@ -666,7 +666,6 @@
 
         const approveDeposit = async (dep) => {
           try {
-            // 1. تحديث حالة الإيداع في جدول deposits إلى approved
             const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
               method: 'PATCH',
               headers: HEADERS,
@@ -678,7 +677,6 @@
               return;
             }
 
-            // 2. جلب رصيد المستخدم الحالي من جدول users وتحديثه بالكوينزات فوراً
             const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
             if (userRes.ok) {
               const userData = await userRes.json();
@@ -692,7 +690,6 @@
                   body: JSON.stringify({ coins: newCoins })
                 });
 
-                // تحديث مباشر لمحفظة المستخدم إذا كان متصلاً من نفس المتصفح
                 if (currentUser.value && currentUser.value.id === dep.user_id) {
                   currentUser.value.coins = newCoins;
                   localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
@@ -700,7 +697,6 @@
               }
             }
 
-            // تحديث قائمة الحوالات المعلقة للأدمن
             fetchAdminDeposits();
             alert("تمت الموافقة بنجاح! وأضيفت الكوينزات إلى حساب المستخدم فوراً 💎");
           } catch (e) {
@@ -756,7 +752,6 @@
           if (currentUser.value) {
             fetchFriendData();
             if (isSuperAdmin.value) fetchAdminDeposits();
-            // تحديث دوري كل 4 ثوانٍ لجلب الحوالات والرسائل الجديدة فوراً
             setInterval(() => {
               fetchFriendData();
               if (isSuperAdmin.value) fetchAdminDeposits();
