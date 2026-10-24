@@ -15,11 +15,7 @@
   <!-- مترجم Babel ليفهم المتصفح كود React/JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <!-- أيقونات Lucide -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://unpkg.com/lucide-react@latest"></script>
-
-  <!-- مكتبة Supabase -->
+  <!-- مكتبة Supabase للربط بقاعدة البيانات -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-javascript@2"></script>
 
   <style>
@@ -38,7 +34,7 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // تهيئة Supabase بالطريقة السليمة لضمان عدم توقف الصفحة
+    // تهيئة Supabase مع المفاتيح الخاصة بك
     const SUPABASE_URL = "https://yhsehpcosswgehonzzcq.supabase.co";
     const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
     
@@ -97,6 +93,7 @@
         e.preventDefault();
         setErrorMsg('');
 
+        // إنشاء آي دي ثابت فوراً بدون كود تفعيل
         const permanentId = `ID-${Math.floor(100000 + Math.random() * 900000)}`;
         const userObj = {
           id: permanentId,
@@ -106,7 +103,7 @@
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
         };
 
-        // محاولة الحفظ في قاعدة البيانات إذا كانت متصلة
+        // محاولة الحفظ في قاعدة بيانات Supabase
         if (supabase) {
           try {
             await supabase.from('users').insert([{
@@ -117,7 +114,7 @@
               coins: 1000
             }]);
           } catch (err) {
-            console.log("DB insert info:", err);
+            console.log("DB Insert Log:", err);
           }
         }
 
@@ -174,7 +171,7 @@
                 🔴 البث المباشر متوفر الآن
               </span>
               <h2 className="text-3xl md:text-5xl font-black text-white mb-3">أهلاً بك في منصة <span className="text-purple-400">DEDE LIVE</span></h2>
-              <p className="text-slate-300 text-sm max-w-xl">انضم إلى أحدث الرومات الصوتية، تحدث مع أصدقائك، واحصل على ID ثابت فور إنشائك للحساب!</p>
+              <p className="text-slate-300 text-sm max-w-xl">انضم إلى أحدث الرومات الصوتية، تحدث مع أصدقائك، واحصل على ID ثابت فور إنشائك للحساب بدون كود تأكيد!</p>
             </div>
 
             <h3 className="text-lg font-bold text-white mb-4">الرومات الصوتية المتاحة</h3>
@@ -211,7 +208,7 @@
           {showAuthModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400">✕</button>
+                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h3>
                 <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت بدون أكواد تفعيل</p>
 
@@ -234,7 +231,7 @@
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">كلمة السر</label>
-                    <input type="password" value={password} onChange, onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                   </div>
                   <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg shadow-purple-600/30 transition-all">
                     {isSignup ? 'إنشاء الحساب الآن' : 'دخول فوري'}
