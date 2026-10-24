@@ -53,7 +53,7 @@
       const [rooms, setRooms] = useState([]);
       const [loadingRooms, setLoadingRooms] = useState(true);
       
-      // حالة الروم النشطة حالياً عند الدخول إليها
+      // حالة الروم النشطة
       const [activeRoom, setActiveRoom] = useState(null);
       const [roomSeatsData, setRoomSeatsData] = useState([]);
       const [isMuted, setIsMuted] = useState(false);
@@ -64,7 +64,7 @@
       const [chatInput, setChatInput] = useState('');
       const [floatingEmojis, setFloatingEmojis] = useState([]);
 
-      // النوافذ الأخرى
+      // النوافذ
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
       const [username, setUsername] = useState('');
@@ -79,9 +79,21 @@
       const [createRoomError, setCreateRoomError] = useState('');
       const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
+      // نافذة تعديل الملف الشخصي
+      const [showProfileModal, setShowProfileModal] = useState(false);
+      const [editName, setEditName] = useState('');
+      const [editAvatar, setEditAvatar] = useState('');
+
       useEffect(() => {
         fetchRooms();
       }, []);
+
+      useEffect(() => {
+        if (currentUser) {
+          setEditName(currentUser.username || '');
+          setEditAvatar(currentUser.avatar || '');
+        }
+      }, [currentUser]);
 
       const fetchRooms = async () => {
         setLoadingRooms(true);
@@ -98,7 +110,35 @@
         }
       };
 
-      // الدخول إلى الروم وتوزيع المقاعد
+      // تحويل الصورة المحملة محلياً لـ Base64
+      const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setEditAvatar(reader.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      // حفظ التعديلات على الملف الشخصي
+      const handleSaveProfile = (e) => {
+        e.preventDefault();
+        if (!currentUser) return;
+
+        const updatedUser = {
+          ...currentUser,
+          username: editName,
+          avatar: editAvatar || currentUser.avatar
+        };
+
+        setCurrentUser(updatedUser);
+        localStorage.setItem('dede_user', JSON.stringify(updatedUser));
+        setShowProfileModal(false);
+      };
+
+      // الدخول إلى الروم
       const enterRoom = (room) => {
         setActiveRoom(room);
         const seatsCount = room.max_seats || 8;
@@ -120,9 +160,8 @@
       const claimSeat = (index) => {
         if (!currentUser) return alert("يجب تسجيل الدخول أولاً للصعود إلى المايك!");
         const updated = [...roomSeatsData];
-        if (updated[index].user) return; // المقعد مشغول
+        if (updated[index].user) return;
 
-        // إزالة المستخدم من مقعده القديم إن وجد
         const oldIndex = updated.findIndex(s => s.user?.id === currentUser.id);
         if (oldIndex !== -1) updated[oldIndex].user = null;
 
@@ -141,7 +180,7 @@
         }
       };
 
-      // طرد مستخدم (خاص بالمضيف)
+      // طرد مستخدم
       const kickUser = (index) => {
         if (activeRoom.host_id !== currentUser?.id) return alert("فقط مضيف الغرفة يمكنه طرد الأعضاء!");
         const updated = [...roomSeatsData];
@@ -154,7 +193,7 @@
         }
       };
 
-      // إرسال رسالة في شات الروم
+      // إرسال رسالة شات
       const sendRoomChat = (e) => {
         e.preventDefault();
         if (!chatInput.trim() || !currentUser) return;
@@ -162,7 +201,7 @@
         setChatInput('');
       };
 
-      // إرسال إيموجي تفاعلي طائر
+      // إيموجي طائر
       const sendEmoji = (emoji) => {
         const id = Date.now();
         setFloatingEmojis(prev => [...prev, { id, emoji }]);
@@ -171,6 +210,7 @@
         }, 1500);
       };
 
+      // تسجيل / إنشاء حساب برصيد صفر كوينز
       const handleAuth = async (e) => {
         e.preventDefault();
         setErrorMsg('');
@@ -181,7 +221,7 @@
           username: username || email.split('@')[0],
           email: email,
           password_hash: password,
-          coins: 1000,
+          coins: 0, // الرصيد الأولي صفر
           level: 1,
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
         };
@@ -279,12 +319,21 @@
                   </button>
 
                   <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold hidden sm:block">
-                    💰 {currentUser.coins} عملة
+                    💰 {currentUser.coins || 0} عملة
                   </div>
 
-                  <div className="bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-right">
-                    <p className="text-xs font-bold text-white">{currentUser.username}</p>
-                    <p className="text-[10px] text-purple-400 font-mono">{currentUser.id}</p>
+                  <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
+                    <img src={currentUser.avatar} className="w-6 h-6 rounded-full object-cover ring-2 ring-purple-500" />
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-white">{currentUser.username}</p>
+                      <p className="text-[10px] text-purple-400 font-mono">{currentUser.id}</p>
+                    </div>
+                    <button 
+                      onClick={() => setShowProfileModal(true)} 
+                      title="تعديل الملف الشخصي"
+                      className="mr-1 text-slate-400 hover:text-white bg-slate-700 p-1 rounded-full text-[10px]">
+                      ✏️
+                    </button>
                   </div>
 
                   <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-xl border border-rose-500/20 transition-all">
@@ -303,7 +352,7 @@
           <main className="max-w-6xl w-full mx-auto p-6 flex-1">
 
             {activeRoom ? (
-              /* 🎙️ واجهة الروم الحية الفعالة */
+              /* واجهة الروم الحية */
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
                 <div className="flex items-center justify-between pb-6 border-b border-slate-800 mb-6">
                   <div>
@@ -482,6 +531,36 @@
 
           </main>
 
+          {/* نافذة تعديل الملف الشخصي */}
+          {showProfileModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
+                <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+                <h3 className="text-xl font-black text-white text-center mb-1">تعديل الملف الشخصي</h3>
+                <p className="text-xs text-slate-400 text-center mb-6">غير صورتك واسمك بسهولة</p>
+
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                  <div className="flex flex-col items-center gap-3">
+                    <img src={editAvatar || currentUser?.avatar} className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500" />
+                    <label className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">
+                      📂 رفع صورة من الهاتف/الكمبيوتر
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                  </div>
+
+                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
+                    حفظ التغييرات
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* نافذة إنشاء روم جديدة */}
           {showCreateRoomModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -533,7 +612,7 @@
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت</p>
+                <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت (الرصيد الأولي 0 عملة)</p>
 
                 {errorMsg && (
                   <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
