@@ -122,10 +122,8 @@
       const [editAvatar, setEditAvatar] = useState('');
       const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
-      // لوحة الأدمن (شام كاش)
       const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-      // متغيرات التواصل والأصدقاء والشات
       const [viewingUser, setViewingUser] = useState(null);
       const [friendRequests, setFriendRequests] = useState([]);
       const [friendsList, setFriendsList] = useState([]);
@@ -195,6 +193,7 @@
                   const lastMsg = msgData[0];
                   lastMsgsMap[friendId] = lastMsg.message_text;
 
+                  // إذا كانت الرسالة غير مقروءة وليست محادثة مفتوحة حالياً
                   if (lastMsg.sender_id !== currentUser.id && (!activePrivateChat || activePrivateChat.id !== friendId)) {
                     newUnreadMap[friendId] = true;
                     totalNewActivity++;
@@ -218,7 +217,6 @@
         }
       };
 
-      // تعبئة حقول التعديل بالاسم الحالي للمستخدم عند فتح نافذة البروفايل
       useEffect(() => {
         if (currentUser && showProfileModal) {
           setEditName(currentUser.username || '');
@@ -325,6 +323,7 @@
         
         setActivePrivateChat({ id: friendId, name: friendName });
         
+        // عند فتح الشات وقراءة الرسائل، يزول مؤشر اللون الأحمر الخاص بهذا الصديق فوراً
         setUnreadFriends(prev => {
           const updated = { ...prev };
           delete updated[friendId];
@@ -405,7 +404,6 @@
         }
       };
 
-      // دالة حفظ التعديلات الشخصية (المستخدم يغير اسمه وصورته بحرية تامة)
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
@@ -928,7 +926,6 @@
 
           </main>
 
-          {/* لوحة تحكم الأدمن لشام كاش */}
           {showAdminPanel && isSuperAdmin && (
             <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-2xl w-full p-6 relative shadow-2xl">
@@ -1207,7 +1204,6 @@
             </div>
           )}
 
-          {/* نافذة تعديل الملف الشخصي (المستخدم يغير اسمه بحرية تامة) */}
           {showProfileModal && (
             <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full relative shadow-2xl">
@@ -1261,7 +1257,6 @@
             </div>
           )}
 
-          {/* نافذة إنشاء روم */}
           {showCreateRoomModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
@@ -1299,7 +1294,6 @@
             </div>
           )}
 
-          {/* نافذة تسجيل الدخول */}
           {showAuthModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
