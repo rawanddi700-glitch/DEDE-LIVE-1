@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <title>DEDE LIVE - منصة الدردشة الصوتية</title>
   
-  <!-- تحميل المكتبات بطريقة مستقرة وسريعة للموبايل -->
-  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -42,10 +39,9 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
   <div id="root">
-    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #020617; color: #a855f7; font-family: 'Tajawal', sans-serif; text-align: center; padding: 20px;">
-      <div style="font-size: 40px; margin-bottom: 10px;">🎙️</div>
-      <div style="font-size: 18px; font-weight: bold;">جاري تشغيل منصة DEDE LIVE...</div>
-      <div style="font-size: 12px; color: #64748b; margin-top: 5px;">يرجى الانتظار ثوانٍ معدودة</div>
+    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #020617; color: #a855f7; font-family: 'Tajawal', sans-serif;">
+      <div style="font-size: 36px; margin-bottom: 10px;">🎙️</div>
+      <div style="font-size: 16px; font-weight: bold;">جاري تحميل DEDE LIVE...</div>
     </div>
   </div>
 
@@ -72,16 +68,13 @@
         const gainNode = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(659.25, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
-        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.45);
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         osc.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.45);
-      } catch (e) {
-        console.log("Audio Context blocked");
-      }
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {}
     };
 
     function App() {
@@ -89,18 +82,14 @@
         try {
           const saved = localStorage.getItem('dede_user');
           return saved ? JSON.parse(saved) : null;
-        } catch (e) {
-          return null;
-        }
+        } catch (e) { return null; }
       });
       
       const [rooms, setRooms] = useState([]);
       const [loadingRooms, setLoadingRooms] = useState(true);
-      
       const [activeRoom, setActiveRoom] = useState(null);
       const [roomSeatsData, setRoomSeatsData] = useState([]);
       const [isMuted, setIsMuted] = useState(false);
-      
       const [roomChat, setRoomChat] = useState([]);
       const [chatInput, setChatInput] = useState('');
       const [floatingEmojis, setFloatingEmojis] = useState([]);
@@ -128,7 +117,6 @@
       const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
       const [showAdminPanel, setShowAdminPanel] = useState(false);
-
       const [viewingUser, setViewingUser] = useState(null);
       const [friendRequests, setFriendRequests] = useState([]);
       const [friendsList, setFriendsList] = useState([]);
@@ -143,7 +131,6 @@
 
       const chatScrollRef = useRef(null);
       const prevReqCountRef = useRef(0);
-      const prevTotalMsgsCountRef = useRef(0);
 
       useEffect(() => {
         fetchRooms();
@@ -151,10 +138,8 @@
           fetchFriendData();
           const interval = setInterval(() => {
             fetchFriendData();
-            if (activePrivateChat) {
-              fetchPrivateMessages(activePrivateChat.id, false);
-            }
-          }, 3000);
+            if (activePrivateChat) fetchPrivateMessages(activePrivateChat.id);
+          }, 4000);
           return () => clearInterval(interval);
         }
       }, [currentUser, activePrivateChat]);
@@ -171,9 +156,7 @@
           const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.id)}&status=eq.pending`, { headers: HEADERS });
           if (reqRes.ok) {
             const reqs = await reqRes.json();
-            if (reqs.length > prevReqCountRef.current) {
-              playNotificationSound();
-            }
+            if (reqs.length > prevReqCountRef.current) playNotificationSound();
             prevReqCountRef.current = reqs.length;
             setFriendRequests(reqs);
           }
@@ -185,7 +168,6 @@
 
             const lastMsgsMap = {};
             const newUnreadMap = { ...unreadFriends };
-            let totalNewActivity = 0;
 
             for (let f of fList) {
               const friendId = f.sender_id === currentUser.id ? f.receiver_id : f.sender_id;
@@ -196,36 +178,19 @@
                 if (msgData.length > 0) {
                   const lastMsg = msgData[0];
                   lastMsgsMap[friendId] = lastMsg.message_text;
-
                   if (lastMsg.sender_id !== currentUser.id && (!activePrivateChat || activePrivateChat.id !== friendId)) {
                     newUnreadMap[friendId] = true;
-                    totalNewActivity++;
                   }
                 } else {
-                  lastMsgsMap[friendId] = "ابدأ المحادثة الآن...";
+                  lastMsgsMap[friendId] = "ابدأ المحادثة...";
                 }
               }
             }
-
             setFriendsLastMessages(lastMsgsMap);
             setUnreadFriends(newUnreadMap);
-
-            if ((totalNewActivity > prevTotalMsgsCountRef.current || reqs.length > 0) && prevTotalMsgsCountRef.current !== -1) {
-              playNotificationSound();
-            }
-            prevTotalMsgsCountRef.current = totalNewActivity;
           }
-        } catch (err) {
-          console.error("Error fetching friend data:", err);
-        }
+        } catch (err) {}
       };
-
-      useEffect(() => {
-        if (currentUser && showProfileModal) {
-          setEditName(currentUser.username || '');
-          setEditAvatar(currentUser.avatar || '');
-        }
-      }, [showProfileModal, currentUser]);
 
       const fetchRooms = async () => {
         setLoadingRooms(true);
@@ -235,9 +200,7 @@
             const data = await response.json();
             setRooms(data);
           }
-        } catch (err) {
-          console.error("Error fetching rooms:", err);
-        } finally {
+        } catch (err) {} finally {
           setLoadingRooms(false);
         }
       };
@@ -246,7 +209,6 @@
         e.preventDefault();
         setSearchError('');
         setSearchResult(null);
-
         const query = searchQuery.trim();
         if (!query) return;
 
@@ -265,152 +227,80 @@
               return;
             }
           }
-        } catch (err) {
-          console.error("Search user error:", err);
-        }
-
-        setSearchError('عذراً، لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.');
+        } catch (err) {}
+        setSearchError('لم يتم العثور على أي تطابقة.');
       };
 
       const sendFriendRequest = async (targetUser) => {
-        if (!currentUser) return alert("سجل الدخول أولاً لإرسال طلب صداقة!");
-        if (currentUser.id === targetUser.id) return alert("لا يمكنك إرسال طلب صداقة لنفسك!");
-        
-        setActionMsg("جاري إرسال الطلب...");
+        if (!currentUser) return alert("سجل الدخول أولاً!");
+        if (currentUser.id === targetUser.id) return alert("لا يمكنك إرسال طلب لنفسك!");
+        setActionMsg("جاري الإرسال...");
         try {
-          const payload = {
-            sender_id: currentUser.id,
-            sender_name: currentUser.username,
-            receiver_id: targetUser.id,
-            status: 'pending'
-          };
-          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, {
-            method: 'POST',
-            headers: HEADERS,
-            body: JSON.stringify(payload)
-          });
-
-          if (res.ok) {
-            setActionMsg("تم إرسال طلب الصداقة بنجاح! 🟢");
-          } else {
-            setActionMsg("تم إرسال طلب مسبقاً لهذا المستخدم.");
-          }
-        } catch (err) {
-          setActionMsg("فشل الاتصال بالسيرفر.");
-        }
+          const payload = { sender_id: currentUser.id, sender_name: currentUser.username, receiver_id: targetUser.id, status: 'pending' };
+          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
+          if (res.ok) setActionMsg("تم إرسال طلب الصداقة! 🟢");
+          else setActionMsg("تم إرسال طلب مسبقاً.");
+        } catch (e) { setActionMsg("فشل الاتصال."); }
       };
 
       const respondToFriendRequest = async (reqId, accept) => {
         try {
           if (accept) {
-            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${reqId}`, {
-              method: 'PATCH',
-              headers: HEADERS,
-              body: JSON.stringify({ status: 'accepted' })
-            });
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${reqId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: 'accepted' }) });
           } else {
-            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${reqId}`, {
-              method: 'DELETE',
-              headers: HEADERS
-            });
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${reqId}`, { method: 'DELETE', headers: HEADERS });
           }
           fetchFriendData();
-        } catch (err) {
-          console.error("Error responding to request:", err);
-        }
+        } catch (e) {}
       };
 
       const openPrivateChat = async (friend) => {
         const friendId = friend.sender_id === currentUser.id ? friend.receiver_id : friend.sender_id;
         const friendName = friend.sender_id === currentUser.id ? (friend.receiver_name || "صديق") : friend.sender_name;
-        
         setActivePrivateChat({ id: friendId, name: friendName });
-        
-        setUnreadFriends(prev => {
-          const updated = { ...prev };
-          delete updated[friendId];
-          return updated;
-        });
-
-        fetchPrivateMessages(friendId, true);
+        setUnreadFriends(prev => { const u = { ...prev }; delete u[friendId]; return u; });
+        fetchPrivateMessages(friendId);
       };
 
-      const fetchPrivateMessages = async (friendId, initial = false) => {
+      const fetchPrivateMessages = async (friendId) => {
         try {
           const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.id)},receiver_id.eq.${encodeURIComponent(friendId)}),and(sender_id.eq.${encodeURIComponent(friendId)},receiver_id.eq.${encodeURIComponent(currentUser.id)}))&order=created_at.asc`, { headers: HEADERS });
           if (res.ok) {
             const msgs = await res.json();
-            if (!initial && msgs.length > privateMessages.length) {
-              const lastMsg = msgs[msgs.length - 1];
-              if (lastMsg && lastMsg.sender_id !== currentUser.id) {
-                playNotificationSound();
-              }
-            }
             setPrivateMessages(msgs);
           }
-        } catch (err) {
-          console.error("Error fetching private msgs:", err);
-        }
+        } catch (e) {}
       };
 
-      const sendPrivateMessage = async (textToSend, type = 'text') => {
+      const sendPrivateMessage = async (textToSend) => {
         if (!textToSend.trim() || !activePrivateChat) return;
-
-        const payload = {
-          sender_id: currentUser.id,
-          receiver_id: activePrivateChat.id,
-          message_text: textToSend.trim()
-        };
-
+        const payload = { sender_id: currentUser.id, receiver_id: activePrivateChat.id, message_text: textToSend.trim() };
         try {
-          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, {
-            method: 'POST',
-            headers: HEADERS,
-            body: JSON.stringify(payload)
-          });
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
           if (res.ok) {
-            if (type === 'text') setPrivateMsgInput('');
-            fetchPrivateMessages(activePrivateChat.id, false);
+            setPrivateMsgInput('');
+            fetchPrivateMessages(activePrivateChat.id);
             fetchFriendData();
           }
-        } catch (err) {
-          console.error("Error sending private message:", err);
-        }
+        } catch (e) {}
       };
 
       const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = (event) => {
           const img = new Image();
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 250;
-            const MAX_HEIGHT = 250;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height *= MAX_WIDTH / width;
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width *= MAX_HEIGHT / height;
-                height = MAX_HEIGHT;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
+            const MAX = 200;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            setEditAvatar(compressedDataUrl);
+            ctx.drawImage(img, 0, 0, w, h);
+            setEditAvatar(canvas.toDataURL('image/jpeg', 0.7));
           };
           img.src = event.target.result;
         };
@@ -421,7 +311,6 @@
         e.preventDefault();
         if (!currentUser) return;
         setProfileUpdateMsg('جاري الحفظ...');
-
         const newUsername = editName.trim();
         const newAvatar = editAvatar || currentUser.avatar;
 
@@ -429,27 +318,16 @@
           const response = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.email)}`, {
             method: 'PATCH',
             headers: HEADERS,
-            body: JSON.stringify({
-              username: newUsername,
-              avatar: newAvatar
-            })
+            body: JSON.stringify({ username: newUsername, avatar: newAvatar })
           });
-
           if (response.ok) {
             const updatedUser = { ...currentUser, username: newUsername, avatar: newAvatar };
             setCurrentUser(updatedUser);
             localStorage.setItem('dede_user', JSON.stringify(updatedUser));
             setProfileUpdateMsg('تم الحفظ بنجاح! ✅');
-            setTimeout(() => {
-              setShowProfileModal(false);
-              setProfileUpdateMsg('');
-            }, 1200);
-          } else {
-            setProfileUpdateMsg("تعذر الحفظ");
-          }
-        } catch (err) {
-          setProfileUpdateMsg("فشل الاتصال");
-        }
+            setTimeout(() => { setShowProfileModal(false); setProfileUpdateMsg(''); }, 1000);
+          } else { setProfileUpdateMsg("تعذر الحفظ"); }
+        } catch (e) { setProfileUpdateMsg("فشل الاتصال"); }
       };
 
       const enterRoom = (room) => {
@@ -457,35 +335,21 @@
         const seatsCount = room.max_seats || 8;
         const initialSeats = Array.from({ length: seatsCount }, (_, i) => {
           if (i === 0) {
-            return { 
-              index: 0, 
-              user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف الغرفة' }, 
-              isHost: true 
-            };
+            return { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف الغرفة' }, isHost: true };
           }
           return { index: i, user: null, isHost: false };
         });
         setRoomSeatsData(initialSeats);
-        setRoomChat([
-          { id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}".` }
-        ]);
-        setIsMuted(false);
+        setRoomChat([{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}".` }]);
       };
 
       const claimSeat = (index) => {
-        if (!currentUser) return alert("يجب تسجيل الدخول أولاً للصعود إلى المايك!");
+        if (!currentUser) return alert("سجل الدخول أولاً للصعود إلى المايك!");
         const updated = [...roomSeatsData];
         if (updated[index].user) return;
-
         const oldIndex = updated.findIndex(s => s.user?.id === currentUser.id);
         if (oldIndex !== -1) updated[oldIndex].user = null;
-
-        updated[index].user = { 
-          name: currentUser.username, 
-          avatar: currentUser.avatar, 
-          id: currentUser.id, 
-          role: currentUser.role || 'عضو' 
-        };
+        updated[index].user = { name: currentUser.username, avatar: currentUser.avatar, id: currentUser.id, role: currentUser.role || 'عضو' };
         setRoomSeatsData(updated);
       };
 
@@ -498,43 +362,9 @@
         }
       };
 
-      const kickUser = (index) => {
-        if (activeRoom.host_id !== currentUser?.id) return alert("فقط مضيف الغرفة يمكنه طرد الأعضاء!");
-        const updated = [...roomSeatsData];
-        if (updated[index].isHost) return alert("لا يمكنك طرد مضيف الغرفة!");
-        const target = updated[index].user;
-        if (target) {
-          updated[index].user = null;
-          setRoomSeatsData(updated);
-          setRoomChat(prev => [...prev, { id: Date.now(), sender: 'تنبيه ⚠️', text: `تم طرد ${target.name} من المايك.` }]);
-        }
-      };
-
-      const sendRoomChat = (e) => {
-        e.preventDefault();
-        if (!chatInput.trim() || !currentUser) return;
-        setRoomChat(prev => [...prev, { id: Date.now(), sender: currentUser.username, text: chatInput }]);
-        setChatInput('');
-      };
-
-      const sendEmoji = (emoji) => {
-        const id = Date.now();
-        setFloatingEmojis(prev => [...prev, { id, emoji }]);
-        setTimeout(() => {
-          setFloatingEmojis(prev => prev.filter(item => item.id !== id));
-        }, 1500);
-      };
-
       const handleAuth = async (e) => {
         e.preventDefault();
         setErrorMsg('');
-
-        const localDeviceUser = localStorage.getItem('dede_device_registered');
-        if (isSignup && localDeviceUser) {
-          setErrorMsg("عذراً، لا يمكنك إنشاء أكثر من حساب واحد من هذا الجهاز!");
-          return;
-        }
-
         const emailInput = email.trim();
         const isAdmin = emailInput === ADMIN_EMAIL;
         const permanentId = isAdmin ? "ADMIN-MASTER-ID" : `ID-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -553,31 +383,20 @@
 
         try {
           if (isSignup) {
-            const response = await fetch(`${SUPABASE_BASE_URL}/users`, {
-              method: 'POST',
-              headers: HEADERS,
-              body: JSON.stringify(userObj)
-            });
-
+            const response = await fetch(`${SUPABASE_BASE_URL}/users`, { method: 'POST', headers: HEADERS, body: JSON.stringify(userObj) });
             if (!response.ok) {
-              const errData = await response.json();
-              setErrorMsg("خطأ: " + (errData.message || "البريد مستخدم مسبقاً"));
+              setErrorMsg("البريد مستخدم مسبقاً");
               return;
             }
-            localStorage.setItem('dede_device_registered', 'true');
           } else {
             const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(emailInput)}`, { headers: HEADERS });
             if (res.ok) {
               const data = await res.json();
-              if (data.length > 0) {
-                Object.assign(userObj, data[0]);
-              } else {
-                setErrorMsg("البريد غير مسجل أو كلمة المرور خاطئة");
-                return;
-              }
+              if (data.length > 0) Object.assign(userObj, data[0]);
+              else { setErrorMsg("البريد غير مسجل"); return; }
             }
           }
-        } catch (err) {
+        } catch (e) {
           setErrorMsg("فشل الاتصال بقاعدة البيانات");
           return;
         }
@@ -590,11 +409,7 @@
       const handleCreateRoom = async (e) => {
         e.preventDefault();
         setCreateRoomError('');
-
-        if (!currentUser) {
-          setCreateRoomError('يجب تسجيل الدخول أولاً');
-          return;
-        }
+        if (!currentUser) return setCreateRoomError('سجل الدخول أولاً');
 
         const newRoom = {
           id: `ROOM-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -609,28 +424,13 @@
         };
 
         try {
-          const response = await fetch(`${SUPABASE_BASE_URL}/rooms`, {
-            method: 'POST',
-            headers: HEADERS,
-            body: JSON.stringify(newRoom)
-          });
-
+          const response = await fetch(`${SUPABASE_BASE_URL}/rooms`, { method: 'POST', headers: HEADERS, body: JSON.stringify(newRoom) });
           if (response.ok) {
             setShowCreateRoomModal(false);
             setRoomTitle('');
             fetchRooms();
-          } else {
-            const errData = await response.json();
-            setCreateRoomError("خطأ: " + (errData.message || "تأكد من البيانات"));
-          }
-        } catch (err) {
-          setCreateRoomError("فشل في الاتصال أثناء إنشاء الروم");
-        }
-      };
-
-      const handleLogout = () => {
-        setCurrentUser(null);
-        localStorage.removeItem('dede_user');
+          } else { setCreateRoomError("تأكد من البيانات"); }
+        } catch (e) { setCreateRoomError("فشل إنشاء الروم"); }
       };
 
       const totalUnreadCount = Object.keys(unreadFriends).length + friendRequests.length;
@@ -642,29 +442,19 @@
           
           <header className="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-50 shadow-md">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-              
               <div className="flex items-center justify-between w-full sm:w-auto">
-                <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => { setActiveRoom(null); setSearchResult(null); setSearchQuery(''); }}>
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-black text-lg shadow-lg">
-                    🎙️
-                  </div>
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setActiveRoom(null); setSearchResult(null); setSearchQuery(''); }}>
+                  <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center font-black text-lg">🎙️</div>
                   <div>
-                    <h1 className="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-                    <p className="text-[9px] text-purple-400 font-bold">بث مباشر ورومات حية</p>
+                    <h1 className="text-lg font-black text-purple-400">DEDE LIVE</h1>
+                    <p className="text-[9px] text-slate-400">رومات صوتية مباشرة</p>
                   </div>
                 </div>
 
                 {currentUser && (
                   <div className="flex sm:hidden items-center gap-2">
-                    <button 
-                      onClick={() => { fetchFriendData(); setShowSocialModal(true); }}
-                      className={`relative bg-slate-800 p-2 rounded-xl border ${hasUnreadActivity ? 'border-rose-500 bell-shake' : 'border-slate-700'}`}>
-                      💬
-                      {totalUnreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-                          {totalUnreadCount}
-                        </span>
-                      )}
+                    <button onClick={() => { fetchFriendData(); setShowSocialModal(true); }} className={`relative bg-slate-800 p-2 rounded-xl ${hasUnreadActivity ? 'border border-rose-500 bell-shake' : ''}`}>
+                      💬 {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{totalUnreadCount}</span>}
                     </button>
                     <img src={currentUser.avatar} onClick={() => setShowProfileModal(true)} className="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
                   </div>
@@ -672,289 +462,150 @@
               </div>
 
               <form onSubmit={handleGlobalSearch} className="flex items-center gap-2 w-full sm:w-auto">
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="ابحث بـ ID مستخدم أو ID روم..." 
-                  className="w-full sm:w-60 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
-                <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all whitespace-nowrap">
-                  🔍 بحث
-                </button>
+                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="بحث بـ ID مستخدم أو روم..." className="w-full sm:w-60 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                <button type="submit" className="bg-purple-600 text-white text-xs px-4 py-2 rounded-xl">بحث</button>
               </form>
 
               <div className="hidden sm:flex items-center gap-3">
                 {currentUser ? (
                   <>
-                    {isSuperAdmin && (
-                      <button 
-                        onClick={() => setShowAdminPanel(true)}
-                        className="bg-amber-600 text-white px-3.5 py-2 rounded-xl text-xs font-black shadow-lg animate-pulse">
-                        👑 إدارة التحويلات
-                      </button>
-                    )}
-
-                    <button 
-                      onClick={() => { fetchFriendData(); setShowSocialModal(true); }}
-                      className={`relative bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl border shadow flex items-center gap-2 text-xs font-bold ${
-                        hasUnreadActivity ? 'border-rose-500 ring-2 ring-rose-500/50 bell-shake' : 'border-slate-700'
-                      }`}>
-                      <span>💬 الرسائل والصداقات</span>
-                      {totalUnreadCount > 0 && (
-                        <span className="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                          {totalUnreadCount}
-                        </span>
-                      )}
+                    {isSuperAdmin && <button onClick={() => setShowAdminPanel(true)} className="bg-amber-600 text-white px-3 py-2 rounded-xl text-xs font-black animate-pulse">👑 لوحة الأدمن</button>}
+                    <button onClick={() => { fetchFriendData(); setShowSocialModal(true); }} className={`relative bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold ${hasUnreadActivity ? 'border border-rose-500 bell-shake' : ''}`}>
+                      💬 الرسائل والصداقات {totalUnreadCount > 0 && <span className="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">{totalUnreadCount}</span>}
                     </button>
-
-                    <button 
-                      onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} 
-                      className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-1">
-                      <span>➕</span> إنشاء روم
-                    </button>
-
-                    <div className="flex items-center gap-2.5 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-slate-700 shadow-xl">
-                      <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500" />
-                      <div className="text-right">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white">{currentUser.username}</p>
-                          {currentUser.role && (
-                            <span className="bg-rose-500/20 text-rose-400 text-[9px] px-1.5 py-0.5 rounded font-black border border-rose-500/40">
-                              {currentUser.role}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-rose-500 font-mono font-black">{currentUser.id}</p>
+                    <button onClick={() => setShowCreateRoomModal(true)} className="bg-purple-600 text-white text-xs px-3 py-2 rounded-xl">➕ إنشاء روم</button>
+                    <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl">
+                      <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover ring-1 ring-purple-500" />
+                      <div>
+                        <p className="text-xs font-bold">{currentUser.username}</p>
+                        <p className="text-[10px] text-rose-400 font-mono">{currentUser.id}</p>
                       </div>
-                      <button onClick={() => setShowProfileModal(true)} title="تعديل" className="mr-1 text-slate-300 bg-slate-700 p-1.5 rounded-full text-[10px]">
-                        ✏️
-                      </button>
+                      <button onClick={() => setShowProfileModal(true)} className="text-xs bg-slate-700 p-1 rounded-full">✏️</button>
                     </div>
-
-                    <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl border border-rose-500/20 font-bold">
-                      خروج
-                    </button>
+                    <button onClick={() => { setCurrentUser(null); localStorage.removeItem('dede_user'); }} className="text-xs text-rose-400 bg-rose-500/10 px-3 py-2 rounded-xl">خروج</button>
                   </>
                 ) : (
-                  <button onClick={() => setShowAuthModal(true)} className="bg-purple-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg">
-                    تسجيل الدخول / حساب جديد
-                  </button>
+                  <button onClick={() => setShowAuthModal(true)} className="bg-purple-600 text-white text-xs px-5 py-2.5 rounded-xl">تسجيل الدخول</button>
                 )}
               </div>
 
               {!currentUser && (
-                <div className="flex sm:hidden w-full justify-center">
-                  <button onClick={() => setShowAuthModal(true)} className="w-full bg-purple-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg">
-                    تسجيل الدخول / حساب جديد
-                  </button>
+                <div className="flex sm:hidden w-full">
+                  <button onClick={() => setShowAuthModal(true)} className="w-full bg-purple-600 text-white text-xs py-2.5 rounded-xl">تسجيل الدخول / حساب جديد</button>
                 </div>
               )}
 
               {currentUser && (
                 <div className="flex sm:hidden w-full items-center justify-between pt-2 border-t border-slate-800 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-rose-500 font-mono font-black">{currentUser.id}</span>
-                    <span className="text-white font-bold">{currentUser.username}</span>
-                  </div>
+                  <span className="text-rose-400 font-mono">{currentUser.id}</span>
                   <div className="flex gap-2">
-                    <button onClick={() => { fetchFriendData(); setShowSocialModal(true); }} className="bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold">
-                      الرسائل {totalUnreadCount > 0 && `(${totalUnreadCount})`}
-                    </button>
-                    <button onClick={() => setShowCreateRoomModal(true)} className="bg-pink-600 text-white px-3 py-1.5 rounded-lg font-bold">
-                      روم +
-                    </button>
-                    <button onClick={handleLogout} className="bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg font-bold">
-                      خروج
-                    </button>
+                    <button onClick={() => { fetchFriendData(); setShowSocialModal(true); }} className="bg-purple-600 px-3 py-1 rounded-lg">الرسائل</button>
+                    <button onClick={() => setShowCreateRoomModal(true)} className="bg-pink-600 px-3 py-1 rounded-lg">روم +</button>
+                    <button onClick={() => { setCurrentUser(null); localStorage.removeItem('dede_user'); }} className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-lg">خروج</button>
                   </div>
                 </div>
               )}
-
             </div>
           </header>
 
           <main className="max-w-6xl w-full mx-auto p-4 flex-1">
-
             {searchResult ? (
-              <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 mb-6 shadow-2xl">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-xs font-bold text-purple-400">نتيجة البحث عن: "{searchQuery}"</h3>
-                  <button onClick={() => { setSearchResult(null); setSearchQuery(''); }} className="text-xs text-slate-400 hover:text-white">✕ إغلاق</button>
+              <div className="bg-slate-900 border border-purple-500/40 rounded-2xl p-4 mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-xs font-bold text-purple-400">نتيجة البحث:</h3>
+                  <button onClick={() => setSearchResult(null)} className="text-xs text-slate-400">✕ إغلاق</button>
                 </div>
-
                 {searchResult.type === 'room' ? (
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <img src={searchResult.data.cover_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=200"} className="w-14 h-14 rounded-xl object-cover" />
-                      <div>
-                        <span className="bg-purple-500/25 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full">{searchResult.data.category}</span>
-                        <h4 className="text-white font-bold text-sm mt-1">{searchResult.data.title}</h4>
-                      </div>
-                    </div>
-                    <button onClick={() => { enterRoom(searchResult.data); setSearchResult(null); }} className="w-full sm:w-auto bg-purple-600 text-white font-bold px-4 py-2 rounded-xl text-xs">
-                      دخول الروم ←
-                    </button>
+                  <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl">
+                    <span className="text-white text-xs font-bold">{searchResult.data.title}</span>
+                    <button onClick={() => { enterRoom(searchResult.data); setSearchResult(null); }} className="bg-purple-600 text-xs px-3 py-1.5 rounded-lg">دخول</button>
                   </div>
                 ) : (
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center justify-between cursor-pointer" onClick={() => { setActionMsg(''); setViewingUser(searchResult.data); }}>
-                    <div className="flex items-center gap-3">
-                      <img src={searchResult.data.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-14 h-14 rounded-full object-cover ring-2 ring-purple-500" />
+                  <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl" onClick={() => setViewingUser(searchResult.data)}>
+                    <div className="flex items-center gap-2">
+                      <img src={searchResult.data.avatar} className="w-10 h-10 rounded-full object-cover" />
                       <div>
-                        <h4 className="text-white font-black text-sm">{searchResult.data.username}</h4>
-                        <p className="text-xs font-mono text-rose-500 font-bold">{searchResult.data.id}</p>
+                        <p className="text-xs font-bold text-white">{searchResult.data.username}</p>
+                        <p className="text-[10px] text-rose-400 font-mono">{searchResult.data.id}</p>
                       </div>
                     </div>
-                    <button className="bg-purple-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">عرض 👤</button>
+                    <button className="bg-purple-600 text-xs px-3 py-1.5 rounded-lg">عرض الملف</button>
                   </div>
                 )}
               </div>
             ) : searchError ? (
-              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-2xl mb-6 text-center font-bold">
-                {searchError}
-              </div>
+              <div className="bg-rose-500/10 text-rose-300 text-xs p-3 rounded-xl mb-4 text-center">{searchError}</div>
             ) : null}
 
             {activeRoom ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl relative">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 mb-6 gap-3">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-800 mb-4">
                   <div>
-                    <span className="bg-purple-500/20 text-purple-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-purple-400/30 inline-block mb-1">
-                      {activeRoom.category}
-                    </span>
-                    <h2 className="text-xl font-black text-white">{activeRoom.title}</h2>
-                    <p className="text-xs text-slate-400">المضيف: <span className="text-purple-400 font-bold">{activeRoom.host_name}</span> | ID: <span className="font-mono text-purple-300">{activeRoom.id}</span></p>
+                    <h2 className="text-lg font-black text-white">{activeRoom.title}</h2>
+                    <p className="text-xs text-slate-400">المضيف: {activeRoom.host_name}</p>
                   </div>
-                  <button onClick={() => setActiveRoom(null)} className="bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold">
-                    ← خروج من الروم
-                  </button>
+                  <button onClick={() => setActiveRoom(null)} className="bg-slate-800 text-xs px-3 py-1.5 rounded-xl">خروج</button>
                 </div>
 
-                <div className="mb-6">
-                  <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8}):</h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
-                    {roomSeatsData.map((seat) => (
-                      <div key={seat.index} className="flex flex-col items-center">
-                        <div 
-                          onClick={() => {
-                            if (seat.user) {
-                              setActionMsg('');
-                              setViewingUser(seat.user);
-                            } else {
-                              claimSeat(seat.index);
-                            }
-                          }}
-                          className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center relative cursor-pointer border transition-all ${
-                            seat.user 
-                              ? 'bg-slate-800 border-purple-500 shadow-lg shadow-purple-500/30' 
-                              : 'bg-slate-950/60 border-slate-800 border-dashed hover:border-purple-400'
-                          }`}>
-                          {seat.user ? (
-                            <>
-                              <img src={seat.user.avatar} className="w-full h-full rounded-2xl object-cover" />
-                              {activeRoom.host_id === currentUser?.id && !seat.isHost && (
-                                <button onClick={(e) => { e.stopPropagation(); kickUser(seat.index); }} className="absolute -bottom-1.5 -left-1.5 bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                                  طرد
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-slate-600 text-xs font-bold">{seat.index + 1} 🎙️</span>
-                          )}
-                        </div>
-                        <p className="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px] text-center">
-                          {seat.user ? seat.user.name : 'فارغ'}
-                        </p>
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-4">
+                  {roomSeatsData.map((seat) => (
+                    <div key={seat.index} className="flex flex-col items-center">
+                      <div onClick={() => seat.user ? setViewingUser(seat.user) : claimSeat(seat.index)} className="w-16 h-16 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center cursor-pointer relative overflow-hidden">
+                        {seat.user ? <img src={seat.user.avatar} className="w-full h-full object-cover" /> : <span className="text-slate-600 text-xs">{seat.index + 1}</span>}
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-[10px] text-white mt-1 truncate max-w-[70px]">{seat.user ? seat.user.name : 'فارغ'}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 mb-6">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setIsMuted(!isMuted)} className={`px-3.5 py-2 rounded-xl text-xs font-bold ${isMuted ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                      {isMuted ? '🔇 مكتوم' : '🎙️ المايك مفتوح'}
-                    </button>
-                    <button onClick={leaveSeat} className="px-3 py-2 bg-slate-800 text-slate-400 rounded-xl text-xs font-bold">
-                      النزول
-                    </button>
+                <div className="bg-slate-950 rounded-xl p-3">
+                  <h4 className="text-xs text-slate-400 mb-2">دردشة الغرفة</h4>
+                  <div className="h-28 overflow-y-auto space-y-1 mb-2 text-xs">
+                    {roomChat.map(m => <div key={m.id}><span className="text-purple-400 font-bold">{m.sender}:</span> <span className="text-slate-200">{m.text}</span></div>)}
                   </div>
-                  <div className="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-xl border border-slate-800 overflow-x-auto">
-                    {['❤️', '🔥', '🎙️', '👏', '🎉'].map(emoji => (
-                      <button key={emoji} onClick={() => sendEmoji(emoji)} className="hover:scale-125 transition-transform text-base px-1.5">
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-3">
-                  <h4 className="text-xs font-bold text-slate-400 mb-2">دردشة الروم</h4>
-                  <div className="h-32 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl text-xs">
-                    {roomChat.map(msg => (
-                      <div key={msg.id} className="flex items-start gap-2">
-                        <span className="font-bold text-purple-400">{msg.sender}:</span>
-                        <span className="text-slate-200">{msg.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <form onSubmit={sendRoomChat} className="flex gap-2">
-                    <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="اكتب رسالة..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-                    <button type="submit" className="bg-purple-600 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
+                  <form onSubmit={e => { e.preventDefault(); if(chatInput.trim()) { setRoomChat([...roomChat, {id: Date.now(), sender: currentUser.username, text: chatInput}]); setChatInput(''); }}} className="flex gap-2">
+                    <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="اكتب رسالة..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white" />
+                    <button type="submit" className="bg-purple-600 text-xs px-3 py-1.5 rounded-xl">إرسال</button>
                   </form>
                 </div>
               </div>
             ) : (
               <>
-                <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 border border-purple-500/20 mb-6 shadow-2xl text-center md:text-right flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-2xl p-6 mb-6 text-center sm:text-right flex flex-col sm:flex-row justify-between items-center gap-4">
                   <div>
-                    <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
-                      🟢 الرومات المتاحة حالياً
-                    </span>
-                    <h2 className="text-2xl sm:text-4xl font-black text-white mb-2">انضم إلى <span className="text-purple-400">DEDE LIVE</span></h2>
-                    <p className="text-slate-300 text-xs sm:text-sm max-w-xl">اختر روم أو ابحث عن أصدقائك عبر الـ ID المميز الخاص بهم.</p>
+                    <h2 className="text-2xl font-black text-white mb-1">منصة DEDE LIVE</h2>
+                    <p className="text-slate-300 text-xs">انضم للرومات الصوتية أو افتح غرفتك الخاصة الآن.</p>
                   </div>
-                  {currentUser && (
-                    <button onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} className="w-full md:w-auto bg-purple-600 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap">
-                      🎙️ افتح روم صوتي الآن
-                    </button>
-                  )}
+                  {currentUser && <button onClick={() => setShowCreateRoomModal(true)} className="bg-purple-600 text-white text-xs px-5 py-3 rounded-xl whitespace-nowrap">🎙️ فتح روم صوتي</button>}
                 </div>
 
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-base font-bold text-white">الرومات النشطة ({rooms.length})</h3>
-                  <button onClick={fetchRooms} className="text-xs text-purple-400 hover:underline">🔄 تحديث</button>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-bold text-white">الرومات النشطة ({rooms.length})</h3>
+                  <button onClick={fetchRooms} className="text-xs text-purple-400">🔄 تحديث</button>
                 </div>
 
                 {loadingRooms ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">جاري جلب الرومات...</div>
+                  <div className="text-center py-10 text-slate-500 text-xs">جاري التحميل...</div>
                 ) : rooms.length === 0 ? (
-                  <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center">
-                    <p className="text-slate-400 text-sm mb-4">لا توجد رومات مفتوحة حالياً.</p>
-                  </div>
+                  <div className="text-center py-10 text-slate-500 text-xs">لا توجد رومات حالياً.</div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {rooms.map(room => (
-                      <div key={room.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                        <div className="relative h-36">
-                          <img src={room.cover_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"} className="w-full h-full object-cover" />
+                      <div key={room.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="relative h-32">
+                          <img src={room.cover_image} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
-                          <span className="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                            {room.category}
-                          </span>
-                          <div className="absolute bottom-3 right-3 left-3 flex items-center gap-3">
-                            <img src={room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-9 h-9 rounded-full ring-2 ring-purple-500 object-cover" />
-                            <div className="truncate">
-                              <h4 className="text-white font-bold text-xs truncate">{room.title}</h4>
-                              <p className="text-slate-400 text-[11px]">المضيف: {room.host_name}</p>
+                          <div className="absolute bottom-2 right-2 left-2 flex items-center gap-2">
+                            <img src={room.host_avatar} className="w-8 h-8 rounded-full object-cover" />
+                            <div>
+                              <h4 className="text-white text-xs font-bold">{room.title}</h4>
+                              <p className="text-[10px] text-slate-400">المضيف: {room.host_name}</p>
                             </div>
                           </div>
                         </div>
-                        <div className="p-3 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800">
-                          <span>🎙️ {room.max_seats || 8} مقاعد</span>
-                          <button onClick={() => enterRoom(room)} className="bg-purple-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
-                            دخول الروم ←
-                          </button>
+                        <div className="p-3 bg-slate-900 flex justify-between items-center text-xs">
+                          <span className="text-slate-400">🎙️ {room.max_seats || 8} مقاعد</span>
+                          <button onClick={() => enterRoom(room)} className="bg-purple-600 text-white px-3 py-1 rounded-lg">دخول</button>
                         </div>
                       </div>
                     ))}
@@ -962,177 +613,93 @@
                 )}
               </>
             )}
-
           </main>
 
-          {showAdminPanel && isSuperAdmin && (
-            <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-5 relative shadow-2xl">
-                <button onClick={() => setShowAdminPanel(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-lg font-black text-amber-400 mb-2">👑 إدارة الحوالات (شام كاش)</h3>
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold text-white">رقم الحوالة: <span className="font-mono text-amber-400">#SC-982104</span></p>
-                      <p className="text-xs text-slate-300 mt-0.5">المبلغ: 50,000 ل.س | أحمد محمد</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => alert("تمت الموافقة!")} className="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">قبول ✔️</button>
-                      <button onClick={() => alert("تم الرفض!")} className="bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">رفض ❌</button>
-                    </div>
+          {/* نافذة الملف الشخصي */}
+          {showProfileModal && (
+            <div className="fixed inset-0 bg-slate-950/85 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full relative text-center">
+                <button onClick={() => setShowProfileModal(false)} className="absolute top-3 left-3 text-slate-400">✕</button>
+                <h3 className="text-base font-black text-white mb-3">تعديل الملف الشخصي</h3>
+                {profileUpdateMsg && <div className="text-xs text-purple-300 mb-2">{profileUpdateMsg}</div>}
+                <form onSubmit={handleSaveProfile} className="space-y-3">
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={editAvatar || currentUser?.avatar} className="w-20 h-20 rounded-full object-cover ring-2 ring-purple-600" />
+                    <label className="bg-purple-600/20 text-purple-300 text-[11px] px-3 py-1.5 rounded-lg cursor-pointer">
+                      تغيير الصورة
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
                   </div>
-                </div>
+                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" />
+                  <button type="submit" className="w-full bg-purple-600 text-white text-xs py-2.5 rounded-xl">حفظ</button>
+                </form>
               </div>
             </div>
           )}
 
-          {viewingUser && (
-            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
-                <button onClick={() => setViewingUser(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <img src={viewingUser.avatar || viewingUser.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3" />
-                <h3 className="text-lg font-black text-white">{viewingUser.username || viewingUser.name}</h3>
-                <p className="text-xs text-rose-500 font-mono font-black mt-0.5">{viewingUser.id}</p>
-                {actionMsg && <div className="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl font-bold">{actionMsg}</div>}
-                <div className="mt-5">
-                  <button onClick={() => sendFriendRequest(viewingUser)} className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-xl text-xs">
-                    ➕ إرسال طلب صداقة
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
+          {/* نافذة الرسائل */}
           {showSocialModal && (
-            <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl h-[92vh] flex flex-col overflow-hidden shadow-2xl relative">
-                
-                <div className="bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => { setActiveTab('messages'); setActivePrivateChat(null); }}
-                      className={`px-3 py-2 rounded-xl text-xs font-black ${activeTab === 'messages' ? 'bg-purple-600 text-white' : 'bg-slate-900 text-slate-400'}`}>
-                      💬 الرسائل {Object.keys(unreadFriends).length > 0 && `(${Object.keys(unreadFriends).length})`}
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('requests')}
-                      className={`px-3 py-2 rounded-xl text-xs font-black ${activeTab === 'requests' ? 'bg-purple-600 text-white' : 'bg-slate-900 text-slate-400'}`}>
-                      🔔 الطلبات {friendRequests.length > 0 && `(${friendRequests.length})`}
-                    </button>
+            <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-2">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
+                <div className="bg-slate-950 px-4 py-2.5 flex justify-between items-center border-b border-slate-800">
+                  <div className="flex gap-2 text-xs">
+                    <button onClick={() => { setActiveTab('messages'); setActivePrivateChat(null); }} className={`px-3 py-1.5 rounded-lg ${activeTab === 'messages' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>الرسائل</button>
+                    <button onClick={() => setActiveTab('requests')} className={`px-3 py-1.5 rounded-lg ${activeTab === 'requests' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>الطلبات ({friendRequests.length})</button>
                   </div>
-                  <button onClick={() => { setShowSocialModal(false); setActivePrivateChat(null); }} className="text-slate-400 bg-slate-800 p-2 rounded-full text-xs">✕</button>
+                  <button onClick={() => { setShowSocialModal(false); setActivePrivateChat(null); }} className="text-slate-400 text-xs">✕</button>
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
                   {activeTab === 'requests' ? (
-                    <div className="flex-1 p-4 overflow-y-auto bg-slate-950/50">
-                      <h3 className="text-sm font-black text-white mb-3">طلبات الصداقة المعلقة ({friendRequests.length})</h3>
-                      {friendRequests.length === 0 ? (
-                        <div className="text-center py-16 text-slate-500 text-xs">لا توجد طلبات صداقة جديدة.</div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {friendRequests.map(req => (
-                            <div key={req.id} className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-bold text-white">{req.sender_name}</p>
-                                <p className="text-[10px] text-purple-400 font-mono">ID: {req.sender_id}</p>
-                              </div>
-                              <div className="flex gap-1">
-                                <button onClick={() => respondToFriendRequest(req.id, true)} className="bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl">قبول</button>
-                                <button onClick={() => respondToFriendRequest(req.id, false)} className="bg-rose-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl">رفض</button>
-                              </div>
-                            </div>
-                          ))}
+                    <div className="flex-1 p-4 overflow-y-auto text-xs space-y-2">
+                      {friendRequests.length === 0 ? <p className="text-center text-slate-500 py-10">لا توجد طلبات صداقة.</p> : friendRequests.map(r => (
+                        <div key={r.id} className="bg-slate-950 p-3 rounded-xl flex justify-between items-center">
+                          <span>{r.sender_name}</span>
+                          <div className="flex gap-1">
+                            <button onClick={() => respondToFriendRequest(r.id, true)} className="bg-emerald-600 px-3 py-1 rounded-lg">قبول</button>
+                            <button onClick={() => respondToFriendRequest(r.id, false)} className="bg-rose-600 px-3 py-1 rounded-lg">رفض</button>
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                      <div className={`w-full md:w-72 bg-slate-950/80 border-l border-slate-800 flex flex-col h-full ${activePrivateChat ? 'hidden md:flex' : 'flex'}`}>
-                        <div className="p-2.5 border-b border-slate-800">
-                          <h4 className="text-[11px] font-bold text-slate-400">الأصدقاء ({friendsList.length})</h4>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-                          {friendsList.length === 0 ? (
-                            <p className="text-xs text-slate-500 p-6 text-center">ليس لديك أصدقاء بعد.</p>
-                          ) : (
-                            friendsList.map(f => {
-                              const friendId = f.sender_id === currentUser.id ? f.receiver_id : f.sender_id;
-                              const friendName = f.sender_id === currentUser.id ? (f.receiver_name || "صديق") : f.sender_name;
-                              const isSelected = activePrivateChat?.id === friendId;
-                              const lastMessageText = friendsLastMessages[friendId] || "ابدأ الدردشة...";
-                              const isUnread = unreadFriends[friendId];
-
-                              return (
-                                <div 
-                                  key={f.id} 
-                                  onClick={() => openPrivateChat(f)}
-                                  className={`p-2.5 rounded-2xl cursor-pointer border flex items-center gap-3 ${
-                                    isSelected ? 'bg-purple-600/20 border-purple-500' : isUnread ? 'bg-rose-950/30 border-rose-500/60' : 'bg-slate-900/60 border-slate-800'
-                                  }`}>
-                                  <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-black text-xs text-white shrink-0 relative">
-                                    {friendName.charAt(0)}
-                                    {isUnread && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-600 rounded-full border-2 border-slate-950"></span>}
-                                  </div>
-                                  <div className="flex-1 truncate">
-                                    <p className={`text-xs font-bold truncate ${isUnread ? 'text-rose-400 font-black' : 'text-white'}`}>{friendName}</p>
-                                    <p className="text-[10px] text-slate-400 truncate mt-0.5">{lastMessageText}</p>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
+                    <div className="flex-1 flex flex-col sm:flex-row overflow-hidden text-xs">
+                      <div className={`w-full sm:w-60 bg-slate-950/80 border-l border-slate-800 overflow-y-auto ${activePrivateChat ? 'hidden sm:block' : 'block'}`}>
+                        {friendsList.length === 0 ? <p className="p-4 text-slate-500 text-center">لا توجد أصدقاء.</p> : friendsList.map(f => {
+                          const friendId = f.sender_id === currentUser.id ? f.receiver_id : f.sender_id;
+                          const friendName = f.sender_id === currentUser.id ? (f.receiver_name || "صديق") : f.sender_name;
+                          return (
+                            <div key={f.id} onClick={() => openPrivateChat(f)} className="p-3 border-b border-slate-900 cursor-pointer hover:bg-slate-900">
+                              <p className="font-bold text-white">{friendName}</p>
+                              <p className="text-[10px] text-slate-400 truncate">{friendsLastMessages[friendId] || "بدء المحادثة"}</p>
+                            </div>
+                          );
+                        })}
                       </div>
 
-                      <div className={`flex-1 flex flex-col bg-slate-900 h-full ${!activePrivateChat ? 'hidden md:flex' : 'flex'}`}>
+                      <div className={`flex-1 flex flex-col bg-slate-900 ${!activePrivateChat ? 'hidden sm:flex' : 'flex'}`}>
                         {activePrivateChat ? (
                           <>
-                            <div className="p-3 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
-                              <div className="flex items-center gap-2.5">
-                                <button onClick={() => setActivePrivateChat(null)} className="md:hidden text-purple-400 text-xs font-bold bg-slate-800 px-2.5 py-1 rounded-lg">← العودة</button>
-                                <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center font-black text-white text-xs">
-                                  {activePrivateChat.name.charAt(0)}
+                            <div className="p-2.5 bg-slate-950 border-b border-slate-800 flex items-center gap-2">
+                              <button onClick={() => setActivePrivateChat(null)} className="sm:hidden text-purple-400">←</button>
+                              <span className="font-bold text-white">{activePrivateChat.name}</span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                              {privateMessages.map(m => (
+                                <div key={m.id} className={`flex ${m.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                                  <div className={`p-2 rounded-xl max-w-[75%] ${m.sender_id === currentUser.id ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-100'}`}>
+                                    {m.message_text}
+                                  </div>
                                 </div>
-                                <h4 className="text-xs font-black text-white">{activePrivateChat.name}</h4>
-                              </div>
+                              ))}
                             </div>
-
-                            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-950/40 text-xs">
-                              {privateMessages.length === 0 ? (
-                                <div className="text-center py-20 text-slate-500">ابدأ المحادثة الآن!</div>
-                              ) : (
-                                privateMessages.map(msg => {
-                                  const isMe = msg.sender_id === currentUser.id;
-                                  return (
-                                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                      <div className={`p-2.5 rounded-2xl max-w-[80%] ${isMe ? 'bg-purple-600 text-white rounded-bl-none' : 'bg-slate-800 text-slate-100 rounded-br-none border border-slate-700'}`}>
-                                        <p className="break-words">{msg.message_text}</p>
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-
-                            <div className="p-2.5 bg-slate-950 border-t border-slate-800">
-                              <form onSubmit={(e) => { e.preventDefault(); sendPrivateMessage(privateMsgInput, 'text'); }} className="flex items-center gap-2">
-                                <input 
-                                  type="text" 
-                                  value={privateMsgInput} 
-                                  onChange={e => setPrivateMsgInput(e.target.value)} 
-                                  placeholder="اكتب رسالة..." 
-                                  className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" 
-                                />
-                                <button type="submit" className="bg-purple-600 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
-                              </form>
-                            </div>
+                            <form onSubmit={e => { e.preventDefault(); sendPrivateMessage(privateMsgInput); }} className="p-2 bg-slate-950 border-t border-slate-800 flex gap-2">
+                              <input type="text" value={privateMsgInput} onChange={e => setPrivateMsgInput(e.target.value)} placeholder="رسالة..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-white" />
+                              <button type="submit" className="bg-purple-600 px-3 py-1.5 rounded-xl">إرسال</button>
+                            </form>
                           </>
                         ) : (
-                          <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-6 text-center text-xs">
-                            <p className="text-3xl mb-2">💬</p>
-                            اختر صديقاً من القائمة الجانبية لبدء المحادثة.
-                          </div>
+                          <div className="flex-1 flex items-center justify-center text-slate-500">اختر صديقاً للمراسلة.</div>
                         )}
                       </div>
                     </div>
@@ -1142,102 +709,45 @@
             </div>
           )}
 
-          {showProfileModal && (
-            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">الملف الشخصي</h3>
-                {profileUpdateMsg && <div className="mb-3 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl text-center font-bold">{profileUpdateMsg}</div>}
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div className="flex flex-col items-center gap-2.5">
-                    <img src={editAvatar || currentUser?.avatar} className="w-24 h-24 rounded-full object-cover ring-4 ring-purple-600 shadow-lg" />
-                    <label className="bg-purple-600/20 text-purple-300 text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer border border-purple-500/30">
-                      📂 اختر صورة جديدة
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-black text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1 text-xs">
-                    <div className="flex justify-between"><span className="text-slate-400">ID:</span><span className="font-mono text-rose-500 font-bold">{currentUser?.id}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">الرتبة:</span><span className="text-rose-400 font-bold">{currentUser?.role || 'عضو'}</span></div>
-                  </div>
-                  <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl text-xs">حفظ التغييرات</button>
-                </form>
-              </div>
-            </div>
-          )}
-
+          {/* نافذة إنشاء روم */}
           {showCreateRoomModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
-                <button onClick={() => setShowCreateRoomModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-lg font-black text-white text-center mb-1">إنشاء روم صوتي</h3>
-                {createRoomError && <div className="mb-3 bg-rose-500/10 text-rose-300 text-xs p-2 rounded-xl text-center font-bold">{createRoomError}</div>}
-                <form onSubmit={handleCreateRoom} className="space-y-3.5 text-xs">
-                  <div>
-                    <label className="font-bold text-slate-300 block mb-1">عنوان الروم</label>
-                    <input type="text" value={roomTitle} onChange={e => setRoomTitle(e.target.value)} required placeholder="عنوان الغرفة..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-300 block mb-1">التصنيف</label>
-                    <select value={roomCategory} onChange={e => setRoomCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500">
-                      <option value="حوار ونقاش">حوار ونقاش</option>
-                      <option value="موسيقى وغناء">موسيقى وغناء</option>
-                      <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-300 block mb-1">المقاعد</label>
-                    <select value={roomSeats} onChange={e => setRoomSeats(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500">
-                      <option value="4">4 مقاعد</option>
-                      <option value="8">8 مقاعد</option>
-                      <option value="12">12 مقعد</option>
-                    </select>
-                  </div>
-                  <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl">نشر الروم</button>
+            <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full relative">
+                <button onClick={() => setShowCreateRoomModal(false)} className="absolute top-3 left-3 text-slate-400">✕</button>
+                <h3 className="text-base font-black text-white mb-3 text-center">إنشاء روم صوتي</h3>
+                {createRoomError && <div className="text-xs text-rose-400 mb-2 text-center">{createRoomError}</div>}
+                <form onSubmit={handleCreateRoom} className="space-y-3 text-xs">
+                  <input type="text" value={roomTitle} onChange={e => setRoomTitle(e.target.value)} required placeholder="عنوان الغرفة..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+                  <select value={roomCategory} onChange={e => setRoomCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+                    <option value="حوار ونقاش">حوار ونقاش</option>
+                    <option value="موسيقى وغناء">موسيقى وغناء</option>
+                    <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
+                  </select>
+                  <button type="submit" className="w-full bg-purple-600 text-white py-2.5 rounded-xl">نشر الروم</button>
                 </form>
               </div>
             </div>
           )}
 
+          {/* نافذة تسجيل الدخول */}
           {showAuthModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
-                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-lg font-black text-white text-center mb-1">{isSignup ? 'حساب جديد' : 'تسجيل الدخول'}</h3>
-                {errorMsg && <div className="mb-3 bg-rose-500/10 text-rose-300 text-xs p-2 rounded-xl text-center font-bold">{errorMsg}</div>}
-                <form onSubmit={handleAuth} className="space-y-3.5 text-xs">
-                  {isSignup && (
-                    <div>
-                      <label className="font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-                      <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="اسمك..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
-                    </div>
-                  )}
-                  <div>
-                    <label className="font-bold text-slate-300 block mb-1">البريد الإلكتروني</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="email@example.com" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-300 block mb-1">كلمة السر</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl">دخول</button>
+            <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xs w-full relative">
+                <button onClick={() => setShowAuthModal(false)} className="absolute top-3 left-3 text-slate-400">✕</button>
+                <h3 className="text-base font-black text-white mb-3 text-center">{isSignup ? 'حساب جديد' : 'تسجيل الدخول'}</h3>
+                {errorMsg && <div className="text-xs text-rose-400 mb-2 text-center">{errorMsg}</div>}
+                <form onSubmit={handleAuth} className="space-y-3 text-xs">
+                  {isSignup && <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="اسم المستخدم" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />}
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="البريد الإلكتروني" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+                  <input type="password" value="123456" disabled className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-slate-500" title="كلمة المرور مبسطة" />
+                  <button type="submit" className="w-full bg-purple-600 text-white py-2.5 rounded-xl">دخول</button>
                 </form>
-                <p className="text-center text-xs text-slate-400 mt-3">
-                  <button onClick={() => setIsSignup(!isSignup)} className="text-purple-400 font-bold hover:underline">
-                    {isSignup ? 'لديك حساب؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب'}
-                  </button>
+                <p className="text-center text-[11px] text-slate-400 mt-3">
+                  <button onClick={() => setIsSignup(!isSignup)} className="text-purple-400">{isSignup ? 'لديك حساب؟ سجل دخول' : 'حساب جديد؟ انضم إلينا'}</button>
                 </p>
               </div>
             </div>
           )}
-
-          <footer className="border-t border-slate-800 py-5 bg-slate-900/50 mt-12 text-center text-[11px] text-slate-400">
-            DEDE LIVE © 2026 - جميع الحقوق محفوظة
-          </footer>
 
         </div>
       );
