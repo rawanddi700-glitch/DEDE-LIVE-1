@@ -80,10 +80,13 @@
       const [createRoomError, setCreateRoomError] = useState('');
       const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-      // تعديل الملف الشخصي (للصورة والاسم فقط)
+      // نافذة تعديل الملف الشخصي (الاسم، الصورة، الايدي، الرتبة)
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [editName, setEditName] = useState('');
       const [editAvatar, setEditAvatar] = useState('');
+      const [editCustomId, setEditCustomId] = useState('');
+      const [editRole, setEditRole] = useState('مستخدم عادي');
+      const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
       useEffect(() => {
         fetchRooms();
@@ -93,6 +96,8 @@
         if (currentUser) {
           setEditName(currentUser.username || '');
           setEditAvatar(currentUser.avatar || '');
+          setEditCustomId(currentUser.id || '');
+          setEditRole(currentUser.role || 'مستخدم عادي');
         }
       }, [currentUser]);
 
@@ -152,19 +157,40 @@
         }
       };
 
-      const handleSaveProfile = (e) => {
+      // حفظ التعديلات وإرسالها لقاعدة البيانات مباشرة
+      const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
+        setProfileUpdateMsg('جاري الحفظ...');
 
-        const updatedUser = {
-          ...currentUser,
-          username: editName,
-          avatar: editAvatar || currentUser.avatar
+        const updatedData = {
+          id: editCustomId.trim() || currentUser.id,
+          username: editName.trim(),
+          avatar: editAvatar || currentUser.avatar,
+          role: editRole
         };
 
-        setCurrentUser(updatedUser);
-        localStorage.setItem('dede_user', JSON.stringify(updatedUser));
-        setShowProfileModal(false);
+        try {
+          // تحديث بيانات المستخدم في جدول users باستخدام البريد الإلكتروني أو الـ ID القديم كمعرف
+          const response = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.email)}`, {
+            method: 'PATCH',
+            headers: HEADERS,
+            body: JSON.stringify(updatedData)
+          });
+
+          if (response.ok) {
+            const newUserObj = { ...currentUser, ...updatedData };
+            setCurrentUser(newUserObj);
+            localStorage.setItem('dede_user', JSON.stringify(newUserObj));
+            setShowProfileModal(false);
+            setProfileUpdateMsg('');
+          } else {
+            const errData = await response.json();
+            setProfileUpdateMsg("خطأ: " + (errData.message || "تعذر الحفظ"));
+          }
+        } catch (err) {
+          setProfileUpdateMsg("فشل الاتصال بقاعدة البيانات");
+        }
       };
 
       const enterRoom = (room) => {
@@ -459,7 +485,7 @@
                   </button>
                 </div>
 
-                {/* مقاعد المايكات مع عرض الشارات الرسمية */}
+                {/* مقاعد المايكات مع عرض الرتبة بشكل أساسي */}
                 <div className="mb-8">
                   <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8})</h3>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
@@ -600,13 +626,19 @@
 
           </main>
 
-          {/* نافذة تعديل الملف الشخصي (للاسم والصورة فقط للمستخدم العادي) */}
+          {/* نافذة تعديل الملف الشخصي (إتاحة تعديل الـ ID والرتبة والاسم والصورة) */}
           {showProfileModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">تعديل الملف الشخصي</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">غير صورتك واسمك بسهولة</p>
+                <h3 className="text-xl font-black text-white text-center mb-1">تعديل بيانات المستخدم</h3>
+                <p className="text-xs text-slate-400 text-center mb-4">تعديل الـ ID والرتبة والاسم والصورة</p>
+
+                {profileUpdateMsg && (
+                  <div className="mb-4 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl text-center font-bold">
+                    {profileUpdateMsg}
+                  </div>
+                )}
 
                 <form onSubmit={handleSaveProfile} className="space-y-4">
                   <div className="flex flex-col items-center gap-3">
@@ -622,8 +654,24 @@
                     <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                   </div>
 
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">الـ ID المميز</label>
+                    <input type="text" value={editCustomId} onChange={e => setEditCustomId(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-purple-300 font-mono focus:outline-none focus:border-purple-500" />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">الرتبة / الصفة</label>
+                    <select value={editRole} onChange={e => setEditRole(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                      <option value="مستخدم عادي">مستخدم عادي</option>
+                      <option value="👑 Admin">👑 Admin</option>
+                      <option value="⭐ VIP 1">⭐ VIP 1</option>
+                      <option value="🌟 VIP 5">🌟 VIP 5</option>
+                      <option value="🔥 VIP 10">🔥 VIP 10</option>
+                    </select>
+                  </div>
+
                   <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    حفظ التغييرات
+                    حفظ التغييرات في السيرفر
                   </button>
                 </form>
               </div>
