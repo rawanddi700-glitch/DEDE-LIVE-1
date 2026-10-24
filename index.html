@@ -146,7 +146,6 @@
       useEffect(() => {
         fetchRooms();
         if (currentUser) {
-          refreshUserData();
           fetchFriendData();
           const interval = setInterval(() => {
             fetchFriendData();
@@ -163,22 +162,6 @@
           chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
         }
       }, [privateMessages]);
-
-      const refreshUserData = async () => {
-        if (!currentUser || !currentUser.email) return;
-        try {
-          const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.email)}`, { headers: HEADERS });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.length > 0) {
-              setCurrentUser(data[0]);
-              localStorage.setItem('dede_user', JSON.stringify(data[0]));
-            }
-          }
-        } catch (err) {
-          console.error("Refresh user error:", err);
-        }
-      };
 
       const fetchFriendData = async () => {
         if (!currentUser) return;
@@ -235,7 +218,7 @@
         }
       };
 
-      // تحديث الاسم الافتراضي فور فتح نافذة الملف الشخصي للمرة الأولى
+      // تعبئة حقول التعديل بالاسم الحالي للمستخدم عند فتح نافذة البروفايل
       useEffect(() => {
         if (currentUser && showProfileModal) {
           setEditName(currentUser.username || '');
@@ -422,11 +405,11 @@
         }
       };
 
-      // تعديل اسم المستخدم بنجاح تام وبدون تداخل
+      // دالة حفظ التعديلات الشخصية (المستخدم يغير اسمه وصورته بحرية تامة)
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
-        setProfileUpdateMsg('جاري تحديث البيانات...');
+        setProfileUpdateMsg('جاري تحديث الاسم...');
 
         const newUsername = editName.trim();
         const newAvatar = editAvatar || currentUser.avatar;
@@ -445,7 +428,7 @@
             const updatedUser = { ...currentUser, username: newUsername, avatar: newAvatar };
             setCurrentUser(updatedUser);
             localStorage.setItem('dede_user', JSON.stringify(updatedUser));
-            setProfileUpdateMsg('تم التحديث بنجاح! ✅');
+            setProfileUpdateMsg('تم تحديث الاسم بنجاح! ✅');
             setTimeout(() => {
               setShowProfileModal(false);
               setProfileUpdateMsg('');
@@ -646,7 +629,6 @@
       return (
         <div className="min-h-screen flex flex-col justify-between">
           
-          {/* الشريط العلوي */}
           <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-md">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setActiveRoom(null); setSearchResult(null); setSearchQuery(''); }}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-500/30">
@@ -658,7 +640,6 @@
               </div>
             </div>
 
-            {/* محرك البحث */}
             <form onSubmit={handleGlobalSearch} className="flex items-center gap-2 w-full md:w-auto">
               <input 
                 type="text" 
@@ -1226,14 +1207,14 @@
             </div>
           )}
 
-          {/* نافذة تعديل الملف الشخصي */}
+          {/* نافذة تعديل الملف الشخصي (المستخدم يغير اسمه بحرية تامة) */}
           {showProfileModal && (
             <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full relative shadow-2xl">
                 <button onClick={() => setShowProfileModal(false)} className="absolute top-5 left-5 text-slate-400 hover:text-white text-lg">✕</button>
                 
                 <h3 className="text-2xl font-black text-white text-center mb-1">الملف الشخصي</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">تعديل اسم المستخدم وصورتك الشخصية</p>
+                <p className="text-xs text-slate-400 text-center mb-6">تغيير اسم المستخدم وصورتك الشخصية</p>
 
                 {profileUpdateMsg && (
                   <div className="mb-4 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl text-center font-bold">
@@ -1251,7 +1232,7 @@
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-2">اسم المستخدم الجديد</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-2">اسم المستخدم الخاص بك (يمكنك تعديله بحرية)</label>
                     <input 
                       type="text" 
                       value={editName} 
@@ -1267,13 +1248,13 @@
                       <span className="font-mono text-rose-500 font-black text-base tracking-wider">{currentUser?.id}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400 font-bold">⭐ الرتبة:</span>
+                      <span className="text-xs text-slate-400 font-bold">⭐ الرتبة (تُدار من قِبل الأدمن):</span>
                       <span className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-lg font-black text-xs border border-rose-500/40">{currentUser?.role || 'عضو'}</span>
                     </div>
                   </div>
 
                   <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black py-3.5 rounded-2xl text-sm shadow-xl transition-all">
-                    حفظ التغييرات
+                    حفظ الاسم الجديد
                   </button>
                 </form>
               </div>
