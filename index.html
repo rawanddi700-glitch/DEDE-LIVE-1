@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DEDE LIVE - منصة الدردشة الصوتية والخاصة</title>
+  <title>DEDE LIVE - منصة الدردشة الصوتية</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -66,15 +66,6 @@
       const [searchResult, setSearchResult] = useState(null);
       const [searchError, setSearchError] = useState('');
 
-      // حالات الصداقة والدردشة الخاصة
-      const [friendRequests, setFriendRequests] = useState([]);
-      const [friendsList, setFriendsList] = useState([]);
-      const [showFriendsModal, setShowFriendsModal] = useState(false);
-      const [activePrivateFriend, setActivePrivateFriend] = useState(null);
-      const [privateMessages, setPrivateMessages] = useState([]);
-      const [privateChatInput, setPrivateChatInput] = useState('');
-      const [friendActionMsg, setFriendActionMsg] = useState('');
-
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
       const [username, setUsername] = useState('');
@@ -87,6 +78,7 @@
       const [roomCategory, setRoomCategory] = useState('حوار ونقاش');
       const [roomSeats, setRoomSeats] = useState(8);
       const [createRoomError, setCreateRoomError] = useState('');
+      const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [editName, setEditName] = useState('');
@@ -97,21 +89,8 @@
         fetchRooms();
         if (currentUser) {
           refreshUserData();
-          fetchFriendData();
         }
       }, []);
-
-      useEffect(() => {
-        if (currentUser) {
-          const interval = setInterval(() => {
-            fetchFriendData();
-            if (activePrivateFriend) {
-              fetchPrivateMessages(activePrivateFriend.id);
-            }
-          }, 3000);
-          return () => clearInterval(interval);
-        }
-      }, [currentUser, activePrivateFriend]);
 
       const refreshUserData = async () => {
         if (!currentUser || !currentUser.email) return;
@@ -126,115 +105,6 @@
           }
         } catch (err) {
           console.error("Refresh user error:", err);
-        }
-      };
-
-      // جلب الطلبات والأصدقاء
-      const fetchFriendData = async () => {
-        if (!currentUser) return;
-        try {
-          // جلب الطلبات الواردة
-          const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${currentUser.id}&status=eq.pending`, { headers: HEADERS });
-          if (reqRes.ok) {
-            const reqs = await reqRes.json();
-            setFriendRequests(reqs);
-          }
-
-          // جلب الأصدقاء المقبولين
-          const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id})&status=eq.accepted`, { headers: HEADERS });
-          if (friendsRes.ok) {
-            const accepted = await friendsRes.json();
-            setFriendsList(accepted);
-          }
-        } catch (err) {
-          console.error("Friend data error:", err);
-        }
-      };
-
-      // إرسال طلب صداقة
-      const sendFriendRequest = async (targetUser) => {
-        if (!currentUser) return alert("سجل دخولك أولاً لإرسال طلب صداقة!");
-        if (targetUser.id === currentUser.id) return alert("لا يمكنك إرسال طلب صداقة لنفسك!");
-
-        try {
-          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, {
-            method: 'POST',
-            headers: HEADERS,
-            body: JSON.stringify({
-              sender_id: currentUser.id,
-              sender_name: currentUser.username,
-              sender_avatar: currentUser.avatar,
-              receiver_id: targetUser.id,
-              status: 'pending'
-            })
-          });
-
-          if (res.ok) {
-            alert(`تم إرسال طلب الصداقة إلى ${targetUser.username} بنجاح!`);
-          } else {
-            alert("تم إرسال طلب بالفعل أو حدث خطأ.");
-          }
-        } catch (err) {
-          alert("فشل في إرسال طلب الصداقة.");
-        }
-      };
-
-      // قبول أو رفض الطلب
-      const handleRequestAction = async (requestId, newStatus) => {
-        try {
-          if (newStatus === 'accepted') {
-            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${requestId}`, {
-              method: 'PATCH',
-              headers: HEADERS,
-              body: JSON.stringify({ status: 'accepted' })
-            });
-          } else {
-            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${requestId}`, {
-              method: 'DELETE',
-              headers: HEADERS
-            });
-          }
-          fetchFriendData();
-        } catch (err) {
-          console.error("Error updating request:", err);
-        }
-      };
-
-      // جلب الدردشة الخاصة
-      const fetchPrivateMessages = async (friendId) => {
-        if (!currentUser) return;
-        try {
-          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id}))&order=created_at.asc`, { headers: HEADERS });
-          if (res.ok) {
-            const msgs = await res.json();
-            setPrivateMessages(msgs);
-          }
-        } catch (err) {
-          console.error("Fetch private msgs error:", err);
-        }
-      };
-
-      // إرسال رسالة خاصة
-      const sendPrivateMessage = async (e) => {
-        e.preventDefault();
-        if (!privateChatInput.trim() || !activePrivateFriend) return;
-
-        const newMsg = {
-          sender_id: currentUser.id,
-          receiver_id: activePrivateFriend.id,
-          text: privateChatInput.trim()
-        };
-
-        try {
-          await fetch(`${SUPABASE_BASE_URL}/private_messages`, {
-            method: 'POST',
-            headers: HEADERS,
-            body: JSON.stringify(newMsg)
-          });
-          setPrivateChatInput('');
-          fetchPrivateMessages(activePrivateFriend.id);
-        } catch (err) {
-          console.error("Send msg error:", err);
         }
       };
 
@@ -529,18 +399,11 @@
                     <span>➕</span> إنشاء روم
                   </button>
 
-                  {/* زر الأصدقاء والطلبات */}
-                  <button 
-                    onClick={() => setShowFriendsModal(true)} 
-                    className="relative bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl border border-slate-700 text-xs font-bold flex items-center gap-1">
-                    <span>🤝 الأصدقاء</span>
-                    {friendRequests.length > 0 && (
-                      <span className="bg-rose-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center animate-bounce">
-                        {friendRequests.length}
-                      </span>
-                    )}
-                  </button>
+                  <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold hidden sm:block">
+                    💰 {currentUser.coins || 0} عملة
+                  </div>
 
+                  {/* تصميم الحساب في الشريط العلوي بخط كبير وبارز وأحمر عريض للـ ID والرتبة الحمراء */}
                   <div className="flex items-center gap-3 bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700 shadow-xl">
                     <img src={currentUser.avatar} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow" />
                     <div className="text-right">
@@ -573,7 +436,7 @@
 
           <main className="max-w-6xl w-full mx-auto p-6 flex-1">
 
-            {/* عرض نتائج البحث + زر إرسال طلب الصداقة */}
+            {/* عرض نتائج البحث */}
             {searchResult ? (
               <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 mb-8 shadow-2xl">
                 <div className="flex justify-between items-center mb-4">
@@ -611,9 +474,6 @@
                         <p className="text-xs mt-1">ID المستخدم: <span className="font-mono text-rose-500 font-black text-sm">{searchResult.data.id}</span></p>
                       </div>
                     </div>
-                    <button onClick={() => sendFriendRequest(searchResult.data)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs flex items-center gap-1 shadow-lg">
-                      <span>➕</span> طلب صداقة
-                    </button>
                   </div>
                 )}
               </div>
@@ -704,4 +564,222 @@
                 <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4">
                   <h4 className="text-xs font-bold text-slate-400 mb-3">دردشة الروم</h4>
                   <div className="h-36 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl text-xs">
-                    {roomChat.
+                    {roomChat.map(msg => (
+                      <div key={msg.id} className="flex items-start gap-2">
+                        <span className="font-bold text-purple-400">{msg.sender}:</span>
+                        <span className="text-slate-200">{msg.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <form onSubmit={sendRoomChat} className="flex gap-2">
+                    <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="اكتب رسالة..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                    <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
+                  </form>
+                </div>
+
+                <div className="absolute bottom-16 right-16 pointer-events-none">
+                  {floatingEmojis.map(item => (
+                    <div key={item.id} className="floating-emoji text-3xl absolute bottom-0 right-0">{item.emoji}</div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* القائمة الرئيسية */
+              <>
+                <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-8 border border-purple-500/20 mb-8 shadow-2xl text-center md:text-right flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div>
+                    <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
+                      🟢 الرومات المتاحة حالياً
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-black text-white mb-3">انضم إلى <span className="text-purple-400">DEDE LIVE</span></h2>
+                    <p className="text-slate-300 text-sm max-w-xl">اختر روم أو ابحث عن أصدقائك عبر الـ ID المميز الخاص بهم.</p>
+                  </div>
+                  {currentUser && (
+                    <button onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all whitespace-nowrap">
+                      🎙️ افتح روم صوتي الآن
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-white">الرومات النشطة ({rooms.length})</h3>
+                  <button onClick={fetchRooms} className="text-xs text-purple-400 hover:underline">🔄 تحديث</button>
+                </div>
+
+                {loadingRooms ? (
+                  <div className="text-center py-12 text-slate-400 text-xs">جاري جلب الرومات...</div>
+                ) : rooms.length === 0 ? (
+                  <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center">
+                    <p className="text-slate-400 text-sm mb-4">لا توجد رومات مفتوحة.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {rooms.map(room => (
+                      <div key={room.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all shadow-xl">
+                        <div className="relative h-40">
+                          <img src={room.cover_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
+                          <span className="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-700">
+                            {room.category}
+                          </span>
+                          <div className="absolute bottom-3 right-3 left-3 flex items-center gap-3">
+                            <img src={room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-10 h-10 rounded-full ring-2 ring-purple-500" />
+                            <div>
+                              <h4 className="text-white font-bold text-sm">{room.title}</h4>
+                              <p className="text-slate-400 text-xs">المضيف: {room.host_name} | <span className="font-mono text-purple-300">{room.id}</span></p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800">
+                          <span>🎙️ {room.max_seats || 8} مقاعد</span>
+                          <button onClick={() => enterRoom(room)} className="bg-purple-600 text-white font-bold px-4 py-1.5 rounded-lg hover:bg-purple-500 transition-all">
+                            دخول الروم ←
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+          </main>
+
+          {/* نافذة تعديل الملف الشخصي */}
+          {showProfileModal && (
+            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full relative shadow-2xl">
+                <button onClick={() => setShowProfileModal(false)} className="absolute top-5 left-5 text-slate-400 hover:text-white text-lg">✕</button>
+                
+                <h3 className="text-2xl font-black text-white text-center mb-1">الملف الشخصي</h3>
+                <p className="text-xs text-slate-400 text-center mb-6">إدارة صورتك واسمك الشخصي</p>
+
+                {profileUpdateMsg && (
+                  <div className="mb-4 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl text-center font-bold">
+                    {profileUpdateMsg}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  <div className="flex flex-col items-center gap-3">
+                    <img src={editAvatar || currentUser?.avatar} className="w-28 h-28 rounded-full object-cover ring-4 ring-purple-600 shadow-2xl" />
+                    <label className="bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer border border-purple-500/30 transition-all shadow">
+                      📂 تغيير الصورة الشخصية
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-2">اسم المستخدم (بخط كبير)</label>
+                    <input 
+                      type="text" 
+                      value={editName} 
+                      onChange={e => setEditName(e.target.value)} 
+                      required 
+                      className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-5 py-3 text-base font-black text-white focus:outline-none focus:border-purple-500 shadow-inner" 
+                    />
+                  </div>
+
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-400 font-bold">🆔 الـ ID المميز:</span>
+                      <span className="font-mono text-rose-500 font-black text-base tracking-wider">{currentUser?.id}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-400 font-bold">⭐ الرتبة / الصفة:</span>
+                      <span className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-lg font-black text-xs border border-rose-500/40">{currentUser?.role || 'عضو'}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 text-center pt-1">هذه البيانات تُدار ويتم تخصيصها حصرياً من لوحة الإدارة.</p>
+                  </div>
+
+                  <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black py-3.5 rounded-2xl text-sm shadow-xl transition-all">
+                    حفظ التغييرات
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* نافذة إنشاء روم */}
+          {showCreateRoomModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
+                <button onClick={() => setShowCreateRoomModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+                <h3 className="text-xl font-black text-white text-center mb-1">إنشاء روم صوتي</h3>
+                {createRoomError && (
+                  <div className="mb-4 bg-rose-500/10 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
+                    {createRoomError}
+                  </div>
+                )}
+                <form onSubmit={handleCreateRoom} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">عنوان الروم</label>
+                    <input type="text" value={roomTitle} onChange={e => setRoomTitle(e.target.value)} required placeholder="عنوان الغرفة..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">التصنيف</label>
+                    <select value={roomCategory} onChange={e => setRoomCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                      <option value="حوار ونقاش">حوار ونقاش</option>
+                      <option value="موسيقى وغناء">موسيقى وغناء</option>
+                      <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">المقاعد</label>
+                    <select value={roomSeats} onChange={e => setRoomSeats(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                      <option value="4">4 مقاعد</option>
+                      <option value="8">8 مقاعد</option>
+                      <option value="12">12 مقعد</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs">نشر الروم</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* نافذة تسجيل الدخول */}
+          {showAuthModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
+                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+                <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'حساب جديد' : 'تسجيل الدخول'}</h3>
+                {errorMsg && <div className="mb-4 bg-rose-500/10 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">{errorMsg}</div>}
+                <form onSubmit={handleAuth} className="space-y-4">
+                  {isSignup && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+                      <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="اسمك..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">البريد الإلكتروني</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="email@example.com" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">كلمة السر</label>
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                  </div>
+                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs">دخول</button>
+                </form>
+                <p className="text-center text-xs text-slate-400 mt-4">
+                  <button onClick={() => setIsSignup(!isSignup)} className="text-purple-400 font-bold hover:underline">
+                    {isSignup ? 'لديك حساب؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب'}
+                  </button>
+                </p>
+              </div>
+            </div>
+          )}
+
+          <footer className="border-t border-slate-800 py-6 bg-slate-900/50 mt-12 text-center text-xs text-slate-400">
+            DEDE LIVE © 2026 - جميع الحقوق محفوظة
+          </footer>
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
