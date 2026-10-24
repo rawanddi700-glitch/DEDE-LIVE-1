@@ -80,24 +80,40 @@
       const [createRoomError, setCreateRoomError] = useState('');
       const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-      // نافذة تعديل الملف الشخصي (الاسم، الصورة، الايدي، الرتبة)
+      // نافذة تعديل الملف الشخصي (للمستخدم العادي: الاسم والصورة فقط)
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [editName, setEditName] = useState('');
       const [editAvatar, setEditAvatar] = useState('');
-      const [editCustomId, setEditCustomId] = useState('');
-      const [editRole, setEditRole] = useState('مستخدم عادي');
       const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
       useEffect(() => {
         fetchRooms();
+        if (currentUser) {
+          refreshUserData();
+        }
       }, []);
+
+      // دالة لتحديث بيانات المستخدم أونلاين من السيرفر لضمان جلب الـ ID والوصف الجديد الذي وضعه المدير
+      const refreshUserData = async () => {
+        if (!currentUser || !currentUser.email) return;
+        try {
+          const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.email)}`, { headers: HEADERS });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.length > 0) {
+              setCurrentUser(data[0]);
+              localStorage.setItem('dede_user', JSON.stringify(data[0]));
+            }
+          }
+        } catch (err) {
+          console.error("Refresh user error:", err);
+        }
+      };
 
       useEffect(() => {
         if (currentUser) {
           setEditName(currentUser.username || '');
           setEditAvatar(currentUser.avatar || '');
-          setEditCustomId(currentUser.id || '');
-          setEditRole(currentUser.role || 'مستخدم عادي');
         }
       }, [currentUser]);
 
@@ -157,21 +173,18 @@
         }
       };
 
-      // حفظ التعديلات وإرسالها لقاعدة البيانات مباشرة
+      // حفظ تعديل الاسم والصورة فقط للمستخدم العادي
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
         setProfileUpdateMsg('جاري الحفظ...');
 
         const updatedData = {
-          id: editCustomId.trim() || currentUser.id,
           username: editName.trim(),
-          avatar: editAvatar || currentUser.avatar,
-          role: editRole
+          avatar: editAvatar || currentUser.avatar
         };
 
         try {
-          // تحديث بيانات المستخدم في جدول users باستخدام البريد الإلكتروني أو الـ ID القديم كمعرف
           const response = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.email)}`, {
             method: 'PATCH',
             headers: HEADERS,
@@ -185,11 +198,10 @@
             setShowProfileModal(false);
             setProfileUpdateMsg('');
           } else {
-            const errData = await response.json();
-            setProfileUpdateMsg("خطأ: " + (errData.message || "تعذر الحفظ"));
+            setProfileUpdateMsg("تعذر الحفظ");
           }
         } catch (err) {
-          setProfileUpdateMsg("فشل الاتصال بقاعدة البيانات");
+          setProfileUpdateMsg("فشل الاتصال");
         }
       };
 
@@ -226,7 +238,7 @@
           name: currentUser.username, 
           avatar: currentUser.avatar, 
           id: currentUser.id, 
-          role: currentUser.role || 'مستخدم عادي' 
+          role: currentUser.role || 'عضو' 
         };
         setRoomSeatsData(updated);
         setIsHandRaised(false);
@@ -280,7 +292,7 @@
           password_hash: password,
           coins: 0,
           level: 1,
-          role: 'مستخدم عادي',
+          role: 'عضو',
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
         };
 
@@ -399,13 +411,15 @@
                     <div className="text-right">
                       <div className="flex items-center gap-1">
                         <p className="text-xs font-bold text-white">{currentUser.username}</p>
-                        <span className="bg-purple-600/30 text-purple-300 text-[9px] px-1.5 py-0.2 rounded font-bold border border-purple-500/30">
-                          {currentUser.role || 'مستخدم عادي'}
-                        </span>
+                        {currentUser.role && (
+                          <span className="bg-purple-600/30 text-purple-300 text-[9px] px-1.5 py-0.2 rounded font-bold border border-purple-500/30">
+                            {currentUser.role}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10px] text-purple-400 font-mono">{currentUser.id}</p>
+                      <p className="text-[10px] text-purple-400 font-mono font-bold">{currentUser.id}</p>
                     </div>
-                    <button onClick={() => setShowProfileModal(true)} title="تعديل الملف الشخصي" className="mr-1 text-slate-400 hover:text-white bg-slate-700 p-1 rounded-full text-[10px]">
+                    <button onClick={() => { refreshUserData(); setShowProfileModal(true); }} title="تعديل الملف الشخصي" className="mr-1 text-slate-400 hover:text-white bg-slate-700 p-1 rounded-full text-[10px]">
                       ✏️
                     </button>
                   </div>
@@ -453,11 +467,13 @@
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-white font-bold text-base">{searchResult.data.username}</h4>
-                          <span className="bg-purple-600/30 text-purple-300 text-[10px] px-2 py-0.5 rounded font-bold border border-purple-500/30">
-                            {searchResult.data.role || 'مستخدم عادي'}
-                          </span>
+                          {searchResult.data.role && (
+                            <span className="bg-purple-600/30 text-purple-300 text-[10px] px-2 py-0.5 rounded font-bold border border-purple-500/30">
+                              {searchResult.data.role}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-slate-400 text-xs mt-1">ID المستخدم: <span className="font-mono text-purple-300">{searchResult.data.id}</span></p>
+                        <p className="text-slate-400 text-xs mt-1">ID المستخدم: <span className="font-mono text-purple-300 font-bold">{searchResult.data.id}</span></p>
                       </div>
                     </div>
                   </div>
@@ -485,7 +501,7 @@
                   </button>
                 </div>
 
-                {/* مقاعد المايكات مع عرض الرتبة بشكل أساسي */}
+                {/* مقاعد المايكات مع إظهار الـ ID والرتبة الجديدة للمدير */}
                 <div className="mb-8">
                   <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8})</h3>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
@@ -514,9 +530,9 @@
                         <p className="text-[11px] font-bold text-slate-200 mt-2 truncate max-w-[80px] text-center">
                           {seat.user ? seat.user.name : 'فارغ'}
                         </p>
-                        {seat.user && (
+                        {seat.user && seat.user.role && (
                           <span className="text-[9px] bg-purple-600/30 text-purple-300 px-1.5 rounded font-bold border border-purple-500/20 mt-0.5">
-                            {seat.user.role || 'مستخدم عادي'}
+                            {seat.user.role}
                           </span>
                         )}
                       </div>
@@ -626,13 +642,13 @@
 
           </main>
 
-          {/* نافذة تعديل الملف الشخصي (إتاحة تعديل الـ ID والرتبة والاسم والصورة) */}
+          {/* نافذة تعديل الملف الشخصي (مخصصة للاسم والصورة فقط للمستخدم العادي) */}
           {showProfileModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">تعديل بيانات المستخدم</h3>
-                <p className="text-xs text-slate-400 text-center mb-4">تعديل الـ ID والرتبة والاسم والصورة</p>
+                <h3 className="text-xl font-black text-white text-center mb-1">تعديل ملفك الشخصي</h3>
+                <p className="text-xs text-slate-400 text-center mb-4">يمكنك تعديل اسمك صورتك الشخصية فقط</p>
 
                 {profileUpdateMsg && (
                   <div className="mb-4 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl text-center font-bold">
@@ -654,24 +670,14 @@
                     <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">الـ ID المميز</label>
-                    <input type="text" value={editCustomId} onChange={e => setEditCustomId(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-purple-300 font-mono focus:outline-none focus:border-purple-500" />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">الرتبة / الصفة</label>
-                    <select value={editRole} onChange={e => setEditRole(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-                      <option value="مستخدم عادي">مستخدم عادي</option>
-                      <option value="👑 Admin">👑 Admin</option>
-                      <option value="⭐ VIP 1">⭐ VIP 1</option>
-                      <option value="🌟 VIP 5">🌟 VIP 5</option>
-                      <option value="🔥 VIP 10">🔥 VIP 10</option>
-                    </select>
+                  {/* عرض معلومات الـ ID والرتبة للقراءة فقط ليعلم المستخدم أن المدير هو من يتحكم بهما */}
+                  <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <p>🆔 الـ ID الحالي: <span className="font-mono text-purple-300 font-bold">{currentUser?.id}</span> (يُدار من الإدارة)</p>
+                    <p>⭐ صفتك الحالية: <span className="text-purple-300 font-bold">{currentUser?.role || 'عضو'}</span> (تُدار من الإدارة)</p>
                   </div>
 
                   <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    حفظ التغييرات في السيرفر
+                    حفظ التعديلات
                   </button>
                 </form>
               </div>
