@@ -28,6 +28,13 @@
     }
     .slide-down { animation: slideDown 0.5s ease-out forwards; }
 
+    /* حركة الشريط المتحرك العلوي */
+    @keyframes marquee {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .animate-marquee { display: inline-block; animation: marquee 18s linear infinite; }
+
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #020617; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -37,6 +44,13 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
+    <!-- 🌟 الشريط المتحرك العلوي الجديد -->
+    <div class="bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 text-white text-xs font-black py-2 overflow-hidden whitespace-nowrap shadow-md border-b border-purple-500/30">
+      <div class="animate-marquee tracking-wider">
+        ✨ روبرت يرحب بكم في DEDE LIVE بيتك الثاني 🎙️ | تواصل بلا حدود، رومات صوتية تفاعلية، وشحن فوري آمن عبر شام كاش 💎🚀 ✨
+      </div>
+    </div>
+
     <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
     <div v-if="userNotification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
       <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
@@ -186,14 +200,52 @@
 
       <!-- الواجهة الرئيسية -->
       <template v-else>
-        <!-- بانر الترحيب والشحن -->
+        
+        <!-- 🌟 أولاً: الرومات النشطة في الأعلى تماماً -->
+        <div class="mb-10">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
+              🎙️ الرومات الصوتية النشطة حالياً (<span class="text-white">{{ rooms.length }}</span>)
+            </h3>
+            <button @click="fetchRooms" class="text-xs font-bold text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/40 px-3 py-1.5 rounded-xl border border-purple-500/30 transition-all">🔄 تحديث القائمة</button>
+          </div>
+
+          <div v-if="loadingRooms" class="text-center py-12 text-slate-400 text-xs font-bold">جاري جلب الرومات المتاحة...</div>
+          <div v-else-if="rooms.length === 0" class="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-12 text-center text-slate-300 text-xs font-bold shadow-xl">
+            لا توجد رومات مفتوحة حالياً. كن أول من يفتح غرفة جديدة! 🚀
+          </div>
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div v-for="room in rooms" :key="room.id" class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl hover:border-purple-500 transition-all">
+              <div class="relative h-36">
+                <img :src="room.cover_image" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+                <span class="absolute top-3 right-3 bg-slate-950/90 text-purple-300 text-[11px] font-black px-3 py-1 rounded-full border border-purple-500/40 shadow-md">
+                  ✨ {{ room.category }}
+                </span>
+                <div class="absolute bottom-3 right-3 left-3 flex items-center gap-2.5">
+                  <img :src="room.host_avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow-lg" />
+                  <div class="truncate">
+                    <h4 class="text-white text-sm font-black truncate">{{ room.title }}</h4>
+                    <p class="text-[11px] text-slate-300 truncate font-bold">المضيف: <span class="text-purple-400">{{ room.host_name }}</span></p>
+                  </div>
+                </div>
+              </div>
+              <div class="p-3.5 bg-slate-900 flex justify-between items-center text-xs border-t border-slate-800/80">
+                <span class="text-slate-300 font-bold">👥 مقاعد الروم: <span class="text-purple-300 font-black">{{ room.max_seats || 8 }}</span></span>
+                <button @click="enterRoom(room)" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black px-4 py-2 rounded-xl transition-all shadow-lg">دخول الغرفة 🎧</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- بانر الترحيب وشحن الرصيد -->
         <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/20 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-right">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
-              ✨ المعاملات المالية عبر شام كاش (ShamCash)
+              ✨ المعاملات المالية الفورية عبر شام كاش (ShamCash)
             </span>
             <h2 class="text-2xl sm:text-4xl font-black text-white mb-2">مرحباً بك في <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</span></h2>
-            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في الرومات الصوتية.</p>
+            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في أمتع الرومات الصوتية.</p>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap transition-all">
@@ -205,66 +257,59 @@
           </div>
         </div>
 
-        <!-- 🚀 قسم من نحن (About Us) -->
-        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-lg">🏢</div>
-            <div>
-              <h3 class="text-lg font-black text-white">من نحن (About DEDE LIVE)</h3>
-              <p class="text-xs text-purple-400 font-bold">الرؤية والتميز في عالم الصوتيات</p>
-            </div>
-          </div>
-          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
-            تعتبر منصة <strong class="text-purple-400 font-bold">DEDE LIVE</strong> الوجهة الأولى والأكثر تطوراً لعشاق التواصل الصوتي التفاعلي. نحن نجمع بين تقنيات البث الصوتي الفائق والشفافة المالية المطلقة المدعومة حصرياً عبر محفظة <span class="text-emerald-400 font-bold">شام كاش (ShamCash)</span> لضمان إيداع وسحب آمن وسلس.
-          </p>
-        </div>
-
-        <!-- 💰 قسم نظام الشحن والأسعار -->
-        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg">💵</div>
-            <div>
-              <h3 class="text-lg font-black text-white">نظام الكوينز عبر شام كاش (أسعار الصرف الرسمية)</h3>
-              <p class="text-xs text-emerald-400 font-bold">1 دولار = 40,000 كوينز</p>
-            </div>
-          </div>
-          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
-            بعد التحويل إلى محفظتنا الرسمية، أدخل رقم العملية والمبلغ هنا داخل الموقع، وسيقوم الأدمن بمراجعتها واعتمادها لتنضاف الكوينزات لحسابك فوراً.
-          </p>
-        </div>
-
-        <!-- قائمة الرومات النشطة -->
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-base font-black text-white">الرومات النشطة حالياً (<span class="text-purple-400">{{ rooms.length }}</span>)</h3>
-          <button @click="fetchRooms" class="text-xs font-bold text-purple-400 hover:text-purple-300">🔄 تحديث القائمة</button>
-        </div>
-
-        <div v-if="loadingRooms" class="text-center py-12 text-slate-500 text-xs">جاري جلب الرومات...</div>
-        <div v-else-if="rooms.length === 0" class="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center text-slate-400 text-xs">
-          لا توجد رومات مفتوحة حالياً. كن أول من يفتح غرفة جديدة!
-        </div>
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div v-for="room in rooms" :key="room.id" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl hover:border-purple-500/50 transition-all">
-            <div class="relative h-36">
-              <img :src="room.cover_image" class="w-full h-full object-cover" />
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-              <span class="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30">
-                {{ room.category }}
-              </span>
-              <div class="absolute bottom-3 right-3 left-3 flex items-center gap-2.5">
-                <img :src="room.host_avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
-                <div class="truncate">
-                  <h4 class="text-white text-xs font-black truncate">{{ room.title }}</h4>
-                  <p class="text-[10px] text-slate-400 truncate">المضيف: {{ room.host_name }}</p>
-                </div>
+        <!-- 🌟 ثانياً: الأقسام الفخمة والتعريفات (من نحن، الكوينز والدولار، والخصوصية) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          
+          <!-- قسم من نحن -->
+          <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-purple-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-purple-500 transition-all">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 rounded-full blur-2xl group-hover:bg-purple-600/20 transition-all"></div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-xl shadow-inner">🏢</div>
+              <div>
+                <h3 class="text-base font-black text-white">من نحن (About Us)</h3>
+                <p class="text-[11px] text-purple-400 font-bold">رؤيتنا في عالم الصوتيات</p>
               </div>
             </div>
-            <div class="p-3 bg-slate-900 flex justify-between items-center text-xs border-t border-slate-800">
-              <span class="text-slate-400 font-bold">🎙️ مقاعد الروم: {{ room.max_seats || 8 }}</span>
-              <button @click="enterRoom(room)" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md">دخول الروم ←</button>
-            </div>
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              منصة <strong class="text-purple-400 font-black">DEDE LIVE</strong> هي مجتمعك التفاعلي الراقي للبث الصوتي. نجمع بين أعلى معايير الجودة التقنية والشفافية المالية المطلقة المدعومة بمحفظة <span class="text-emerald-400 font-black">شام كاش</span> لتجربة استثنائية لا تُضاهى.
+            </p>
           </div>
+
+          <!-- قسم نظام الكوينز والدولار -->
+          <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-emerald-500 transition-all">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-600/10 rounded-full blur-2xl group-hover:bg-emerald-600/20 transition-all"></div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl shadow-inner">💎</div>
+              <div>
+                <h3 class="text-base font-black text-white">نظام الكوينز والدولار</h3>
+                <p class="text-[11px] text-emerald-400 font-bold">سعر الصرف الرسمي</p>
+              </div>
+            </div>
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-2">
+              كل <strong class="text-emerald-400 font-black">1 دولار أمريكي</strong> تعادل حصرياً <span class="text-purple-400 font-black text-sm">40,000 كوينز 💎</span>.
+            </p>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              قم بالتحويل عبر شام كاش، أدخل رقم العملية والمبلغ، وسيقوم الأدمن بالموافقة لتنضاف الكوينزات لحسابك فوراً.
+            </p>
+          </div>
+
+          <!-- قسم نظام الخصوصية والأمان -->
+          <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-pink-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-pink-500 transition-all">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-pink-600/10 rounded-full blur-2xl group-hover:bg-pink-600/20 transition-all"></div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-2xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-black text-xl shadow-inner">🔒</div>
+              <div>
+                <h3 class="text-base font-black text-white">الخصوصية والأمان</h3>
+                <p class="text-[11px] text-pink-400 font-bold">بياناتك محمية بالكامل</p>
+              </div>
+            </div>
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              نضمن لك سرية تامة في المعاملات المالية ورسائل الدردشة الشخصية. نحن نتبع أحدث بروتوكولات الأمان لنبقى بيتك الثاني الآمن والموثوق.
+            </p>
+          </div>
+
         </div>
+
       </template>
     </main>
 
@@ -536,7 +581,7 @@
         const showAdminPanel = ref(false);
         const adminDeposits = ref([]);
         const pendingDepositsCount = ref(0);
-        const userNotification = ref(null); // إشعار القبول العائم للمستخدم
+        const userNotification = ref(null);
 
         const viewingUser = ref(null);
         const friendRequests = ref([]);
@@ -574,7 +619,6 @@
           } catch (e) {}
         };
 
-        // التحقق الدوري من حالة طلبات المستخدم لتظهر له شاشة القبول والإشعار تلقائياً
         const checkUserApprovedDeposits = async () => {
           if (!currentUser.value || isSuperAdmin.value) return;
           try {
@@ -583,14 +627,11 @@
               const approvedList = await res.json();
               if (approvedList.length > 0) {
                 const dep = approvedList[0];
-                // إظهار الإشعار الفوري
                 userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
                 
-                // تحديث رصيد المستخدم محلياً وفي قاعدة البيانات
                 currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
                 localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
 
-                // تحديث الطلب حتى لا تكرر إظهار الإشعار
                 await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
                   method: 'PATCH',
                   headers: HEADERS,
@@ -643,10 +684,8 @@
           }
         };
 
-        // دالة قبول الحوالة من طرف الأدمن وتحديث رصيد المستخدم فوراً
         const approveDeposit = async (dep) => {
           try {
-            // 1. تحديث حالة الحوالة إلى approved
             const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
               method: 'PATCH',
               headers: HEADERS,
@@ -658,7 +697,6 @@
               return;
             }
 
-            // 2. جلب رصيد المستخدم الحالي من جدول users وإضافة الكوينز المحددة للحوالة
             const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
             if (userRes.ok) {
               const userData = await userRes.json();
@@ -731,7 +769,6 @@
             if (isSuperAdmin.value) fetchAdminDeposits();
             else checkUserApprovedDeposits();
 
-            // فحص دوري كل 4 ثوانٍ لتحديث الحوالات، الإشعارات، والأرصدة
             setInterval(() => {
               fetchFriendData();
               if (isSuperAdmin.value) fetchAdminDeposits();
