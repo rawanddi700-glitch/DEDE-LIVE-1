@@ -17,7 +17,16 @@
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
     body { font-family: 'Tajawal', sans-serif; }
 
-    /* Keyframe للدردشة التفاعلية والإيموجي */
+    @keyframes marquee {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .animate-marquee-custom {
+      display: inline-block;
+      white-space: nowrap;
+      animation: marquee 18s linear infinite;
+    }
+
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.8); opacity: 1; }
       100% { transform: translateY(-80px) scale(1.3); opacity: 0; }
@@ -65,7 +74,6 @@
       const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
       const [showProfileModal, setShowProfileModal] = useState(false);
       const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-      const [showPrivateChatModal, setShowPrivateChatModal] = useState(false);
 
       // تسجيل الدخول
       const [isSignup, setIsSignup] = useState(false);
@@ -100,13 +108,6 @@
       const [audioVolume, setAudioVolume] = useState(0.8);
       const audioRef = useRef(null);
 
-      // المتابعات والشات الخاص
-      const [following, setFollowing] = useState([]);
-      const [followers, setFollowers] = useState([]);
-      const [targetUser, setTargetUser] = useState(null);
-      const [privateMessages, setPrivateMessages] = useState({});
-      const [privateInput, setPrivateInput] = useState('');
-
       useEffect(() => {
         fetchRooms();
       }, []);
@@ -133,7 +134,6 @@
         }
       };
 
-      // تحويل الصور المحملة محلياً إلى Base64
       const handleImageUpload = (e, callback) => {
         const file = e.target.files[0];
         if (file) {
@@ -145,7 +145,6 @@
         }
       };
 
-      // التسجيل والدخول
       const handleAuth = async (e) => {
         e.preventDefault();
         setErrorMsg('');
@@ -183,7 +182,6 @@
         setShowAuthModal(false);
       };
 
-      // إنشاء الروم
       const handleCreateRoom = async (e) => {
         e.preventDefault();
         setCreateRoomError('');
@@ -219,11 +217,10 @@
             setCreateRoomError("خطأ: " + (errData.message || "عذراً تعذر إنشاء الروم"));
           }
         } catch (err) {
-          setCreateRoomError("فشل الاتصال بالشبيكة");
+          setCreateRoomError("فشل الاتصال بالشبكة");
         }
       };
 
-      // دخول الروم
       const enterRoom = (room) => {
         setActiveRoom(room);
         const initialSeats = Array.from({ length: room.max_seats || 8 }, (_, i) => {
@@ -238,13 +235,11 @@
         setIsHandRaised(false);
       };
 
-      // صعود المايك
       const claimSeat = (index) => {
         if (!currentUser) return alert("سجل دخولك أولاً!");
         const updated = [...roomSeatsData];
-        if (updated[index].user) return; // المقعد مشغول
+        if (updated[index].user) return;
 
-        // إزالة من المقعد القديم إن وجد
         const oldIndex = updated.findIndex(s => s.user?.id === currentUser.id);
         if (oldIndex !== -1) updated[oldIndex].user = null;
 
@@ -253,7 +248,6 @@
         setIsHandRaised(false);
       };
 
-      // النزول من المايك
       const leaveSeat = () => {
         const updated = [...roomSeatsData];
         const idx = updated.findIndex(s => s.user?.id === currentUser.id);
@@ -263,7 +257,6 @@
         }
       };
 
-      // طرد من الروم
       const kickUser = (seatIndex) => {
         if (activeRoom.host_id !== currentUser?.id) return alert("فقط المضيف يمكنه الطرد!");
         const updated = [...roomSeatsData];
@@ -276,7 +269,6 @@
         }
       };
 
-      // إرسال شات الروم
       const sendRoomChatMessage = (e) => {
         e.preventDefault();
         if (!chatInput.trim() || !currentUser) return;
@@ -284,7 +276,6 @@
         setChatInput('');
       };
 
-      // تفاعل الإيموجيات
       const triggerEmoji = (emoji) => {
         const id = Date.now();
         setFloatingEmojis(prev => [...prev, { id, emoji }]);
@@ -293,7 +284,6 @@
         }, 1800);
       };
 
-      // حفظ الملف الشخصي
       const handleSaveProfile = (e) => {
         e.preventDefault();
         if (!currentUser) return;
@@ -303,7 +293,6 @@
         setShowProfileModal(false);
       };
 
-      // الموسيقى محلياً
       const handleAudioUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -330,33 +319,6 @@
         setAudioVolume(newVol);
       };
 
-      // نظام المتابعة والشات الخاص
-      const toggleFollow = (userId) => {
-        if (following.includes(userId)) {
-          setFollowing(following.filter(id => id !== userId));
-        } else {
-          setFollowing([...following, userId]);
-        }
-      };
-
-      const openPrivateChatWith = (user) => {
-        // التحقق من رد المتابعة (Mutual Follow simulation)
-        setTargetUser(user);
-        setShowPrivateChatModal(true);
-      };
-
-      const sendPrivateMessage = (e) => {
-        e.preventDefault();
-        if (!privateInput.trim() || !targetUser) return;
-        const chatKey = targetUser.id;
-        const prevMsgs = privateMessages[chatKey] || [];
-        setPrivateMessages({
-          ...privateMessages,
-          [chatKey]: [...prevMsgs, { sender: currentUser.username, text: privateInput, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]
-        });
-        setPrivateInput('');
-      };
-
       const handleLogout = () => {
         setCurrentUser(null);
         localStorage.removeItem('dede_user');
@@ -365,475 +327,13 @@
       return (
         <div className="min-h-screen flex flex-col justify-between relative overflow-x-hidden">
 
-          {/* 🔴 الشريط المتحرك (Marquee) */}
-          <div className="bg-gradient-to-r from-purple-950 via-indigo-900 to-slate-950 border-b border-purple-500/20 py-2 px-4 overflow-hidden whitespace-nowrap text-xs font-bold text-purple-300">
-            <div className="inline-block animate-marquee pr-full">
+          {/* 🔴 الشريط المتحرك */}
+          <div className="bg-gradient-to-r from-purple-950 via-indigo-900 to-slate-950 border-b border-purple-500/20 py-2 px-4 overflow-hidden text-xs font-bold text-purple-300 w-full">
+            <div className="animate-marquee-custom">
               ✨ روبرت يرحب بكم في <span className="text-pink-400 font-extrabold">DEDE LIVE</span> - نتمنى لكم وقتاً ممتعاً وسهرة مميزة معنا! ✨
             </div>
           </div>
 
-          <!-- الشريط العلوي -->
           <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveRoom(null)}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-500/30">
-                🎙️
-              </div>
-              <div>
-                <h1 className="text-xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-300 bg-clip-text text-transparent">DEDE LIVE</h1>
-                <p className="text-[10px] text-purple-400 font-bold">منصة البث المباشر الصوتية</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {currentUser ? (
-                <>
-                  <button 
-                    onClick={() => setShowCreateRoomModal(true)} 
-                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-extrabold px-4 py-2 rounded-xl shadow-lg shadow-purple-600/20 transition-all flex items-center gap-1">
-                    <span>➕</span> إنشاء روم
-                  </button>
-
-                  <button 
-                    onClick={() => setShowProfileModal(true)}
-                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl border border-slate-700 transition-all">
-                    <img src={currentUser.avatar} className="w-6 h-6 rounded-full object-cover ring-2 ring-purple-500" />
-                    <div className="text-right hidden sm:block">
-                      <p className="text-xs font-bold text-white">{currentUser.username}</p>
-                      <p className="text-[9px] text-purple-400 font-mono">{currentUser.id}</p>
-                    </div>
-                  </button>
-
-                  <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-xl border border-rose-500/20 transition-all">
-                    خروج
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => setShowAuthModal(true)} className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-purple-600/30 transition-all">
-                  تسجيل الدخول / حساب جديد
-                </button>
-              )}
-            </div>
-          </header>
-
-          <!-- المحتوى الرئيسي -->
-          <main className="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-1">
-
-            {/* إذا كان المستخدم داخل روم صوتية حية */}
-            {activeRoom ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
-                
-                {/* رأس الروم */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-800">
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => setActiveRoom(null)} className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl text-xs font-bold">
-                      ← خروج من الروم
-                    </button>
-                    <div>
-                      <span className="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-3 py-0.5 rounded-full border border-purple-400/30 inline-block mb-1">
-                        {activeRoom.category}
-                      </span>
-                      <h2 className="text-2xl font-black text-white">{activeRoom.title}</h2>
-                      <p className="text-xs text-slate-400">المضيف: <span className="text-purple-300 font-bold">{activeRoom.host_name}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setIsMember(!isMember)}
-                      className={`text-xs font-bold px-4 py-2 rounded-xl transition-all ${isMember ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-purple-600 text-white hover:bg-purple-500'}`}>
-                      {isMember ? '✓ عضو بالروم' : 'الانضمام كعضو'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* شبكة المقاعد والمايكات Stage Seats */}
-                <div className="my-8">
-                  <h3 className="text-xs font-bold text-slate-400 mb-4">المقاعد المتاحة ({activeRoom.max_seats || 8})</h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
-                    {roomSeatsData.map((seat, index) => (
-                      <div key={index} className="flex flex-col items-center">
-                        <div 
-                          onClick={() => claimSeat(index)}
-                          className={`w-16 h-16 rounded-2xl flex items-center justify-center relative cursor-pointer transition-all border ${
-                            seat.user 
-                              ? 'bg-slate-800 border-purple-500/50 shadow-lg shadow-purple-500/10' 
-                              : 'bg-slate-950/60 border-slate-800 border-dashed hover:border-purple-500/30'
-                          }`}>
-                          {seat.user ? (
-                            <>
-                              <img src={seat.user.avatar} className="w-full h-full rounded-2xl object-cover" />
-                              {seat.isHost && (
-                                <span className="absolute -top-2 -right-2 bg-amber-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-md shadow">
-                                  👑 مضيف
-                                </span>
-                              )}
-                              {/* زر الطرد للمضيف */}
-                              {activeRoom.host_id === currentUser?.id && !seat.isHost && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); kickUser(index); }}
-                                  className="absolute -bottom-2 -left-2 bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md hover:bg-rose-500">
-                                  طرد
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-slate-600 text-xs font-bold">{index + 1} 🎙️</span>
-                          )}
-                        </div>
-                        <p className="text-[11px] font-bold text-slate-300 mt-2 truncate max-w-[70px] text-center">
-                          {seat.user ? seat.user.name : 'فارغ'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* لوحة تحكم المايك والتفاعلات المشغلة */}
-                <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setIsMuted(!isMuted)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${isMuted ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
-                      {isMuted ? '🔇 المايك مكتوم' : '🎙️ المايك مفتوح'}
-                    </button>
-
-                    <button 
-                      onClick={() => setIsHandRaised(!isHandRaised)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${isHandRaised ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
-                      ✋ {isHandRaised ? 'تم رفع اليد' : 'رفع اليد'}
-                    </button>
-
-                    <button 
-                      onClick={leaveSeat}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-xs font-bold">
-                      النزول للمستمعين
-                    </button>
-                  </div>
-
-                  {/* لوحة ملصقات الإيموجي التفاعلية */}
-                  <div className="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
-                    {['❤️', '🔥', '🎙️', '👏', '🎁', '🎉'].map(emoji => (
-                      <button 
-                        key={emoji} 
-                        onClick={() => triggerEmoji(emoji)}
-                        className="hover:scale-125 transition-transform text-base p-1">
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* مشغل أغاني الروم المباشر (من ملفات الصوت) */}
-                <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🎵</span>
-                    <div>
-                      <p className="text-xs font-bold text-white">مشغل الصوت للأغاني في الروم</p>
-                      <p className="text-[10px] text-purple-400">اختر أغنية من هاتفك/كمبيوترك ليسمعها المتواجدون</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <input type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" id="room-audio-input" />
-                    <label htmlFor="room-audio-input" className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-2 rounded-xl cursor-pointer">
-                      📂 اختر ملف صوت
-                    </label>
-
-                    {audioSrc && (
-                      <>
-                        <audio ref={audioRef} src={audioSrc} autoPlay onEnded={() => setIsPlayingAudio(false)} />
-                        <button onClick={toggleAudioPlay} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold">
-                          {isPlayingAudio ? '⏸️ إيقاف' : '▶️ تشغيل'}
-                        </button>
-                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-xl border border-slate-800">
-                          <button onClick={() => adjustVolume(-0.1)} className="text-xs text-slate-300 font-bold px-1">➖</button>
-                          <span className="text-[10px] text-purple-300 font-mono">{Math.round(audioVolume * 100)}%</span>
-                          <button onClick={() => adjustVolume(0.1)} className="text-xs text-slate-300 font-bold px-1">➕</button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* شات الروم النصي المباشر */}
-                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4">
-                  <h4 className="text-xs font-bold text-slate-400 mb-3">دردشة الروم المباشرة</h4>
-                  <div className="h-40 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 text-xs">
-                    {roomChat.map(msg => (
-                      <div key={msg.id} className="flex items-start gap-2">
-                        <span className="font-bold text-purple-400">{msg.sender}:</span>
-                        <span className="text-slate-200">{msg.text}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <form onSubmit={sendRoomChatMessage} className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={chatInput} 
-                      onChange={e => setChatInput(e.target.value)} 
-                      placeholder="اكتب رسالة للروم..." 
-                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" 
-                    />
-                    <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs">
-                      إرسال
-                    </button>
-                  </form>
-                </div>
-
-                {/* الإيموجيات الطائرة */}
-                <div className="absolute bottom-10 right-10 pointer-events-none">
-                  {floatingEmojis.map(item => (
-                    <div key={item.id} className="floating-emoji text-3xl absolute bottom-0 right-0">
-                      {item.emoji}
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            ) : (
-              /* الواجهة الرئيسية وقائمة الرومات */
-              <>
-                <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-8 border border-purple-500/20 mb-8 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div>
-                    <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
-                      🟢 الرومات الصوتية الحية متوفرة الآن
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-black text-white mb-3">انضم إلى <span className="text-purple-400">DEDE LIVE</span></h2>
-                    <p className="text-slate-300 text-sm max-w-xl">تحدث مع أصدقائك، استمع للأغاني، وشارك في أفضل النقاشات الصوتية!</p>
-                  </div>
-
-                  {currentUser && (
-                    <button 
-                      onClick={() => setShowCreateRoomModal(true)}
-                      className="bg-purple-600 hover:bg-purple-500 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-600/40 transition-all whitespace-nowrap">
-                      🎙️ افتح روم صوتي الآن
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-white">الرومات النشطة ({rooms.length})</h3>
-                  <button onClick={fetchRooms} className="text-xs text-purple-400 hover:underline">🔄 تحديث القائمة</button>
-                </div>
-
-                {loadingRooms ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">جاري جلب الرومات الصوتية...</div>
-                ) : rooms.length === 0 ? (
-                  <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center">
-                    <p className="text-slate-400 text-sm mb-4">لا توجد رومات صوتية مفتوحة حالياً.</p>
-                    {currentUser ? (
-                      <button onClick={() => setShowCreateRoomModal(true)} className="bg-purple-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl">كن أول من ينشئ روم!</button>
-                    ) : (
-                      <p className="text-xs text-purple-400">سجل دخولك لتتمكن من إنشاء أول روم.</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {rooms.map(room => (
-                      <div key={room.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all shadow-xl">
-                        <div className="relative h-40">
-                          <img src={room.cover_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
-                          <span className="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-700">
-                            {room.category}
-                          </span>
-                          <div className="absolute bottom-3 right-3 left-3 flex items-center gap-3">
-                            <img src={room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-10 h-10 rounded-full ring-2 ring-purple-500 object-cover" />
-                            <div>
-                              <h4 className="text-white font-bold text-sm">{room.title}</h4>
-                              <p className="text-slate-400 text-xs">المضيف: {room.host_name}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-4 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800">
-                          <span>🎙️ {room.max_seats || 8} مقاعد</span>
-                          <button onClick={() => enterRoom(room)} className="bg-purple-600 text-white font-bold px-4 py-1.5 rounded-lg hover:bg-purple-500 transition-all">
-                            دخول الروم ←
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-          </main>
-
-          <!-- 📲 أزرار الفوتر والدعم والتواصل -->
-          <footer className="border-t border-slate-800 py-6 bg-slate-900/50 mt-12 text-center text-xs text-slate-400">
-            <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p>DEDE LIVE © 2026 - جميع الحقوق محفوظة</p>
-              
-              <div className="flex items-center gap-4">
-                <button onClick={() => setShowPrivacyModal(true)} className="hover:text-purple-400 underline">
-                  السياسة والخصوصية
-                </button>
-                <a 
-                  href="https://wa.me/963993918672" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-bold hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1">
-                  <span>💬</span> التواصل مع الدعم (واتساب)
-                </a>
-              </div>
-            </div>
-          </footer>
-
-          <!-- ⚙️ نافذة تعديل الملف الشخصي Modal -->
-          {showProfileModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">تعديل الملف الشخصي</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">غير صورتك واسمك بسهولة</p>
-
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div className="flex flex-col items-center gap-3">
-                    <img src={editAvatar} className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500" />
-                    <label className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">
-                      رفع صورة من الجهاز
-                      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setEditAvatar)} className="hidden" />
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    حفظ التغيرات
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          <!-- 🏠 نافذة إنشاء روم جديدة Modal -->
-          {showCreateRoomModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                <button onClick={() => setShowCreateRoomModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">إنشاء روم صوتي</h3>
-                <p className="text-xs text-slate-400 text-center mb-4">حدد اسم وصورة الغرفة</p>
-
-                {createRoomError && (
-                  <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
-                    {createRoomError}
-                  </div>
-                )}
-
-                <form onSubmit={handleCreateRoom} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">عنوان الروم</label>
-                    <input type="text" value={roomTitle} onChange={e => setRoomTitle(e.target.value)} required placeholder="مثال: سهرة طرب..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">صورة الغلاف (اختياري من الهاتف/الكمبيوتر)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setRoomCover)} className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500" />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">تصنيف الروم</label>
-                    <select value={roomCategory} onChange={e => setRoomCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-                      <option value="حوار ونقاش">حوار ونقاش</option>
-                      <option value="موسيقى وغناء">موسيقى وغناء</option>
-                      <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
-                      <option value="تعارف ودردشة">تعارف ودردشة</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">عدد المقاعد</label>
-                    <select value={roomSeats} onChange={e => setRoomSeats(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-                      <option value="4">4 مقاعد</option>
-                      <option value="6">6 مقاعد</option>
-                      <option value="8">8 مقاعد</option>
-                      <option value="12">12 مقعد</option>
-                    </select>
-                  </div>
-
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    نشر الروم فوراً
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          <!-- 🔒 نافذة السياسة والخصوصية Modal -->
-          {showPrivacyModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full relative shadow-2xl max-h-[80vh] overflow-y-auto">
-                <button onClick={() => setShowPrivacyModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-4">سياسة الخصوصية والاستخدام العالمي</h3>
-                
-                <div className="space-y-3 text-xs text-slate-300 leading-relaxed text-right">
-                  <p><strong>1. جمع البيانات:</strong> نحن في منصة DEDE LIVE نحترم خصوصيتك بالكامل. البيانات المجموعة تقتصر على اسم المستخدم والبريد الإلكتروني المولد للأغراض التقنية التشغيلية فقط.</p>
-                  <p><strong>2. حماية البث والغرف الصوتية:</strong> يُمنع منعاً باتاً تسجيل المحادثات الصوتية أو مشاركتها بدون موافقة صريحة من المضيف والأعضاء المشاركين.</p>
-                  <p><strong>3. السلوك والأمان:</strong> يُلزم جميع المستخدمين باحترام المعايير الأخلاقية. يترتب على أي خطاب كراهية أو إساءة الطرد والحظر المباشر من المنصة.</p>
-                  <p><strong>4. التشفير والحسابات:</strong> يتم تخزين ملفات تعريف المستخدم والأرقام المعرفية (IDs) بشكل مشفر وآمن عبر سيرفرات سحابية محمية.</p>
-                </div>
-
-                <button onClick={() => setShowPrivacyModal(false)} className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-xl text-xs mt-6">
-                  موافق وإغلاق
-                </button>
-              </div>
-            </div>
-          )}
-
-          <!-- 🔐 نافذة تسجيل الدخول Modal -->
-          {showAuthModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت</p>
-
-                {errorMsg && (
-                  <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
-                    {errorMsg}
-                  </div>
-                )}
-
-                <form onSubmit={handleAuth} className="space-y-4">
-                  {isSignup && (
-                    <div>
-                      <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-                      <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="اكتب اسمك..." className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">البريد الإلكتروني</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="email@example.com" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">كلمة السر</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-                  </div>
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    {isSignup ? 'إنشاء الحساب الآن' : 'دخول فوري'}
-                  </button>
-                </form>
-
-                <p className="text-center text-xs text-slate-400 mt-4">
-                  {isSignup ? 'لديك حساب بالفعل؟ ' : 'ليس لديك حساب؟ '}
-                  <button onClick={() => setIsSignup(!isSignup)} className="text-purple-400 font-bold hover:underline">
-                    {isSignup ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
-                  </button>
-                </p>
-              </div>
-            </div>
-          )}
-
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
-</body>
-</html>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-
