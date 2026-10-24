@@ -9,7 +9,6 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-javascript@2"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -21,19 +20,11 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState } = React;
 
-    const SUPABASE_URL = "https://yhsehpcosswgehonzzcq.supabase.co";
+    // مفاتيح Supabase المباشرة
+    const SUPABASE_URL = "https://yhsehpcosswgehonzzcq.supabase.co/rest/v1/users";
     const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
-    
-    let supabase = null;
-    try {
-      if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      }
-    } catch (e) {
-      console.error("Supabase init error:", e);
-    }
 
     const INITIAL_ROOMS = [
       {
@@ -59,7 +50,6 @@
     ];
 
     function App() {
-      const [activeTab, setActiveTab] = useState('discover');
       const [currentUser, setCurrentUser] = useState(() => {
         try {
           const saved = localStorage.getItem('dede_user');
@@ -85,36 +75,37 @@
           id: permanentId,
           username: username || email.split('@')[0],
           email: email,
+          password_hash: password,
           coins: 1000,
+          level: 1,
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
         };
 
-        // إرسال البيانات فوراً إلى جدول users في قاعدة البيانات
-        if (supabase) {
-          try {
-            const { data, error } = await supabase.from('users').insert([
-              {
-                id: userObj.id,
-                username: userObj.username,
-                email: userObj.email,
-                password_hash: password,
-                coins: 1000,
-                level: 1
-              }
-            ]);
+        try {
+          // إرسال مباشر عبر HTTP Request بدون مكتبات معقدة
+          const response = await fetch(SUPABASE_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(userObj)
+          });
 
-            if (error) {
-              console.error("Supabase Error Details:", error);
-              setErrorMsg("خطأ في القاعدة: " + error.message);
-              return; // إيقاف العملية إذا رفضت القاعدة البيانات
-            } else {
-              console.log("Saved successfully to DB:", data);
-            }
-          } catch (err) {
-            console.error("Network or catch error:", err);
-            setErrorMsg("حدث خطأ في الاتصال بقاعدة البيانات");
+          if (!response.ok) {
+            const errData = await response.json();
+            console.error("Supabase API Error:", errData);
+            setErrorMsg("خطأ من القاعدة: " + (errData.message || response.statusText));
             return;
           }
+
+          console.log("User saved successfully to Supabase!");
+        } catch (err) {
+          console.error("Network Error:", err);
+          setErrorMsg("فشل الاتصال بقاعدة البيانات");
+          return;
         }
 
         setCurrentUser(userObj);
@@ -130,13 +121,13 @@
       return (
         <div className="min-h-screen flex flex-col justify-between">
           <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('discover')}>
+            <div className="flex items-center gap-3 cursor-pointer">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-500/30">
                 🎙️
               </div>
               <div>
                 <h1 className="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-                <p className="text-[10px] text-purple-400 font-bold">رومات دردشة صوتية حية</p>
+                <p className="text-[10px] text-purple-400 font-bold">اتصال مباشر بقاعدة البيانات</p>
               </div>
             </div>
 
@@ -168,7 +159,7 @@
                 🔴 البث المباشر متوفر الآن
               </span>
               <h2 className="text-3xl md:text-5xl font-black text-white mb-3">أهلاً بك في منصة <span className="text-purple-400">DEDE LIVE</span></h2>
-              <p className="text-slate-300 text-sm max-w-xl">انضم إلى أحدث الرومات الصوتية، وتحدث مع أصدقائك بحرية تامة.</p>
+              <p className="text-slate-300 text-sm max-w-xl">سجل الآن وسيتخزن حسابك فوراً وبشكل حقيقي في جدول users.</p>
             </div>
 
             <h3 className="text-lg font-bold text-white mb-4">الرومات الصوتية المتاحة</h3>
@@ -206,7 +197,7 @@
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-xl font-black text-white text-center mb-1">{isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h3>
-                <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت بدون أكواد تفعيل</p>
+                <p className="text-xs text-slate-400 text-center mb-6">احصل على رقم ID ثابت</p>
 
                 {errorMsg && (
                   <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-2.5 rounded-xl text-center font-bold">
