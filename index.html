@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>DEDE LIVE - منصة الدردشة الصوتية</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,7 +15,7 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-    body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
 
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.8); opacity: 1; }
@@ -37,12 +40,15 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #020617; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
-  <div id="root"></div>
+  <div id="root">
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #020617; color: #a855f7; font-family: 'Tajawal', sans-serif; font-size: 16px; font-weight: bold;">
+      جاري تحميل منصة DEDE LIVE... 🎙️
+    </div>
+  </div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
@@ -133,7 +139,6 @@
       const [privateMessages, setPrivateMessages] = useState([]);
       const [privateMsgInput, setPrivateMsgInput] = useState('');
       const [actionMsg, setActionMsg] = useState('');
-      const [showEmojiPicker, setShowEmojiPicker] = useState(false);
       const [friendsLastMessages, setFriendsLastMessages] = useState({});
       const [unreadFriends, setUnreadFriends] = useState({});
 
@@ -366,29 +371,12 @@
           });
           if (res.ok) {
             if (type === 'text') setPrivateMsgInput('');
-            setShowEmojiPicker(false);
             fetchPrivateMessages(activePrivateChat.id, false);
             fetchFriendData();
           }
         } catch (err) {
           console.error("Error sending private message:", err);
         }
-      };
-
-      const handleImageChatUpload = (e) => {
-        const file = e.target.files[0];
-        if (file && activePrivateChat) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            sendPrivateMessage(`[🖼️ صورة مرفقة]`, 'image');
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-
-      const sendVoiceNote = () => {
-        if (!activePrivateChat) return;
-        sendPrivateMessage("🎤 [مقطع صوتي مسجل - 0:12]", 'voice');
       };
 
       const handleImageUpload = (e) => {
@@ -433,7 +421,7 @@
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
-        setProfileUpdateMsg('جاري حفظ الملف الشخصي...');
+        setProfileUpdateMsg('جاري الحفظ...');
 
         const newUsername = editName.trim();
         const newAvatar = editAvatar || currentUser.avatar;
@@ -452,7 +440,7 @@
             const updatedUser = { ...currentUser, username: newUsername, avatar: newAvatar };
             setCurrentUser(updatedUser);
             localStorage.setItem('dede_user', JSON.stringify(updatedUser));
-            setProfileUpdateMsg('تم حفظ التعديلات بنجاح! ✅');
+            setProfileUpdateMsg('تم الحفظ بنجاح! ✅');
             setTimeout(() => {
               setShowProfileModal(false);
               setProfileUpdateMsg('');
@@ -461,7 +449,7 @@
             setProfileUpdateMsg("تعذر الحفظ");
           }
         } catch (err) {
-          setProfileUpdateMsg("فشل الاتصال بالسيرفر");
+          setProfileUpdateMsg("فشل الاتصال");
         }
       };
 
@@ -651,24 +639,22 @@
       const isSuperAdmin = currentUser?.email === ADMIN_EMAIL;
 
       return (
-        <div className="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 overflow-x-hidden">
+        <div className="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100">
           
-          {/* هيدر متجاوب تماماً للموبايل والكمبيوتر */}
-          <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-50 shadow-md">
+          <header className="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-50 shadow-md">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               
               <div className="flex items-center justify-between w-full sm:w-auto">
                 <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => { setActiveRoom(null); setSearchResult(null); setSearchQuery(''); }}>
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-black text-lg sm:text-xl shadow-lg shadow-purple-500/30">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center font-black text-lg shadow-lg">
                     🎙️
                   </div>
                   <div>
-                    <h1 className="text-lg sm:text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-                    <p className="text-[9px] sm:text-[10px] text-purple-400 font-bold">بث مباشر ورومات حية</p>
+                    <h1 className="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
+                    <p className="text-[9px] text-purple-400 font-bold">بث مباشر ورومات حية</p>
                   </div>
                 </div>
 
-                {/* زر القائمة أو البروفايل السريع للموبايل إذا مسجل */}
                 {currentUser && (
                   <div className="flex sm:hidden items-center gap-2">
                     <button 
@@ -686,7 +672,6 @@
                 )}
               </div>
 
-              {/* شريط البحث */}
               <form onSubmit={handleGlobalSearch} className="flex items-center gap-2 w-full sm:w-auto">
                 <input 
                   type="text" 
@@ -700,26 +685,25 @@
                 </button>
               </form>
 
-              {/* الأزرار للشاشات الكبيرة */}
               <div className="hidden sm:flex items-center gap-3">
                 {currentUser ? (
                   <>
                     {isSuperAdmin && (
                       <button 
                         onClick={() => setShowAdminPanel(true)}
-                        className="bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-xl text-xs font-black shadow-lg transition-all animate-pulse">
+                        className="bg-amber-600 text-white px-3.5 py-2 rounded-xl text-xs font-black shadow-lg animate-pulse">
                         👑 إدارة التحويلات
                       </button>
                     )}
 
                     <button 
                       onClick={() => { fetchFriendData(); setShowSocialModal(true); }}
-                      className={`relative bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl border shadow flex items-center gap-2 text-xs font-bold transition-all ${
+                      className={`relative bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl border shadow flex items-center gap-2 text-xs font-bold ${
                         hasUnreadActivity ? 'border-rose-500 ring-2 ring-rose-500/50 bell-shake' : 'border-slate-700'
                       }`}>
                       <span>💬 الرسائل والصداقات</span>
                       {totalUnreadCount > 0 && (
-                        <span className="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <span className="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center animate-bounce">
                           {totalUnreadCount}
                         </span>
                       )}
@@ -727,7 +711,7 @@
 
                     <button 
                       onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} 
-                      className="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-lg transition-all flex items-center gap-1">
+                      className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-1">
                       <span>➕</span> إنشاء روم
                     </button>
 
@@ -744,32 +728,30 @@
                         </div>
                         <p className="text-[10px] text-rose-500 font-mono font-black">{currentUser.id}</p>
                       </div>
-                      <button onClick={() => setShowProfileModal(true)} title="تعديل الملف الشخصي" className="mr-1 text-slate-300 hover:text-white bg-slate-700 p-1.5 rounded-full text-[10px]">
+                      <button onClick={() => setShowProfileModal(true)} title="تعديل" className="mr-1 text-slate-300 bg-slate-700 p-1.5 rounded-full text-[10px]">
                         ✏️
                       </button>
                     </div>
 
-                    <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl border border-rose-500/20 transition-all font-bold">
+                    <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl border border-rose-500/20 font-bold">
                       خروج
                     </button>
                   </>
                 ) : (
-                  <button onClick={() => setShowAuthModal(true)} className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg transition-all">
+                  <button onClick={() => setShowAuthModal(true)} className="bg-purple-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg">
                     تسجيل الدخول / حساب جديد
                   </button>
                 )}
               </div>
 
-              {/* أزرار تسجيل الدخول للهاتف إذا لم يكن مسجلاً */}
               {!currentUser && (
                 <div className="flex sm:hidden w-full justify-center">
-                  <button onClick={() => setShowAuthModal(true)} className="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg">
+                  <button onClick={() => setShowAuthModal(true)} className="w-full bg-purple-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg">
                     تسجيل الدخول / حساب جديد
                   </button>
                 </div>
               )}
 
-              {/* زر خروج وفتح الرسائل للموبايل إن وجد */}
               {currentUser && (
                 <div className="flex sm:hidden w-full items-center justify-between pt-2 border-t border-slate-800 text-xs">
                   <div className="flex items-center gap-2">
@@ -778,7 +760,7 @@
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => { fetchFriendData(); setShowSocialModal(true); }} className="bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold">
-                      الرسائل 💬 {totalUnreadCount > 0 && `(${totalUnreadCount})`}
+                      الرسائل {totalUnreadCount > 0 && `(${totalUnreadCount})`}
                     </button>
                     <button onClick={() => setShowCreateRoomModal(true)} className="bg-pink-600 text-white px-3 py-1.5 rounded-lg font-bold">
                       روم +
@@ -793,38 +775,35 @@
             </div>
           </header>
 
-          <main className="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-1">
+          <main className="max-w-6xl w-full mx-auto p-4 flex-1">
 
             {searchResult ? (
-              <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 sm:p-6 mb-6 shadow-2xl">
+              <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 mb-6 shadow-2xl">
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-xs sm:text-sm font-bold text-purple-400">نتيجة البحث عن: "{searchQuery}"</h3>
+                  <h3 className="text-xs font-bold text-purple-400">نتيجة البحث عن: "{searchQuery}"</h3>
                   <button onClick={() => { setSearchResult(null); setSearchQuery(''); }} className="text-xs text-slate-400 hover:text-white">✕ إغلاق</button>
                 </div>
 
                 {searchResult.type === 'room' ? (
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <img src={searchResult.data.cover_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=200"} className="w-14 h-14 rounded-xl object-cover" />
                       <div>
                         <span className="bg-purple-500/25 text-purple-300 text-[10px] font-bold px-2 py-0.5 rounded-full">{searchResult.data.category}</span>
-                        <h4 className="text-white font-bold text-sm sm:text-base mt-1">{searchResult.data.title}</h4>
-                        <p className="text-slate-400 text-[11px]">المضيف: {searchResult.data.host_name}</p>
+                        <h4 className="text-white font-bold text-sm mt-1">{searchResult.data.title}</h4>
                       </div>
                     </div>
-                    <button onClick={() => { enterRoom(searchResult.data); setSearchResult(null); }} className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs">
+                    <button onClick={() => { enterRoom(searchResult.data); setSearchResult(null); }} className="w-full sm:w-auto bg-purple-600 text-white font-bold px-4 py-2 rounded-xl text-xs">
                       دخول الروم ←
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 sm:p-4 flex items-center justify-between cursor-pointer" onClick={() => { setActionMsg(''); setViewingUser(searchResult.data); }}>
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center justify-between cursor-pointer" onClick={() => { setActionMsg(''); setViewingUser(searchResult.data); }}>
                     <div className="flex items-center gap-3">
                       <img src={searchResult.data.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-14 h-14 rounded-full object-cover ring-2 ring-purple-500" />
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-white font-black text-sm sm:text-base">{searchResult.data.username}</h4>
-                        </div>
-                        <p className="text-xs mt-0.5 font-mono text-rose-500 font-bold">{searchResult.data.id}</p>
+                        <h4 className="text-white font-black text-sm">{searchResult.data.username}</h4>
+                        <p className="text-xs font-mono text-rose-500 font-bold">{searchResult.data.id}</p>
                       </div>
                     </div>
                     <button className="bg-purple-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">عرض 👤</button>
@@ -838,23 +817,23 @@
             ) : null}
 
             {activeRoom ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl relative">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl relative">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 mb-6 gap-3">
                   <div>
                     <span className="bg-purple-500/20 text-purple-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-purple-400/30 inline-block mb-1">
                       {activeRoom.category}
                     </span>
-                    <h2 className="text-xl sm:text-2xl font-black text-white">{activeRoom.title}</h2>
+                    <h2 className="text-xl font-black text-white">{activeRoom.title}</h2>
                     <p className="text-xs text-slate-400">المضيف: <span className="text-purple-400 font-bold">{activeRoom.host_name}</span> | ID: <span className="font-mono text-purple-300">{activeRoom.id}</span></p>
                   </div>
-                  <button onClick={() => setActiveRoom(null)} className="self-start sm:self-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold">
+                  <button onClick={() => setActiveRoom(null)} className="bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold">
                     ← خروج من الروم
                   </button>
                 </div>
 
                 <div className="mb-6">
                   <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8}):</h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
                     {roomSeatsData.map((seat) => (
                       <div key={seat.index} className="flex flex-col items-center">
                         <div 
@@ -884,7 +863,7 @@
                             <span className="text-slate-600 text-xs font-bold">{seat.index + 1} 🎙️</span>
                           )}
                         </div>
-                        <p className="text-[11px] sm:text-xs font-black text-white mt-1.5 truncate max-w-[80px] text-center">
+                        <p className="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px] text-center">
                           {seat.user ? seat.user.name : 'فارغ'}
                         </p>
                       </div>
@@ -892,7 +871,7 @@
                   </div>
                 </div>
 
-                <div className="bg-slate-950/80 p-3 sm:p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 mb-6">
+                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 mb-6">
                   <div className="flex items-center gap-2">
                     <button onClick={() => setIsMuted(!isMuted)} className={`px-3.5 py-2 rounded-xl text-xs font-bold ${isMuted ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                       {isMuted ? '🔇 مكتوم' : '🎙️ المايك مفتوح'}
@@ -903,16 +882,16 @@
                   </div>
                   <div className="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-xl border border-slate-800 overflow-x-auto">
                     {['❤️', '🔥', '🎙️', '👏', '🎉'].map(emoji => (
-                      <button key={emoji} onClick={() => sendEmoji(emoji)} className="hover:scale-125 transition-transform text-base sm:text-lg px-1.5">
+                      <button key={emoji} onClick={() => sendEmoji(emoji)} className="hover:scale-125 transition-transform text-base px-1.5">
                         {emoji}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-3 sm:p-4">
+                <div className="bg-slate-950 rounded-2xl border border-slate-800 p-3">
                   <h4 className="text-xs font-bold text-slate-400 mb-2">دردشة الروم</h4>
-                  <div className="h-32 sm:h-36 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl text-xs">
+                  <div className="h-32 overflow-y-auto space-y-2 mb-3 p-2 bg-slate-900/50 rounded-xl text-xs">
                     {roomChat.map(msg => (
                       <div key={msg.id} className="flex items-start gap-2">
                         <span className="font-bold text-purple-400">{msg.sender}:</span>
@@ -928,7 +907,7 @@
               </div>
             ) : (
               <>
-                <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 border border-purple-500/20 mb-6 shadow-2xl text-center md:text-right flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 border border-purple-500/20 mb-6 shadow-2xl text-center md:text-right flex flex-col md:flex-row justify-between items-center gap-6">
                   <div>
                     <span className="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
                       🟢 الرومات المتاحة حالياً
@@ -937,14 +916,14 @@
                     <p className="text-slate-300 text-xs sm:text-sm max-w-xl">اختر روم أو ابحث عن أصدقائك عبر الـ ID المميز الخاص بهم.</p>
                   </div>
                   {currentUser && (
-                    <button onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} className="w-full md:w-auto bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl transition-all whitespace-nowrap">
+                    <button onClick={() => { setCreateRoomError(''); setShowCreateRoomModal(true); }} className="w-full md:w-auto bg-purple-600 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap">
                       🎙️ افتح روم صوتي الآن
                     </button>
                   )}
                 </div>
 
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-base sm:text-lg font-bold text-white">الرومات النشطة ({rooms.length})</h3>
+                  <h3 className="text-base font-bold text-white">الرومات النشطة ({rooms.length})</h3>
                   <button onClick={fetchRooms} className="text-xs text-purple-400 hover:underline">🔄 تحديث</button>
                 </div>
 
@@ -955,26 +934,26 @@
                     <p className="text-slate-400 text-sm mb-4">لا توجد رومات مفتوحة حالياً.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {rooms.map(room => (
-                      <div key={room.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all shadow-xl">
-                        <div className="relative h-36 sm:h-40">
+                      <div key={room.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                        <div className="relative h-36">
                           <img src={room.cover_image || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
-                          <span className="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-700">
+                          <span className="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                             {room.category}
                           </span>
                           <div className="absolute bottom-3 right-3 left-3 flex items-center gap-3">
-                            <img src={room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full ring-2 ring-purple-500 object-cover" />
+                            <img src={room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-9 h-9 rounded-full ring-2 ring-purple-500 object-cover" />
                             <div className="truncate">
-                              <h4 className="text-white font-bold text-xs sm:text-sm truncate">{room.title}</h4>
+                              <h4 className="text-white font-bold text-xs truncate">{room.title}</h4>
                               <p className="text-slate-400 text-[11px]">المضيف: {room.host_name}</p>
                             </div>
                           </div>
                         </div>
-                        <div className="p-3.5 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800">
+                        <div className="p-3 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800">
                           <span>🎙️ {room.max_seats || 8} مقاعد</span>
-                          <button onClick={() => enterRoom(room)} className="bg-purple-600 text-white font-bold px-3.5 py-1.5 rounded-lg hover:bg-purple-500 transition-all text-xs">
+                          <button onClick={() => enterRoom(room)} className="bg-purple-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
                             دخول الروم ←
                           </button>
                         </div>
@@ -987,23 +966,20 @@
 
           </main>
 
-          {/* لوحة الأدمن */}
           {showAdminPanel && isSuperAdmin && (
             <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-5 sm:p-6 relative shadow-2xl">
+              <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-5 relative shadow-2xl">
                 <button onClick={() => setShowAdminPanel(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-lg sm:text-xl font-black text-amber-400 mb-2">👑 إدارة الحوالات (شام كاش)</h3>
-                <p className="text-xs text-slate-400 mb-4">خاصة بمدير التطبيق ({ADMIN_EMAIL}).</p>
-
+                <h3 className="text-lg font-black text-amber-400 mb-2">👑 إدارة الحوالات (شام كاش)</h3>
                 <div className="space-y-3 max-h-80 overflow-y-auto">
-                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-bold text-white">رقم الحوالة: <span className="font-mono text-amber-400">#SC-982104</span></p>
                       <p className="text-xs text-slate-300 mt-0.5">المبلغ: 50,000 ل.س | أحمد محمد</p>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <button onClick={() => alert("تمت الموافقة!")} className="flex-1 sm:flex-none bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">قبول ✔️</button>
-                      <button onClick={() => alert("تم الرفض!")} className="flex-1 sm:flex-none bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">رفض ❌</button>
+                    <div className="flex gap-2">
+                      <button onClick={() => alert("تمت الموافقة!")} className="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">قبول ✔️</button>
+                      <button onClick={() => alert("تم الرفض!")} className="bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">رفض ❌</button>
                     </div>
                   </div>
                 </div>
@@ -1013,22 +989,14 @@
 
           {viewingUser && (
             <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs sm:max-w-sm w-full relative shadow-2xl text-center">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
                 <button onClick={() => setViewingUser(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                
-                <img src={viewingUser.avatar || viewingUser.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3 shadow-xl" />
-                
-                <h3 className="text-lg sm:text-xl font-black text-white">{viewingUser.username || viewingUser.name}</h3>
+                <img src={viewingUser.avatar || viewingUser.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3" />
+                <h3 className="text-lg font-black text-white">{viewingUser.username || viewingUser.name}</h3>
                 <p className="text-xs text-rose-500 font-mono font-black mt-0.5">{viewingUser.id}</p>
-
-                {actionMsg && (
-                  <div className="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl font-bold">
-                    {actionMsg}
-                  </div>
-                )}
-
+                {actionMsg && <div className="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl font-bold">{actionMsg}</div>}
                 <div className="mt-5">
-                  <button onClick={() => sendFriendRequest(viewingUser)} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg">
+                  <button onClick={() => sendFriendRequest(viewingUser)} className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-xl text-xs">
                     ➕ إرسال طلب صداقة
                   </button>
                 </div>
@@ -1036,58 +1004,41 @@
             </div>
           )}
 
-          {/* نافذة الرسائل والصداقات المتجاوبة */}
           {showSocialModal && (
             <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl h-[92vh] sm:h-[88vh] flex flex-col overflow-hidden shadow-2xl relative">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl h-[92vh] flex flex-col overflow-hidden shadow-2xl relative">
                 
-                <div className="bg-slate-950 border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between">
+                <div className="bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => { setActiveTab('messages'); setActivePrivateChat(null); }}
-                      className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
-                        activeTab === 'messages' ? 'bg-purple-600 text-white' : 'bg-slate-900 text-slate-400'
-                      }`}>
-                      <span>💬 الرسائل</span>
-                      {Object.keys(unreadFriends).length > 0 && (
-                        <span className="bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-                          {Object.keys(unreadFriends).length}
-                        </span>
-                      )}
+                      className={`px-3 py-2 rounded-xl text-xs font-black ${activeTab === 'messages' ? 'bg-purple-600 text-white' : 'bg-slate-900 text-slate-400'}`}>
+                      💬 الرسائل {Object.keys(unreadFriends).length > 0 && `(${Object.keys(unreadFriends).length})`}
                     </button>
-
                     <button 
                       onClick={() => setActiveTab('requests')}
-                      className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
-                        activeTab === 'requests' ? 'bg-purple-600 text-white' : 'bg-slate-900 text-slate-400'
-                      }`}>
-                      <span>🔔 الطلبات</span>
-                      {friendRequests.length > 0 && (
-                        <span className="bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-                          {friendRequests.length}
-                        </span>
-                      )}
+                      className={`px-3 py-2 rounded-xl text-xs font-black ${activeTab === 'requests' ? 'bg-purple-600 text-white' : 'bg-slate-900 text-slate-400'}`}>
+                      🔔 الطلبات {friendRequests.length > 0 && `(${friendRequests.length})`}
                     </button>
                   </div>
-
-                  <button onClick={() => { setShowSocialModal(false); setActivePrivateChat(null); }} className="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full text-xs">✕</button>
+                  <button onClick={() => { setShowSocialModal(false); setActivePrivateChat(null); }} className="text-slate-400 bg-slate-800 p-2 rounded-full text-xs">✕</button>
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
                   {activeTab === 'requests' ? (
-                    <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-950/50">
-                      <h3 className="text-sm sm:text-base font-black text-white mb-3">طلبات الصداقة المعلقة ({friendRequests.length})</h3>
+                    <div className="flex-1 p-4 overflow-y-auto bg-slate-950/50">
+                      <h3 className="text-sm font-black text-white mb-3">طلبات الصداقة المعلقة ({friendRequests.length})</h3>
                       {friendRequests.length === 0 ? (
                         <div className="text-center py-16 text-slate-500 text-xs">لا توجد طلبات صداقة جديدة.</div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {friendRequests.map(req => (
-                            <div key={req.id} className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-2">
+                            <div key={req.id} className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
                               <div>
                                 <p className="text-xs font-bold text-white">{req.sender_name}</p>
                                 <p className="text-[10px] text-purple-400 font-mono">ID: {req.sender_id}</p>
                               </div>
-                              <div className="flex gap-1.5">
+                              <div className="flex gap-1">
                                 <button onClick={() => respondToFriendRequest(req.id, true)} className="bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl">قبول</button>
                                 <button onClick={() => respondToFriendRequest(req.id, false)} className="bg-rose-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl">رفض</button>
                               </div>
@@ -1098,7 +1049,6 @@
                     </div>
                   ) : (
                     <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                      {/* قائمة الأصدقاء (تختفي بالموبايل إذا تم فتح شات) */}
                       <div className={`w-full md:w-72 bg-slate-950/80 border-l border-slate-800 flex flex-col h-full ${activePrivateChat ? 'hidden md:flex' : 'flex'}`}>
                         <div className="p-2.5 border-b border-slate-800">
                           <h4 className="text-[11px] font-bold text-slate-400">الأصدقاء ({friendsList.length})</h4>
@@ -1136,7 +1086,6 @@
                         </div>
                       </div>
 
-                      {/* نافذة المحادثة الفردية */}
                       <div className={`flex-1 flex flex-col bg-slate-900 h-full ${!activePrivateChat ? 'hidden md:flex' : 'flex'}`}>
                         {activePrivateChat ? (
                           <>
@@ -1146,11 +1095,11 @@
                                 <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center font-black text-white text-xs">
                                   {activePrivateChat.name.charAt(0)}
                                 </div>
-                                <h4 className="text-xs sm:text-sm font-black text-white">{activePrivateChat.name}</h4>
+                                <h4 className="text-xs font-black text-white">{activePrivateChat.name}</h4>
                               </div>
                             </div>
 
-                            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 bg-slate-950/40 text-xs">
+                            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-950/40 text-xs">
                               {privateMessages.length === 0 ? (
                                 <div className="text-center py-20 text-slate-500">ابدأ المحادثة الآن!</div>
                               ) : (
@@ -1167,7 +1116,7 @@
                               )}
                             </div>
 
-                            <div className="p-2.5 sm:p-3 bg-slate-950 border-t border-slate-800">
+                            <div className="p-2.5 bg-slate-950 border-t border-slate-800">
                               <form onSubmit={(e) => { e.preventDefault(); sendPrivateMessage(privateMsgInput, 'text'); }} className="flex items-center gap-2">
                                 <input 
                                   type="text" 
@@ -1176,7 +1125,7 @@
                                   placeholder="اكتب رسالة..." 
                                   className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" 
                                 />
-                                <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
+                                <button type="submit" className="bg-purple-600 text-white font-bold px-4 py-2 rounded-xl text-xs">إرسال</button>
                               </form>
                             </div>
                           </>
@@ -1194,64 +1143,37 @@
             </div>
           )}
 
-          {/* نافذة الملف الشخصي */}
           {showProfileModal && (
             <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl max-w-sm w-full relative shadow-2xl">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
                 <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                
                 <h3 className="text-xl font-black text-white text-center mb-1">الملف الشخصي</h3>
-                <p className="text-[11px] text-slate-400 text-center mb-5">تعديل اسم المستخدم والصورة</p>
-
-                {profileUpdateMsg && (
-                  <div className="mb-3 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl text-center font-bold">
-                    {profileUpdateMsg}
-                  </div>
-                )}
-
+                {profileUpdateMsg && <div className="mb-3 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl text-center font-bold">{profileUpdateMsg}</div>}
                 <form onSubmit={handleSaveProfile} className="space-y-4">
                   <div className="flex flex-col items-center gap-2.5">
                     <img src={editAvatar || currentUser?.avatar} className="w-24 h-24 rounded-full object-cover ring-4 ring-purple-600 shadow-lg" />
-                    <label className="bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer border border-purple-500/30 transition-all">
+                    <label className="bg-purple-600/20 text-purple-300 text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer border border-purple-500/30">
                       📂 اختر صورة جديدة
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   </div>
-
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">اسم المستخدم</label>
-                    <input 
-                      type="text" 
-                      value={editName} 
-                      onChange={e => setEditName(e.target.value)} 
-                      required 
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-black text-white focus:outline-none focus:border-purple-500" 
-                    />
+                    <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-black text-white focus:outline-none focus:border-purple-500" />
                   </div>
-
-                  <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">🆔 الـ ID المميز:</span>
-                      <span className="font-mono text-rose-500 font-bold">{currentUser?.id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">⭐ الرتبة:</span>
-                      <span className="text-rose-400 font-bold">{currentUser?.role || 'عضو'}</span>
-                    </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1 text-xs">
+                    <div className="flex justify-between"><span className="text-slate-400">ID:</span><span className="font-mono text-rose-500 font-bold">{currentUser?.id}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">الرتبة:</span><span className="text-rose-400 font-bold">{currentUser?.role || 'عضو'}</span></div>
                   </div>
-
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg">
-                    حفظ التغييرات
-                  </button>
+                  <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl text-xs">حفظ التغييرات</button>
                 </form>
               </div>
             </div>
           )}
 
-          {/* نافذة إنشاء روم */}
           {showCreateRoomModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs sm:max-w-sm w-full relative shadow-2xl">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
                 <button onClick={() => setShowCreateRoomModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-lg font-black text-white text-center mb-1">إنشاء روم صوتي</h3>
                 {createRoomError && <div className="mb-3 bg-rose-500/10 text-rose-300 text-xs p-2 rounded-xl text-center font-bold">{createRoomError}</div>}
@@ -1276,16 +1198,15 @@
                       <option value="12">12 مقعد</option>
                     </select>
                   </div>
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl">نشر الروم</button>
+                  <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl">نشر الروم</button>
                 </form>
               </div>
             </div>
           )}
 
-          {/* نافذة تسجيل الدخول */}
           {showAuthModal && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs sm:max-w-sm w-full relative shadow-2xl">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
                 <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
                 <h3 className="text-lg font-black text-white text-center mb-1">{isSignup ? 'حساب جديد' : 'تسجيل الدخول'}</h3>
                 {errorMsg && <div className="mb-3 bg-rose-500/10 text-rose-300 text-xs p-2 rounded-xl text-center font-bold">{errorMsg}</div>}
@@ -1304,7 +1225,7 @@
                     <label className="font-bold text-slate-300 block mb-1">كلمة السر</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
                   </div>
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl">دخول</button>
+                  <button type="submit" className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl">دخول</button>
                 </form>
                 <p className="text-center text-xs text-slate-400 mt-3">
                   <button onClick={() => setIsSignup(!isSignup)} className="text-purple-400 font-bold hover:underline">
