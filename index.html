@@ -84,7 +84,7 @@
       const [editAvatar, setEditAvatar] = useState('');
       const [profileUpdateMsg, setProfileUpdateMsg] = useState('');
 
-      // بطاقات المستخدم والطلبات والشات الخاص
+      // متغيرات الصداقات والدردشة الخاصة
       const [viewingUser, setViewingUser] = useState(null);
       const [friendRequests, setFriendRequests] = useState([]);
       const [friendsList, setFriendsList] = useState([]);
@@ -99,8 +99,10 @@
         if (currentUser) {
           refreshUserData();
           fetchFriendData();
+          const interval = setInterval(fetchFriendData, 5000); // تحديث دوري للطلبات والرسائل
+          return () => clearInterval(interval);
         }
-      }, []);
+      }, [currentUser]);
 
       const refreshUserData = async () => {
         if (!currentUser || !currentUser.email) return;
@@ -121,14 +123,14 @@
       const fetchFriendData = async () => {
         if (!currentUser) return;
         try {
-          // جلب الطلبات الواردة
+          // جلب الطلبات الواردة التي تنتظر موافقة المستخدم الحالي
           const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.id)}&status=eq.pending`, { headers: HEADERS });
           if (reqRes.ok) {
             const reqs = await reqRes.json();
             setFriendRequests(reqs);
           }
 
-          // جلب الأصدقاء المقبولين
+          // جلب الأصدقاء الذين تمت الموافقة عليهم (سواء كان المستخدم هو المرسل أو المستقبل)
           const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${encodeURIComponent(currentUser.id)},receiver_id.eq.${encodeURIComponent(currentUser.id)})&status=eq.accepted`, { headers: HEADERS });
           if (friendsRes.ok) {
             const fList = await friendsRes.json();
@@ -191,7 +193,7 @@
         setSearchError('عذراً، لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.');
       };
 
-      // إرسال طلب صداقة
+      // إرسال طلب صداقة مع التحقق من عدم وجود طلب سابق
       const sendFriendRequest = async (targetUser) => {
         if (!currentUser) return alert("سجل الدخول أولاً لإرسال طلب صداقة!");
         if (currentUser.id === targetUser.id) return alert("لا يمكنك إرسال طلب صداقة لنفسك!");
@@ -211,9 +213,9 @@
           });
 
           if (res.ok) {
-            setActionMsg("تم إرسال طلب الصداقة بنجاح! 🟢");
+            setActionMsg("تم إرسال طلب الصداقة بنجاح وسيظهر لدى الطرف الآخر! 🟢");
           } else {
-            setActionMsg("تم إرسال طلب من قبل أو حدث خطأ.");
+            setActionMsg("تم إرسال طلب مسبقاً لهذا المستخدم.");
           }
         } catch (err) {
           setActionMsg("فشل الاتصال بالسيرفر.");
@@ -241,10 +243,13 @@
         }
       };
 
-      // فتح الشات الخاص بين الصديقين
+      // فتح الشات الخاص بين الصديقين وجلب الرسائل
       const openPrivateChat = async (friend) => {
         const friendId = friend.sender_id === currentUser.id ? friend.receiver_id : friend.sender_id;
-        setActivePrivateChat({ id: friendId, name: friend.sender_name || "صديق" });
+        const friendName = friend.sender_id === currentUser.id ? (friend.receiver_name || "صديق") : friend.sender_name;
+        
+        // جلب اسم الصديق الحقيقي من السيرفر إن لم يكن متوفراً
+        setActivePrivateChat({ id: friendId, name: friendName });
         fetchPrivateMessages(friendId);
       };
 
@@ -884,14 +889,17 @@
                         <p className="text-xs text-slate-500 bg-slate-950/50 p-3 rounded-xl">لم تقم بإضافة أصدقاء بعد.</p>
                       ) : (
                         <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {friendsList.map(f => (
-                            <div key={f.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
-                              <p className="text-xs font-bold text-white">{f.sender_name}</p>
-                              <button onClick={() => openPrivateChat(f)} className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
-                                💬 فتح الشات
-                              </button>
-                            </div>
-                          ))}
+                          {friendsList.map(f => {
+                            const friendName = f.sender_id === currentUser.id ? (f.receiver_name || "صديق") : f.sender_name;
+                            return (
+                              <div key={f.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
+                                <p className="text-xs font-bold text-white">{friendName}</p>
+                                <button onClick={() => openPrivateChat(f)} className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                                  💬 فتح الشات
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
