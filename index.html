@@ -79,10 +79,10 @@ const INITIAL_TRANSACTIONS = [
   {
     id: "TXN-88491",
     userId: "ID-849201",
-    type: "deposit", // deposit | withdrawal
+    type: "deposit",
     method: "بطاقة ائتمان (Visa/Mastercard)",
     amount: 500,
-    status: "completed", // pending | completed | failed
+    status: "completed",
     timestamp: "2026-03-20T12:00:00Z"
   },
   {
@@ -97,13 +97,11 @@ const INITIAL_TRANSACTIONS = [
 ];
 
 export default function App() {
-  // Navigation & UI States
-  const [activeTab, setActiveTab] = useState('discover'); // discover, room, wallet, profile, db_inspector
+  const [activeTab, setActiveTab] = useState('discover');
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // login | signup
+  const [authMode, setAuthMode] = useState('login');
   const [createRoomModalOpen, setCreateRoomModalOpen] = useState(false);
 
-  // App Data States (with LocalStorage persistence sync)
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('dede_current_user');
     return saved ? JSON.parse(saved) : null;
@@ -124,35 +122,29 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
-  // Active Live Room State
   const [currentActiveRoom, setCurrentActiveRoom] = useState(null);
   const [seats, setSeats] = useState([]);
   const [isMicOn, setIsMicOn] = useState(false);
-  const [isHandRaised, setIsHandRaised] = useState(false);
   const [roomChat, setRoomChat] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [talkingUserIds, setTalkingUserIds] = useState([]);
 
-  // Auth Inputs
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authUsername, setAuthUsername] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // Create Room Inputs
   const [newRoomTitle, setNewRoomTitle] = useState('');
   const [newRoomCategory, setNewRoomCategory] = useState('حوار ونقاش');
   const [newRoomMaxSeats, setNewRoomMaxSeats] = useState(8);
   const [newRoomIsPrivate, setNewRoomIsPrivate] = useState(false);
 
-  // Wallet Form State
   const [txnType, setTxnType] = useState('deposit');
   const [txnMethod, setTxnMethod] = useState('Visa/Mastercard');
   const [txnAmount, setTxnAmount] = useState('');
   const [walletMessage, setWalletMessage] = useState('');
 
-  // Sync to LocalStorage
   useEffect(() => {
     localStorage.setItem('dede_users', JSON.stringify(usersDb));
   }, [usersDb]);
@@ -173,12 +165,9 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Simulated Voice Waveform & Talking Effect in Room
   useEffect(() => {
     if (!currentActiveRoom) return;
-
     const interval = setInterval(() => {
-      // Randomly pick seated users who are "talking"
       const occupiedSeats = seats.filter(s => s.user);
       if (occupiedSeats.length > 0) {
         const randomSeat = occupiedSeats[Math.floor(Math.random() * occupiedSeats.length)];
@@ -193,33 +182,29 @@ export default function App() {
         }
       }
     }, 1500);
-
     return () => clearInterval(interval);
   }, [currentActiveRoom, seats]);
 
-  // Auth Logic (Instant, Direct Email/Password Without Confirm Code)
   const handleAuthSubmit = (e) => {
     e.preventDefault();
     setAuthError('');
 
     if (!authEmail || !authPassword) {
-      setAuthError('يرجى ملا جميع الحقول المطلوب');
+      setAuthError('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
 
     if (authMode === 'signup') {
       if (!authUsername) {
-        setAuthError('يرجى ادخال اسم المستخدم');
+        setAuthError('يرجى إدخال اسم المستخدم');
         return;
       }
-      
       const existingUser = usersDb.find(u => u.email.toLowerCase() === authEmail.toLowerCase());
       if (existingUser) {
-        setAuthError('هذا البريد الالكتروني مسجل بالفعل');
+        setAuthError('هذا البريد الإلكتروني مسجل بالفعل');
         return;
       }
 
-      // Generate Permanent ID
       const permanentId = `ID-${Math.floor(100000 + Math.random() * 900000)}`;
       const newUser = {
         id: permanentId,
@@ -228,7 +213,7 @@ export default function App() {
         password: authPassword,
         avatar: `https://images.unsplash.com/photo-${1535713875002 + Math.floor(Math.random() * 1000)}?auto=format&fit=crop&q=80&w=200`,
         level: 1,
-        coins: 1000, // Welcome Bonus
+        coins: 1000,
         created_at: new Date().toISOString()
       };
 
@@ -237,11 +222,9 @@ export default function App() {
       setAuthModalOpen(false);
       resetAuthFields();
     } else {
-      // Login
       const foundUser = usersDb.find(
         u => u.email.toLowerCase() === authEmail.toLowerCase() && u.password === authPassword
       );
-
       if (foundUser) {
         setCurrentUser(foundUser);
         setAuthModalOpen(false);
@@ -264,28 +247,20 @@ export default function App() {
     if (activeTab === 'room') setActiveTab('discover');
   };
 
-  // Join Voice Room Logic
   const handleJoinRoom = (room) => {
     if (!currentUser) {
       setAuthModalOpen(true);
       return;
     }
-
     setCurrentActiveRoom(room);
     setActiveTab('room');
 
-    // Setup Seats
     const totalSeats = room.maxSeats || 8;
     const initialSeats = Array.from({ length: totalSeats }, (_, i) => {
       if (i === 0) {
-        // Host on seat 0
         return {
           seatIndex: 0,
-          user: {
-            id: room.hostId,
-            username: room.hostName,
-            avatar: room.hostAvatar
-          },
+          user: { id: room.hostId, username: room.hostName, avatar: room.hostAvatar },
           isMicOn: true,
           isHost: true
         };
@@ -295,43 +270,30 @@ export default function App() {
 
     setSeats(initialSeats);
     setRoomChat([
-      {
-        id: 1,
-        system: true,
-        text: `مرحباً بك في غرفة "${room.title}". يرجى احترام قوانين الدردشة.`
-      }
+      { id: 1, system: true, text: `مرحباً بك في غرفة "${room.title}". يرجى احترام قوانين الدردشة.` }
     ]);
   };
 
-  // Take or Leave Seat
   const toggleSeat = (seatIndex) => {
     if (!currentUser) return;
-
     setSeats(prev => {
       const existingSeat = prev.find(s => s.user?.id === currentUser.id);
-      
-      // If user is already in this seat, leave it
       if (existingSeat && existingSeat.seatIndex === seatIndex) {
         return prev.map(s => s.seatIndex === seatIndex ? { ...s, user: null, isMicOn: false } : s);
       }
-
-      // If user is in another seat, move here
       let updated = prev.map(s => s.user?.id === currentUser.id ? { ...s, user: null, isMicOn: false } : s);
       updated = updated.map(s => s.seatIndex === seatIndex ? {
         ...s,
         user: { id: currentUser.id, username: currentUser.username, avatar: currentUser.avatar },
         isMicOn: isMicOn
       } : s);
-
       return updated;
     });
   };
 
-  // Send Chat Message in Room
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!chatInput.trim() || !currentUser) return;
-
     const newMessage = {
       id: Date.now(),
       userId: currentUser.id,
@@ -340,27 +302,22 @@ export default function App() {
       text: chatInput.trim(),
       time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
     };
-
     setRoomChat(prev => [...prev, newMessage]);
     setChatInput('');
   };
 
-  // Trigger Reaction Emojis
   const handleTriggerEmoji = (emoji) => {
     const id = Date.now() + Math.random();
-    const leftOffset = Math.floor(Math.random() * 60) + 20; // 20% to 80%
+    const leftOffset = Math.floor(Math.random() * 60) + 20;
     setFloatingEmojis(prev => [...prev, { id, emoji, left: leftOffset }]);
-
     setTimeout(() => {
       setFloatingEmojis(prev => prev.filter(e => e.id !== id));
     }, 2500);
   };
 
-  // Create Room Logic
   const handleCreateRoom = (e) => {
     e.preventDefault();
     if (!currentUser) return;
-
     const newRoom = {
       id: `ROOM-${Math.floor(100 + Math.random() * 900)}`,
       hostId: currentUser.id,
@@ -374,26 +331,22 @@ export default function App() {
       listenersCount: 1,
       created_at: new Date().toISOString()
     };
-
     setRoomsDb([newRoom, ...roomsDb]);
     setCreateRoomModalOpen(false);
     handleJoinRoom(newRoom);
   };
 
-  // Handle Wallet Transactions
   const handleTransactionSubmit = (e) => {
     e.preventDefault();
     if (!currentUser) {
       setAuthModalOpen(true);
       return;
     }
-
     const numAmount = parseFloat(txnAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
       setWalletMessage('يرجى إدخال مبلغ صحيح');
       return;
     }
-
     if (txnType === 'withdrawal' && numAmount > currentUser.coins) {
       setWalletMessage('رصيدك الحالي غير كافٍ لإجراء السحب');
       return;
@@ -409,13 +362,10 @@ export default function App() {
       timestamp: new Date().toISOString()
     };
 
-    // Update Transactions DB
     setTransactionsDb([newTxn, ...transactionsDb]);
-
-    // Update User Coins if Deposit
     let updatedCoins = currentUser.coins;
     if (txnType === 'deposit') {
-      updatedCoins += numAmount * 10; // 1 USD/SAR = 10 Coins ratio
+      updatedCoins += numAmount * 10;
     } else {
       updatedCoins -= numAmount;
     }
@@ -423,25 +373,21 @@ export default function App() {
     const updatedUser = { ...currentUser, coins: updatedCoins };
     setCurrentUser(updatedUser);
     setUsersDb(usersDb.map(u => u.id === currentUser.id ? updatedUser : u));
-
     setWalletMessage(
       txnType === 'deposit'
         ? `تم الإيداع بنجاح! تمت إضافة ${numAmount * 10} عملة إلى حسابك.`
-        : `تم ارسال طلب السحب بنجاح وهو قيد المراجعة الآن.`
+        : `تم إرسال طلب السحب بنجاح وهو قيد المراجعة الآن.`
     );
     setTxnAmount('');
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans dir-rtl flex flex-col selection:bg-purple-600 selection:text-white" dir="rtl">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-purple-600 selection:text-white" dir="rtl">
       
-      {/* HEADER / NAVIGATION BAR */}
-      <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 flex items-center justify-between">
+      {/* HEADER NAVBAR */}
+      <header className="sticky top-0 z-40 bg-slate-900/85 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <div 
-            onClick={() => setActiveTab('discover')} 
-            className="flex items-center gap-2 cursor-pointer group"
-          >
+          <div onClick={() => setActiveTab('discover')} className="flex items-center gap-2 cursor-pointer group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-105 transition-transform">
               <Radio className="w-6 h-6 text-white animate-pulse" />
             </div>
@@ -453,85 +399,46 @@ export default function App() {
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
-            <button
-              onClick={() => setActiveTab('discover')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'discover' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-              }`}
-            >
+          <nav className="hidden md:flex items-center gap-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+            <button onClick={() => setActiveTab('discover')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'discover' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
               استكشف الرومات
             </button>
             {currentActiveRoom && (
-              <button
-                onClick={() => setActiveTab('room')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  activeTab === 'room' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
+              <button onClick={() => setActiveTab('room')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'room' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 الروم النشطة
               </button>
             )}
-            <button
-              onClick={() => setActiveTab('wallet')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'wallet' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-              }`}
-            >
+            <button onClick={() => setActiveTab('wallet')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'wallet' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
               المحفظة والرصيد
             </button>
-            <button
-              onClick={() => setActiveTab('db_inspector')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-                activeTab === 'db_inspector' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400 hover:text-indigo-300'
-              }`}
-            >
+            <button onClick={() => setActiveTab('db_inspector')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeTab === 'db_inspector' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400 hover:text-indigo-300'}`}>
               <Database className="w-4 h-4" />
               هيكلة قاعدة البيانات
             </button>
           </nav>
         </div>
 
-        {/* User Status / Auth Buttons */}
         <div className="flex items-center gap-3">
           {currentUser ? (
             <div className="flex items-center gap-3">
-              {/* Coin Balance Chip */}
-              <div 
-                onClick={() => setActiveTab('wallet')}
-                className="hidden sm:flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-amber-500/20 transition-all"
-              >
+              <div onClick={() => setActiveTab('wallet')} className="hidden sm:flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-amber-500/20 transition-all">
                 <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
                 <span>{currentUser.coins.toLocaleString()} عملة</span>
               </div>
-
-              {/* User Avatar & Menu */}
-              <div 
-                onClick={() => setActiveTab('profile')}
-                className="flex items-center gap-2 cursor-pointer bg-slate-800/80 hover:bg-slate-800 p-1.5 pl-3 rounded-full border border-slate-700 transition-all"
-              >
+              <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-slate-800/80 hover:bg-slate-800 p-1.5 pl-3 rounded-full border border-slate-700 transition-all">
                 <img src={currentUser.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500" />
                 <div className="text-right">
                   <p className="text-xs font-bold leading-none text-slate-200">{currentUser.username}</p>
                   <p className="text-[10px] text-purple-400 font-mono leading-tight">{currentUser.id}</p>
                 </div>
               </div>
-
-              <button 
-                onClick={handleLogout}
-                title="تسجيل الخروج"
-                className="p-2 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-800 transition-all"
-              >
+              <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-800 transition-all">
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setAuthModalOpen(true)}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-purple-600/30 transition-all hover:scale-105"
-            >
+            <button onClick={() => setAuthModalOpen(true)} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-purple-600/30 transition-all hover:scale-105">
               تسجيل الدخول / حساب جديد
             </button>
           )}
@@ -540,46 +447,32 @@ export default function App() {
 
       {/* MOBILE BOTTOM NAV */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 py-2 px-4 flex items-center justify-around">
-        <button 
-          onClick={() => setActiveTab('discover')}
-          className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'discover' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}
-        >
+        <button onClick={() => setActiveTab('discover')} className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'discover' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}>
           <Radio className="w-5 h-5" />
           <span>الرومات</span>
         </button>
         {currentActiveRoom && (
-          <button 
-            onClick={() => setActiveTab('room')}
-            className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'room' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}
-          >
+          <button onClick={() => setActiveTab('room')} className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'room' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}>
             <Mic className="w-5 h-5" />
-            <span>البث الحقيقي</span>
+            <span>البث</span>
           </button>
         )}
-        <button 
-          onClick={() => setActiveTab('wallet')}
-          className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'wallet' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}
-        >
+        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'wallet' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}>
           <Wallet className="w-5 h-5" />
           <span>المحفظة</span>
         </button>
-        <button 
-          onClick={() => setActiveTab('db_inspector')}
-          className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'db_inspector' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}
-        >
+        <button onClick={() => setActiveTab('db_inspector')} className={`flex flex-col items-center gap-1 text-xs ${activeTab === 'db_inspector' ? 'text-purple-400 font-bold' : 'text-slate-400'}`}>
           <Database className="w-5 h-5" />
           <span>القاعدة</span>
         </button>
       </div>
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN BODY CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 mb-16 md:mb-0">
 
-        {/* TAB 1: DISCOVER / LOBBY (ROOMS GRID) */}
+        {/* TAB 1: DISCOVER / ROOMS */}
         {activeTab === 'discover' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            {/* Hero Banner */}
+          <div className="space-y-6">
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 p-6 md:p-10 border border-purple-500/20 shadow-2xl">
               <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="relative z-10 max-w-2xl">
@@ -590,70 +483,33 @@ export default function App() {
                   انضم إلى <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">رومات الدردشة الصوتية</span> الحية الآن!
                 </h1>
                 <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-6">
-                  استمع إلى أرقى السهرات، شارك المايك، تكوّن أصدقاء جدد من كل الوطن العربي بكل سهولة وأمان مع DEDE LIVE.
+                  استمع إلى أرقى السهرات، شارك المايك، كوّن أصدقاء جدد من كل الوطن العربي بكل سهولة وأمان مع DEDE LIVE.
                 </p>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => {
-                      if (!currentUser) setAuthModalOpen(true);
-                      else setCreateRoomModalOpen(true);
-                    }}
-                    className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-purple-600/40 transition-all hover:scale-105"
-                  >
-                    <Plus className="w-5 h-5" /> إنشاء روم صوتية جديدة
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    if (!currentUser) setAuthModalOpen(true);
+                    else setCreateRoomModalOpen(true);
+                  }}
+                  className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-purple-600/40 transition-all hover:scale-105"
+                >
+                  <Plus className="w-5 h-5" /> إنشاء روم صوتية جديدة
+                </button>
               </div>
             </div>
 
-            {/* Room Filters & Search Header */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-              <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-                {['الكل', 'موسيقى وغناء', 'حوار ونقاش', 'ترفيه ومسابقات'].map((cat, idx) => (
-                  <button 
-                    key={idx}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                      idx === 0 ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                <input 
-                  type="text" 
-                  placeholder="بحث عن غرفة أو مضيف..." 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pr-9 pl-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Voice Rooms Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {roomsDb.map((room) => (
-                <div 
+                <div
                   key={room.id}
                   onClick={() => handleJoinRoom(room)}
                   className="group bg-slate-900/80 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/50 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between"
                 >
                   <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src={room.coverImage} 
-                      alt={room.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                    />
+                    <img src={room.coverImage} alt={room.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-
-                    {/* Category Tag */}
                     <span className="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md border border-slate-700/60 text-purple-300 text-[10px] font-bold px-3 py-1 rounded-full">
                       {room.category}
                     </span>
-
-                    {/* Room Privacy / Listeners Status */}
                     <div className="absolute top-3 left-3 flex items-center gap-2">
                       {room.isLocked && (
                         <span className="p-1.5 bg-rose-500/80 text-white rounded-lg backdrop-blur-md">
@@ -665,8 +521,6 @@ export default function App() {
                         {room.listenersCount}
                       </span>
                     </div>
-
-                    {/* Host Info */}
                     <div className="absolute bottom-3 right-3 left-3 flex items-center gap-3">
                       <img src={room.hostAvatar} alt={room.hostName} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow-md" />
                       <div className="truncate">
@@ -675,47 +529,32 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Room Footer Action */}
                   <div className="p-4 bg-slate-900 flex items-center justify-between border-t border-slate-800/60 text-xs text-slate-400">
-                    <span className="flex items-center gap-1 text-slate-400">
+                    <span className="flex items-center gap-1">
                       <Mic className="w-4 h-4 text-purple-400" /> {room.maxSeats} مقاعد صوتية
                     </span>
-                    <span className="text-purple-400 font-bold group-hover:translate-x-[-4px] transition-transform flex items-center gap-1">
-                      دخول الروم ←
-                    </span>
+                    <span className="text-purple-400 font-bold">دخول الروم ←</span>
                   </div>
                 </div>
               ))}
             </div>
-
           </div>
         )}
 
-        {/* TAB 2: ACTIVE LIVE VOICE ROOM */}
+        {/* TAB 2: ACTIVE LIVE ROOM */}
         {activeTab === 'room' && currentActiveRoom && (
-          <div className="relative space-y-6 animate-fadeIn min-h-[80vh] flex flex-col justify-between">
-            
-            {/* Emojis Floating Canvas Overlay */}
+          <div className="relative space-y-6 min-h-[80vh] flex flex-col justify-between">
             <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
               {floatingEmojis.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="absolute bottom-20 text-4xl animate-floatUp opacity-90 transition-all"
-                  style={{ left: `${item.left}%` }}
-                >
+                <div key={item.id} className="absolute bottom-20 text-4xl animate-bounce opacity-90 transition-all" style={{ left: `${item.left}%` }}>
                   {item.emoji}
                 </div>
               ))}
             </div>
 
-            {/* Room Top Navigation & Controls */}
             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xl">
               <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setActiveTab('discover')}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all"
-                >
+                <button onClick={() => setActiveTab('discover')} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all">
                   <ChevronRight className="w-5 h-5" />
                 </button>
                 <div>
@@ -728,45 +567,35 @@ export default function App() {
                   <p className="text-xs text-slate-400">المضيف: {currentActiveRoom.hostName} • التصنيف: {currentActiveRoom.category}</p>
                 </div>
               </div>
-
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  مباشر ({currentActiveRoom.listenersCount + seats.filter(s=>s.user).length} متواجد)
+                  مباشر ({currentActiveRoom.listenersCount + seats.filter(s=>s.user).length})
                 </span>
-
-                <button 
-                  onClick={() => {
-                    setCurrentActiveRoom(null);
-                    setActiveTab('discover');
-                  }}
-                  className="bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 px-4 py-1.5 rounded-xl text-xs font-bold transition-all"
-                >
+                <button onClick={() => { setCurrentActiveRoom(null); setActiveTab('discover'); }} className="bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 px-4 py-1.5 rounded-xl text-xs font-bold transition-all">
                   مغادرة الروم
                 </button>
               </div>
             </div>
 
-            {/* STAGE SEATS GRID (VOICE MIC SLOTS) */}
+            {/* SEATS GRID */}
             <div className="bg-gradient-to-b from-slate-900/90 to-slate-950 border border-slate-800/80 rounded-3xl p-6 md:p-10 shadow-2xl">
               <div className="text-center mb-6">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-800 px-4 py-1 rounded-full border border-slate-700">
-                  🎭 المنصة الصوتية - Stage Seats
+                  🎭 المنصة الصوتية - Stage Seats (اضغط على مقعد للصعود)
                 </span>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-6 md:gap-8 max-w-4xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 md:gap-8 max-w-4xl mx-auto">
                 {seats.map((seat) => {
                   const isTalking = seat.user && talkingUserIds.includes(seat.user.id);
-
                   return (
                     <div key={seat.seatIndex} className="flex flex-col items-center">
-                      <div 
+                      <div
                         onClick={() => toggleSeat(seat.seatIndex)}
                         className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
-                          seat.user 
-                            ? isTalking 
-                              ? 'ring-4 ring-emerald-400 ring-offset-4 ring-offset-slate-950 scale-105 shadow-lg shadow-emerald-500/30' 
+                          seat.user
+                            ? isTalking
+                              ? 'ring-4 ring-emerald-400 ring-offset-4 ring-offset-slate-950 scale-105 shadow-lg shadow-emerald-500/30'
                               : 'ring-2 ring-purple-500'
                             : 'border-2 border-dashed border-slate-700 hover:border-purple-500 bg-slate-900/50'
                         }`}
@@ -774,40 +603,24 @@ export default function App() {
                         {seat.user ? (
                           <>
                             <img src={seat.user.avatar} alt={seat.user.username} className="w-full h-full rounded-full object-cover" />
-                            
-                            {/* Host Crown */}
                             {seat.isHost && (
                               <span className="absolute -top-2 bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black shadow-md">
-                                MENTOR
+                                مضيف
                               </span>
                             )}
-
-                            {/* Mic Status Indicator */}
-                            <div className={`absolute bottom-0 right-0 p-1.5 rounded-full border-2 border-slate-950 shadow-md ${
-                              seat.isMicOn ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-rose-400'
-                            }`}>
-                              {seat.isMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-                            </div>
-
-                            {/* Animated Talking Wave Overlay */}
-                            {isTalking && (
-                              <div className="absolute -bottom-2 bg-emerald-500/90 text-slate-950 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-bounce">
-                                <span className="w-1 h-2 bg-slate-950 rounded-full animate-ping"></span>
-                                يتحدث...
-                              </div>
-                            )}
+                            <span className={`absolute bottom-0 right-0 p-1.5 rounded-full text-white text-[10px] ${seat.isMicOn ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                              {seat.isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
+                            </span>
                           </>
                         ) : (
-                          <div className="flex flex-col items-center text-slate-500 hover:text-purple-400">
+                          <div className="flex flex-col items-center text-slate-500 group-hover:text-purple-400">
                             <Plus className="w-6 h-6 mb-1" />
                             <span className="text-[10px] font-bold">مقعد {seat.seatIndex + 1}</span>
                           </div>
                         )}
                       </div>
-
-                      {/* User Username Below Seat */}
-                      <p className="mt-2 text-xs font-bold text-slate-200 truncate max-w-[100px] text-center">
-                        {seat.user ? seat.user.username : 'فارغ'}
+                      <p className="mt-2 text-xs font-bold text-slate-300 truncate max-w-[100px]">
+                        {seat.user ? seat.user.username : `مقعد فارغ`}
                       </p>
                     </div>
                   );
@@ -815,346 +628,229 @@ export default function App() {
               </div>
             </div>
 
-            {/* ROOM CHAT & BOTTOM ACTION BAR */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* LIVE CHAT BOX */}
-              <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-64 md:h-80 shadow-xl">
-                <div className="overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
-                  {roomChat.map((msg) => (
-                    msg.system ? (
-                      <div key={msg.id} className="text-center py-1">
-                        <span className="bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs px-3 py-1 rounded-full">
-                          {msg.text}
-                        </span>
-                      </div>
-                    ) : (
-                      <div key={msg.id} className="flex items-start gap-2.5">
-                        <img src={msg.avatar} alt={msg.username} className="w-7 h-7 rounded-full object-cover mt-0.5" />
-                        <div className="bg-slate-800/70 border border-slate-700/50 rounded-2xl rounded-tr-none px-3 py-2 max-w-md">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-purple-300">{msg.username}</span>
-                            <span className="text-[10px] text-slate-500">{msg.time}</span>
-                          </div>
-                          <p className="text-xs text-slate-200 mt-0.5">{msg.text}</p>
-                        </div>
-                      </div>
-                    )
+            {/* CHAT & REACTION BAR */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-56">
+                <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-2">
+                  {roomChat.map((msg, i) => (
+                    <div key={i} className={`text-xs ${msg.system ? 'text-purple-400 bg-purple-500/10 p-2 rounded-lg text-center' : 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800'}`}>
+                      {!msg.system && <span className="font-bold text-purple-300 ml-2">{msg.username}:</span>}
+                      <span className="text-slate-200">{msg.text}</span>
+                    </div>
                   ))}
                 </div>
-
-                {/* Send Chat Message Form */}
-                <form onSubmit={handleSendMessage} className="mt-3 flex items-center gap-2">
-                  <input 
-                    type="text" 
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                  <input
+                    type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="اكتب رسالتك في الروم..."
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-all"
+                    placeholder="اكتب رسالة للغرفة..."
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
                   />
-                  <button 
-                    type="submit"
-                    className="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl transition-all shadow-md"
-                  >
+                  <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl">
                     <Send className="w-4 h-4" />
                   </button>
                 </form>
               </div>
 
-              {/* LIVE CONTROLS & EMOJI REACTIONS PANEL */}
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-400 mb-3">تفاعلات وإرسال الهدايا</h3>
-                  <div className="grid grid-cols-4 gap-2 mb-4">
-                    {['❤️', '👏', '🔥', '👑', '🎉', '🌹', '💎', '🎵'].map((emoji, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleTriggerEmoji(emoji)}
-                        className="bg-slate-800 hover:bg-slate-700 text-2xl p-2.5 rounded-xl transition-all hover:scale-110 active:scale-95 text-center"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Mic & Hand Raise Toggles */}
-                <div className="space-y-2 border-t border-slate-800 pt-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setIsMicOn(!isMicOn);
-                        // Update in seat if user is on seat
-                        setSeats(prev => prev.map(s => s.user?.id === currentUser?.id ? { ...s, isMicOn: !isMicOn } : s));
-                      }}
-                      className={`flex-1 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                        isMicOn 
-                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30' 
-                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                      }`}
-                    >
-                      {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                      {isMicOn ? 'المايك يعمل' : 'المايك مكتوم'}
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <h3 className="text-xs font-bold text-slate-400 mb-3">تفاعلات وإرسال هدايا</h3>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {['❤️', '🔥', '👑', '🌹', '💸', '⭐', '🎁', '🎉'].map((emoji, idx) => (
+                    <button key={idx} onClick={() => handleTriggerEmoji(emoji)} className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl text-xl transition-all hover:scale-110">
+                      {emoji}
                     </button>
-
-                    <button
-                      onClick={() => setIsHandRaised(!isHandRaised)}
-                      className={`p-3 rounded-xl transition-all ${
-                        isHandRaised ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                      title="رفع اليد للحديث"
-                    >
-                      <Hand className="w-4 h-4" />
-                    </button>
-                  </div>
+                  ))}
                 </div>
+                <button
+                  onClick={() => setIsMicOn(!isMicOn)}
+                  className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                    isMicOn ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'
+                  }`}
+                >
+                  {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                  {isMicOn ? 'المايك مفتوح (انقر للإغلاق)' : 'المايك مغلق (انقر لفتح)'}
+                </button>
               </div>
-
             </div>
-
           </div>
         )}
 
-        {/* TAB 3: WALLET & FINANCIAL TRANSACTIONS */}
+        {/* TAB 3: WALLET (DEPOSIT & WITHDRAWAL) */}
         {activeTab === 'wallet' && (
-          <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
-            
-            {/* Balance Overview Card */}
-            <div className="bg-gradient-to-r from-purple-900/90 via-indigo-900/90 to-slate-900 border border-purple-500/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="bg-gradient-to-r from-amber-600 via-purple-700 to-indigo-900 p-6 rounded-3xl shadow-xl flex items-center justify-between">
               <div>
-                <span className="text-xs text-purple-300 font-semibold">رصيد حسابك الحالي</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <Sparkles className="w-8 h-8 text-amber-400 fill-amber-400" />
-                  <span className="text-4xl font-black text-white">
-                    {currentUser ? currentUser.coins.toLocaleString() : 0}
-                  </span>
-                  <span className="text-sm text-slate-300 font-bold">عملة DEDE</span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-2">1 دولار أمريكي = 10 عملات صوتية في المنصة</p>
+                <p className="text-xs font-bold text-amber-200 uppercase tracking-widest">محفظة DEDE LIVE</p>
+                <h2 className="text-3xl font-black text-white mt-1">
+                  {currentUser ? currentUser.coins.toLocaleString() : 0} <span className="text-sm font-normal">عملة ذهبية</span>
+                </h2>
+                <p className="text-xs text-slate-200 mt-2">1 دولار / ريال = 10 عملات رصيد داخل التطبيق</p>
               </div>
-
-              {!currentUser && (
-                <button 
-                  onClick={() => setAuthModalOpen(true)}
-                  className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg"
-                >
-                  سجل الدخول للشحن
-                </button>
-              )}
+              <Wallet className="w-16 h-16 text-amber-300 opacity-80" />
             </div>
 
-            {/* Transaction Form (Deposit / Withdraw) */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-purple-400" /> إدارة الأموال والإيداع/السحب
-              </h3>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+              <h3 className="text-lg font-bold text-white mb-6">إدارة رصيدك (إيداع وسحب)</h3>
+              
+              <div className="flex items-center gap-3 mb-6 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+                <button onClick={() => setTxnType('deposit')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${txnType === 'deposit' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  إيداع رصيد (شحن عملات)
+                </button>
+                <button onClick={() => setTxnType('withdrawal')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${txnType === 'withdrawal' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  طلب سحب أرباح
+                </button>
+              </div>
 
               {walletMessage && (
-                <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-300 text-xs font-bold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-purple-400" />
+                <div className="mb-6 bg-purple-500/10 border border-purple-500/30 text-purple-300 p-3 rounded-xl text-xs font-bold text-center">
                   {walletMessage}
                 </div>
               )}
 
               <form onSubmit={handleTransactionSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setTxnType('deposit')}
-                    className={`py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
-                      txnType === 'deposit' 
-                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg' 
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <ArrowDownLeft className="w-4 h-4 text-emerald-400" /> إيداع شحن عملات
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setTxnType('withdrawal')}
-                    className={`py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
-                      txnType === 'withdrawal' 
-                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg' 
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <ArrowUpRight className="w-4 h-4 text-rose-400" /> طلب سحب أرباح
-                  </button>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-2">طريقة الدفع / التحويل</label>
+                  <select value={txnMethod} onChange={(e) => setTxnMethod(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                    <option>Visa/Mastercard</option>
+                    <option>USDT Crypto Wallet</option>
+                    <option>PayPal</option>
+                    <option>Vodafone Cash / ZainCash</option>
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5">وسيلة الدفع / السحب</label>
-                    <select
-                      value={txnMethod}
-                      onChange={(e) => setTxnMethod(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                    >
-                      <option value="Visa/Mastercard">بطاقة ائتمان (Visa / Mastercard)</option>
-                      <option value="USDT Crypto Wallet">محفظة كريبتو USDT (TRC20)</option>
-                      <option value="PayPal">حساب باي بال (PayPal)</option>
-                      <option value="ZainCash / Local Transfer">تحويل محلي / زين كاش</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5">المبلغ (بالدولار الأمريكي $)</label>
-                    <input
-                      type="number"
-                      value={txnAmount}
-                      onChange={(e) => setTxnAmount(e.target.value)}
-                      placeholder="مثال: 50"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-2">المبلغ ({txnType === 'deposit' ? 'بالدولار USD' : 'عملات مراد سحبها'})</label>
+                  <input
+                    type="number"
+                    value={txnAmount}
+                    onChange={(e) => setTxnAmount(e.target.value)}
+                    placeholder="مثال: 100"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                  />
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white py-3 rounded-xl font-bold text-xs shadow-lg shadow-purple-600/30 transition-all"
-                >
-                  {txnType === 'deposit' ? 'تأكيد عملية الإيداع والشحن' : 'إرسال طلب السحب للمراجعة'}
+                <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-600/30 transition-all">
+                  {txnType === 'deposit' ? 'تنفيذ عملية الإيداع الفوري' : 'تقديم طلب السحب للمراجعة'}
                 </button>
               </form>
             </div>
-
-            {/* Transactions History List */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl">
-              <h3 className="text-sm font-bold text-white mb-4">سجل العمليات المالية الأخيرة</h3>
-              <div className="space-y-3">
-                {transactionsDb.map((txn) => (
-                  <div key={txn.id} className="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl ${txn.type === 'deposit' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                        {txn.type === 'deposit' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-200">
-                          {txn.type === 'deposit' ? 'إيداع رصيد' : 'سحب أرباح'} - <span className="text-slate-400">{txn.method}</span>
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-mono">{new Date(txn.timestamp).toLocaleString('ar-EG')}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-left">
-                      <p className={`font-bold ${txn.type === 'deposit' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {txn.type === 'deposit' ? '+' : '-'}${txn.amount}
-                      </p>
-                      <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                        txn.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                        txn.status === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'
-                      }`}>
-                        {txn.status === 'completed' ? 'مكتمل' : txn.status === 'pending' ? 'قيد الانتظار' : 'فشل'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </div>
         )}
 
-        {/* TAB 4: USER PROFILE */}
-        {activeTab === 'profile' && currentUser && (
-          <div className="space-y-6 animate-fadeIn max-w-2xl mx-auto">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-r from-purple-600 to-indigo-600"></div>
-
-              <div className="relative z-10 pt-10">
-                <img 
-                  src={currentUser.avatar} 
-                  alt={currentUser.username} 
-                  className="w-24 h-24 rounded-full object-cover mx-auto ring-4 ring-slate-900 shadow-xl"
-                />
-
-                <h2 className="text-2xl font-black text-white mt-3">{currentUser.username}</h2>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="bg-purple-500/20 border border-purple-500/30 text-purple-300 px-3 py-1 rounded-full text-xs font-mono font-bold">
-                    الأيدي الثابت: {currentUser.id}
-                  </span>
-                  <span className="bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2.5 py-1 rounded-full text-xs font-bold">
-                    المستوى {currentUser.level}
-                  </span>
-                </div>
-
-                {/* Profile Details List */}
-                <div className="mt-8 text-right space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800/80 text-xs">
-                  <div className="flex justify-between py-2 border-b border-slate-800">
-                    <span className="text-slate-400">البريد الإلكتروني:</span>
-                    <span className="text-slate-200 font-mono">{currentUser.email}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-800">
-                    <span className="text-slate-400">تاريخ الإنشاء:</span>
-                    <span className="text-slate-200 font-mono">{new Date(currentUser.created_at).toLocaleDateString('ar-EG')}</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-slate-400">رصيد العملات الصوتية:</span>
-                    <span className="text-amber-400 font-bold">{currentUser.coins.toLocaleString()} عملة</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleLogout}
-                  className="mt-6 w-full bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 py-2.5 rounded-xl text-xs font-bold transition-all"
-                >
-                  تسجيل الخروج من الحساب
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: DATABASE ARCHITECTURE & SCHEMA INSPECTOR */}
+        {/* TAB 4: DATABASE SCHEMA INSPECTOR (DB READY) */}
         {activeTab === 'db_inspector' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-900 p-6 rounded-3xl border border-indigo-500/30 shadow-2xl">
+              <div className="flex items-center gap-3 mb-2">
+                <Database className="w-7 h-7 text-indigo-400" />
+                <h2 className="text-xl font-black text-white">هيكلة قاعدة البيانات الجاهزة للربط (Database Schema)</h2>
+              </div>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                هذا الكود مُهيكل بالكامل ليتوافق مع أي قاعدة بيانات علائقية أو سحابية (مثل Supabase أو PostgreSQL أو Firebase أو MySQL). يمكنك نسخ الجداول أدناه ومزامنتها مباشرة.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Users Table */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
                 <div>
-                  <h2 className="text-xl font-black text-white flex items-center gap-2">
-                    <Database className="w-6 h-6 text-indigo-400" />
-                    معاين هيكلية قاعدة البيانات (Backend Database Schema Ready)
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    تم تهيئة وبناء الكود ليكون جاهزاً بالكامل للربط المستقبلي مع قاعدة البيانات (Supabase / Firebase / PostgreSQL).
-                  </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-bold text-sm text-purple-400">1. جدول المستخدمين (users)</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-mono">{usersDb.length} مسجل</span>
+                  </div>
+                  <pre className="bg-slate-950 p-3 rounded-xl text-[11px] text-slate-300 font-mono overflow-x-auto dir-ltr text-left" dir="ltr">
+{`{
+  id: "ID-XXXXXX (Fixed PK)",
+  username: "STRING",
+  email: "STRING (Unique)",
+  password: "HASHED",
+  avatar: "URL",
+  level: "INTEGER",
+  coins: "INTEGER",
+  created_at: "TIMESTAMP"
+}`}
+                  </pre>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400">
+                  ⚡ خاصية الـ ID الثابت مفعلة ومدمجة بالكامل مع كل حساب جديد.
                 </div>
               </div>
 
-              {/* JSON Data Viewer Tabs */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                
-                {/* Users Table */}
-                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                  <h3 className="text-xs font-bold text-purple-400 mb-2 flex items-center gap-1.5">
-                    <User className="w-4 h-4" /> جدول المستخدمين (`users`)
-                  </h3>
-                  <pre className="text-[10px] text-emerald-400 font-mono bg-slate-900 p-3 rounded-xl overflow-x-auto max-h-60">
-                    {JSON.stringify(usersDb, null, 2)}
+              {/* Rooms Table */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-bold text-sm text-purple-400">2. جدول الرومات (rooms)</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-mono">{roomsDb.length} روم نشطة</span>
+                  </div>
+                  <pre className="bg-slate-950 p-3 rounded-xl text-[11px] text-slate-300 font-mono overflow-x-auto dir-ltr text-left" dir="ltr">
+{`{
+  id: "ROOM-XXX",
+  hostId: "FK -> users.id",
+  hostName: "STRING",
+  title: "STRING",
+  category: "STRING",
+  maxSeats: "INTEGER",
+  isLocked: "BOOLEAN",
+  listenersCount: "INTEGER"
+}`}
                   </pre>
                 </div>
+                <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400">
+                  🎙️ يدعم تخصيص عدد المقاعد (6, 8, 10) وحماية الغرف بكلمة مرور.
+                </div>
+              </div>
 
-                {/* Rooms Table */}
-                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                  <h3 className="text-xs font-bold text-indigo-400 mb-2 flex items-center gap-1.5">
-                    <Radio className="w-4 h-4" /> جدول الرومات (`rooms`)
-                  </h3>
-                  <pre className="text-[10px] text-emerald-400 font-mono bg-slate-900 p-3 rounded-xl overflow-x-auto max-h-60">
-                    {JSON.stringify(roomsDb, null, 2)}
+              {/* Transactions Table */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-bold text-sm text-purple-400">3. جدول المعاملات (transactions)</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-mono">{transactionsDb.length} عملية</span>
+                  </div>
+                  <pre className="bg-slate-950 p-3 rounded-xl text-[11px] text-slate-300 font-mono overflow-x-auto dir-ltr text-left" dir="ltr">
+{`{
+  id: "TXN-XXXXX",
+  userId: "FK -> users.id",
+  type: "deposit | withdrawal",
+  method: "STRING",
+  amount: "DECIMAL",
+  status: "completed | pending"
+}`}
                   </pre>
                 </div>
-
-                {/* Transactions Table */}
-                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                  <h3 className="text-xs font-bold text-amber-400 mb-2 flex items-center gap-1.5">
-                    <Wallet className="w-4 h-4" /> جدول المالية (`transactions`)
-                  </h3>
-                  <pre className="text-[10px] text-emerald-400 font-mono bg-slate-900 p-3 rounded-xl overflow-x-auto max-h-60">
-                    {JSON.stringify(transactionsDb, null, 2)}
-                  </pre>
+                <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400">
+                  💰 إدارة كاملة لعمليات الشحن والسحب وتحويل الرصيد الفوري.
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* TAB 5: USER PROFILE & PERMANENT ID */}
+        {activeTab === 'profile' && currentUser && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl text-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-purple-600 to-indigo-600 opacity-50"></div>
+              <div className="relative z-10">
+                <img src={currentUser.avatar} alt="Avatar" className="w-24 h-24 rounded-full object-cover mx-auto ring-4 ring-slate-950 shadow-xl mb-4" />
+                <h2 className="text-xl font-black text-white">{currentUser.username}</h2>
+                <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/40 text-purple-300 px-4 py-1 rounded-full text-xs font-mono font-bold mt-2">
+                  <span>الـ ID الثابت: {currentUser.id}</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-3">{currentUser.email}</p>
+
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-800">
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <p className="text-xs text-slate-400">الرصيد الحالي</p>
+                    <p className="text-lg font-black text-amber-400 mt-1">{currentUser.coins} عملة</p>
+                  </div>
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <p className="text-xs text-slate-400">المستوى بالحساب</p>
+                    <p className="text-lg font-black text-purple-400 mt-1">Level {currentUser.level}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1162,33 +858,22 @@ export default function App() {
 
       </main>
 
-      {/* AUTH MODAL (Instant Email/Password Login & Signup) */}
+      {/* AUTH MODAL (Instant Login / Signup without Email Confirm Code) */}
       {authModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-scaleUp">
-            
-            <button 
-              onClick={() => setAuthModalOpen(false)}
-              className="absolute top-4 left-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800 hover:bg-slate-700 transition-all"
-            >
-              <XCircle className="w-5 h-5" />
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-fadeIn">
+            <button onClick={() => setAuthModalOpen(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">
+              ✕
             </button>
-
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 mx-auto flex items-center justify-center shadow-lg mb-3">
-                <Radio className="w-7 h-7 text-white" />
-              </div>
-              <h2 className="text-xl font-black text-white">
-                {authMode === 'login' ? 'تسجيل الدخول إلى DEDE LIVE' : 'إنشاء حساب جديد فورياً'}
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                {authMode === 'login' ? 'أدخل بريدك الإلكتروني وكلمة السر للوصول لغرفتك' : 'سجل بدون الحاجة لكود تأكيد البريد وشغّل المايك فوراً'}
-              </p>
+              <h3 className="text-xl font-black text-white">
+                {authMode === 'login' ? 'تسجيل الدخول إلى DEDE LIVE' : 'إنشاء حساب جديد فوراً'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">بدون كود تفعيل وبدون انتظار، ابدأ فوراً برقم آي دي ثابت</p>
             </div>
 
             {authError && (
-              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-400" />
+              <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-xl text-xs font-bold text-center">
                 {authError}
               </div>
             )}
@@ -1196,71 +881,61 @@ export default function App() {
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               {authMode === 'signup' && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">اسم المستخدم</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-xs font-bold text-slate-300 mb-1">اسم المستخدم</label>
+                  <input
+                    type="text"
                     value={authUsername}
                     onChange={(e) => setAuthUsername(e.target.value)}
-                    placeholder="مثال: أحمد العراقي"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                    placeholder="اكتب اسمك المستعار..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">البريد الإلكتروني</label>
-                <input 
-                  type="email" 
+                <label className="block text-xs font-bold text-slate-300 mb-1">البريد الإلكتروني</label>
+                <input
+                  type="email5"
                   value={authEmail}
                   onChange={(e) => setAuthEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">كلمة السر</label>
-                <input 
-                  type="password" 
+                <label className="block text-xs font-bold text-slate-300 mb-1">كلمة السر</label>
+                <input
+                  type="password"
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white py-3 rounded-xl font-bold text-xs shadow-lg shadow-purple-600/30 transition-all"
-              >
-                {authMode === 'login' ? 'دخول الحساب' : 'إنشاء حساب والحصول على ID ثابت'}
+              <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-600/30 transition-all">
+                {authMode === 'login' ? 'دخول فوري' : 'إنشاء الحساب والحصول على ID ثابت'}
               </button>
             </form>
 
             <div className="mt-6 text-center text-xs text-slate-400">
               {authMode === 'login' ? (
                 <p>
-                  ليس لديك حساب بعد؟{' '}
-                  <button 
-                    onClick={() => { setAuthMode('signup'); setAuthError(''); }}
-                    className="text-purple-400 font-bold hover:underline"
-                  >
-                    انشئ حسابك الآن
+                  ليس لديك حساب؟{' '}
+                  <button onClick={() => setAuthMode('signup')} className="text-purple-400 font-bold hover:underline">
+                    إنشاء حساب جديد
                   </button>
                 </p>
               ) : (
                 <p>
                   لديك حساب بالفعل؟{' '}
-                  <button 
-                    onClick={() => { setAuthMode('login'); setAuthError(''); }}
-                    className="text-purple-400 font-bold hover:underline"
-                  >
+                  <button onClick={() => setAuthMode('login')} className="text-purple-400 font-bold hover:underline">
                     تسجيل الدخول
                   </button>
                 </p>
               )}
             </div>
-
           </div>
         </div>
       )}
@@ -1268,104 +943,61 @@ export default function App() {
       {/* CREATE ROOM MODAL */}
       {createRoomModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-scaleUp">
-            
-            <button 
-              onClick={() => setCreateRoomModalOpen(false)}
-              className="absolute top-4 left-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800 hover:bg-slate-700 transition-all"
-            >
-              <XCircle className="w-5 h-5" />
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-fadeIn">
+            <button onClick={() => setCreateRoomModalOpen(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">
+              ✕
             </button>
-
-            <h2 className="text-xl font-black text-white mb-4 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-purple-400" /> إنشاء غرفة صوتية جديدة
-            </h2>
-
+            <h3 className="text-xl font-black text-white mb-4">إنشاء روم صوتية جديدة</h3>
+            
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">عنوان الروم</label>
-                <input 
-                  type="text" 
+                <label className="block text-xs font-bold text-slate-300 mb-1">عنوان الغرفة</label>
+                <input
+                  type="text"
                   value={newRoomTitle}
                   onChange={(e) => setNewRoomTitle(e.target.value)}
-                  placeholder="مثال: سهرة الخميس والدردشة مع الأصدقاء"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                  placeholder="مثال: سهرة طرب وسوالف..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">تصنيف الغرفة</label>
-                <select
-                  value={newRoomCategory}
-                  onChange={(e) => setNewRoomCategory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                >
-                  <option value="حوار ونقاش">حوار ونقاش</option>
-                  <option value="موسيقى وغناء">موسيقى وغناء</option>
-                  <option value="ترفيه ومسابقات">ترفيه ومسابقات</option>
+                <label className="block text-xs font-bold text-slate-300 mb-1">التصنيف</label>
+                <select value={newRoomCategory} onChange={(e) => setNewRoomCategory(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
+                  <option>موسيقى وغناء</option>
+                  <option>حوار ونقاش</option>
+                  <option>ترفيه ومسابقات</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">عدد المقاعد الصوتية (Mic Seats)</label>
-                <select
-                  value={newRoomMaxSeats}
-                  onChange={(e) => setNewRoomMaxSeats(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                >
+                <label className="block text-xs font-bold text-slate-300 mb-1">عدد المقاعد الصوتية</label>
+                <select value={newRoomMaxSeats} onChange={(e) => setNewRoomMaxSeats(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
                   <option value={6}>6 مقاعد</option>
                   <option value={8}>8 مقاعد</option>
                   <option value={10}>10 مقاعد</option>
+                  <option value={12}>12 مقعد</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
                   id="privateRoom"
                   checked={newRoomIsPrivate}
                   onChange={(e) => setNewRoomIsPrivate(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded bg-slate-950 border-slate-800 focus:ring-purple-500"
+                  className="w-4 h-4 rounded border-slate-800 bg-slate-950 text-purple-600 focus:ring-0"
                 />
-                <label htmlFor="privateRoom" className="text-xs text-slate-300 font-medium cursor-pointer">
-                  غرفة خاصة بمفتاح قفل
-                </label>
+                <label htmlFor="privateRoom" className="text-xs text-slate-300 font-bold">قفل الروم بكلمة مرور (خاصة)</label>
               </div>
 
-              <button
-                type="submit"
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-bold text-xs shadow-lg shadow-purple-600/30 transition-all mt-2"
-              >
-                بدء البث الصوتي المباشر الان
+              <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-600/30 transition-all mt-4">
+                بدء البث الصوتي الآن 🎙️
               </button>
             </form>
-
           </div>
         </div>
       )}
-
-      {/* FOOTER */}
-      <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        <p>© 2026 DEDE LIVE - منصة الرومات والدردشة الصوتية الحية. جميع الحقوق محفوظة.</p>
-      </footer>
-
-      {/* CUSTOM CSS ANIMATIONS */}
-      <style>{`
-        @keyframes floatUp {
-          0% { transform: translateY(0) scale(0.8); opacity: 1; }
-          100% { transform: translateY(-250px) scale(1.4); opacity: 0; }
-        }
-        .animate-floatUp {
-          animation: floatUp 2.5s ease-out forwards;
-        }
-        @keyframes scaleUp {
-          0% { transform: scale(0.95); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-scaleUp {
-          animation: scaleUp 0.2s ease-out forwards;
-        }
-      `}</style>
 
     </div>
   );
