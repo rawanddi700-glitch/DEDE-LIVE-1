@@ -93,7 +93,6 @@
         }
       }, []);
 
-      // دالة لتحديث بيانات المستخدم أونلاين من السيرفر لضمان جلب الـ ID والوصف الجديد الذي وضعه المدير
       const refreshUserData = async () => {
         if (!currentUser || !currentUser.email) return;
         try {
@@ -173,7 +172,6 @@
         }
       };
 
-      // حفظ تعديل الاسم والصورة فقط للمستخدم العادي
       const handleSaveProfile = async (e) => {
         e.preventDefault();
         if (!currentUser) return;
@@ -406,25 +404,26 @@
                     💰 {currentUser.coins || 0} عملة
                   </div>
 
-                  <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
-                    <img src={currentUser.avatar} className="w-6 h-6 rounded-full object-cover ring-2 ring-purple-500" />
+                  {/* تصميم الحساب في الشريط العلوي بخط كبير وبارز وأحمر عريض للـ ID والرتبة الحمراء */}
+                  <div className="flex items-center gap-3 bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700 shadow-xl">
+                    <img src={currentUser.avatar} className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow" />
                     <div className="text-right">
-                      <div className="flex items-center gap-1">
-                        <p className="text-xs font-bold text-white">{currentUser.username}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-black text-white tracking-wide">{currentUser.username}</p>
                         {currentUser.role && (
-                          <span className="bg-purple-600/30 text-purple-300 text-[9px] px-1.5 py-0.2 rounded font-bold border border-purple-500/30">
+                          <span className="bg-rose-500/20 text-rose-400 text-[10px] px-2 py-0.5 rounded-md font-black border border-rose-500/40 shadow-sm">
                             {currentUser.role}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-purple-400 font-mono font-bold">{currentUser.id}</p>
+                      <p className="text-xs text-rose-500 font-mono font-black tracking-wider mt-0.5">{currentUser.id}</p>
                     </div>
-                    <button onClick={() => { refreshUserData(); setShowProfileModal(true); }} title="تعديل الملف الشخصي" className="mr-1 text-slate-400 hover:text-white bg-slate-700 p-1 rounded-full text-[10px]">
+                    <button onClick={() => { refreshUserData(); setShowProfileModal(true); }} title="تعديل الملف الشخصي" className="mr-2 text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 p-2 rounded-full text-xs transition-all shadow">
                       ✏️
                     </button>
                   </div>
 
-                  <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-xl border border-rose-500/20 transition-all">
+                  <button onClick={handleLogout} className="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl border border-rose-500/20 transition-all font-bold">
                     خروج
                   </button>
                 </>
@@ -466,14 +465,14 @@
                       <img src={searchResult.data.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"} className="w-16 h-16 rounded-full object-cover ring-2 ring-purple-500" />
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-white font-bold text-base">{searchResult.data.username}</h4>
+                          <h4 className="text-white font-black text-lg">{searchResult.data.username}</h4>
                           {searchResult.data.role && (
-                            <span className="bg-purple-600/30 text-purple-300 text-[10px] px-2 py-0.5 rounded font-bold border border-purple-500/30">
+                            <span className="bg-rose-500/20 text-rose-400 text-xs px-2 py-0.5 rounded-md font-black border border-rose-500/40">
                               {searchResult.data.role}
                             </span>
                           )}
                         </div>
-                        <p className="text-slate-400 text-xs mt-1">ID المستخدم: <span className="font-mono text-purple-300 font-bold">{searchResult.data.id}</span></p>
+                        <p className="text-xs mt-1">ID المستخدم: <span className="font-mono text-rose-500 font-black text-sm">{searchResult.data.id}</span></p>
                       </div>
                     </div>
                   </div>
@@ -501,7 +500,7 @@
                   </button>
                 </div>
 
-                {/* مقاعد المايكات مع إظهار الـ ID والرتبة الجديدة للمدير */}
+                {/* مقاعد المايكات مع إظهار الاسم الكبير، والـ ID الأحمر العريض، والرتبة الحمراء */}
                 <div className="mb-8">
                   <h3 className="text-xs font-bold text-slate-400 mb-3">مقاعد المايكات ({activeRoom.max_seats || 8})</h3>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-4">
@@ -509,9 +508,9 @@
                       <div key={seat.index} className="flex flex-col items-center">
                         <div 
                           onClick={() => claimSeat(seat.index)}
-                          className={`w-16 h-16 rounded-2xl flex items-center justify-center relative cursor-pointer border transition-all ${
+                          className={`w-20 h-20 rounded-2xl flex items-center justify-center relative cursor-pointer border transition-all ${
                             seat.user 
-                              ? 'bg-slate-800 border-purple-500 shadow-lg shadow-purple-500/20' 
+                              ? 'bg-slate-800 border-purple-500 shadow-xl shadow-purple-500/30' 
                               : 'bg-slate-950/60 border-slate-800 border-dashed hover:border-purple-400'
                           }`}>
                           {seat.user ? (
@@ -527,12 +526,17 @@
                             <span className="text-slate-600 text-xs font-bold">{seat.index + 1} 🎙️</span>
                           )}
                         </div>
-                        <p className="text-[11px] font-bold text-slate-200 mt-2 truncate max-w-[80px] text-center">
+                        <p className="text-xs font-black text-white mt-2 truncate max-w-[90px] text-center">
                           {seat.user ? seat.user.name : 'فارغ'}
                         </p>
                         {seat.user && seat.user.role && (
-                          <span className="text-[9px] bg-purple-600/30 text-purple-300 px-1.5 rounded font-bold border border-purple-500/20 mt-0.5">
+                          <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded font-black border border-rose-500/30 mt-0.5 shadow-sm">
                             {seat.user.role}
+                          </span>
+                        )}
+                        {seat.user && (
+                          <span className="text-[10px] text-rose-500 font-mono font-black mt-0.5">
+                            {seat.user.id}
                           </span>
                         )}
                       </div>
@@ -642,42 +646,60 @@
 
           </main>
 
-          {/* نافذة تعديل الملف الشخصي (مخصصة للاسم والصورة فقط للمستخدم العادي) */}
+          {/* نافذة تعديل الملف الشخصي (بخط كبير وبارز للاسم والصورة) */}
           {showProfileModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                <button onClick={() => setShowProfileModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-                <h3 className="text-xl font-black text-white text-center mb-1">تعديل ملفك الشخصي</h3>
-                <p className="text-xs text-slate-400 text-center mb-4">يمكنك تعديل اسمك صورتك الشخصية فقط</p>
+            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full relative shadow-2xl">
+                <button onClick={() => setShowProfileModal(false)} className="absolute top-5 left-5 text-slate-400 hover:text-white text-lg">✕</button>
+                
+                <h3 className="text-2xl font-black text-white text-center mb-1">الملف الشخصي</h3>
+                <p className="text-xs text-slate-400 text-center mb-6">إدارة صورتك واسمك الشخصي</p>
 
                 {profileUpdateMsg && (
-                  <div className="mb-4 bg-purple-500/10 text-purple-300 text-xs p-2 rounded-xl text-center font-bold">
+                  <div className="mb-4 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl text-center font-bold">
                     {profileUpdateMsg}
                   </div>
                 )}
 
-                <form onSubmit={handleSaveProfile} className="space-y-4">
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  {/* الصورة الشخصية الكبيرة والبارزة */}
                   <div className="flex flex-col items-center gap-3">
-                    <img src={editAvatar || currentUser?.avatar} className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500" />
-                    <label className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">
-                      📂 رفع صورة جديدة
+                    <div className="relative group">
+                      <img src={editAvatar || currentUser?.avatar} className="w-28 h-28 rounded-full object-cover ring-4 ring-purple-600 shadow-2xl" />
+                    </div>
+                    <label className="bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer border border-purple-500/30 transition-all shadow">
+                      📂 تغيير الصورة الشخصية
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   </div>
 
+                  {/* الاسم الكبير والبارز */}
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                    <label className="text-xs font-bold text-slate-300 block mb-2">اسم المستخدم (بخط كبير)</label>
+                    <input 
+                      type="text" 
+                      value={editName} 
+                      onChange={e => setEditName(e.target.value)} 
+                      required 
+                      className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-5 py-3 text-base font-black text-white focus:outline-none focus:border-purple-500 shadow-inner" 
+                    />
                   </div>
 
-                  {/* عرض معلومات الـ ID والرتبة للقراءة فقط ليعلم المستخدم أن المدير هو من يتحكم بهما */}
-                  <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                    <p>🆔 الـ ID الحالي: <span className="font-mono text-purple-300 font-bold">{currentUser?.id}</span> (يُدار من الإدارة)</p>
-                    <p>⭐ صفتك الحالية: <span className="text-purple-300 font-bold">{currentUser?.role || 'عضو'}</span> (تُدار من الإدارة)</p>
+                  {/* عرض الـ ID الأحمر العريض والرتبة الحمراء */}
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-400 font-bold">🆔 الـ ID المميز:</span>
+                      <span className="font-mono text-rose-500 font-black text-base tracking-wider">{currentUser?.id}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-400 font-bold">⭐ الرتبة / الصفة:</span>
+                      <span className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-lg font-black text-xs border border-rose-500/40">{currentUser?.role || 'عضو'}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 text-center pt-1">هذه البيانات تُدار ويتم تخصيصها حصرياً من لوحة الإدارة.</p>
                   </div>
 
-                  <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all">
-                    حفظ التعديلات
+                  <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black py-3.5 rounded-2xl text-sm shadow-xl transition-all">
+                    حفظ التغييرات
                   </button>
                 </form>
               </div>
@@ -763,7 +785,7 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ReactDOM.createRoot(getElementById ? document.getElementById('root') : document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
