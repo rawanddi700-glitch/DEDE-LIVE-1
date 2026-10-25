@@ -2,188 +2,897 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DEDE LIVE - نسخة مصلحة بدون ضياع داتا</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DEDE LIVE - منصة الدردشة الصوتية</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-    body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #f8fafc; margin:0; }
-    @keyframes bellShake { 0%{transform:rotate(0)}20%{transform:rotate(14deg)}40%{transform:rotate(-14deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-8deg)}100%{transform:rotate(0)} }
+    body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    @keyframes bellShake {
+      0% { transform: rotate(0deg); }
+      20% { transform: rotate(14deg); }
+      40% { transform: rotate(-14deg); }
+      60% { transform: rotate(8deg); }
+      80% { transform: rotate(-8deg); }
+      100% { transform: rotate(0deg); }
+    }
     .bell-shake { animation: bellShake 0.6s ease-in-out infinite; }
-    @keyframes slideDown { 0%{transform:translateY(-50px);opacity:0}100%{transform:translateY(0);opacity:1} }
+
+    @keyframes slideDown {
+      0% { transform: translateY(-50px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
     .slide-down { animation: slideDown 0.5s ease-out forwards; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-<div id="app" class="min-h-screen flex flex-col justify-between">
 
-    <div v-if="userNotification" class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
+  <div id="app" class="min-h-screen flex flex-col justify-between">
+    
+    <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
+    <div v-if="userNotification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
       <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
         <span class="text-2xl">🎉</span>
-        <div class="flex-1"><h4 class="text-xs font-black">تم قبول الحوالة</h4><p class="text-xs font-bold mt-0.5">{{ userNotification }}</p></div>
-        <button @click="userNotification=null">✕</button>
+        <div class="flex-1">
+          <h4 class="text-xs font-black">شام كاش - تم قبول الحوالة</h4>
+          <p class="text-xs font-bold mt-0.5">{{ userNotification }}</p>
+        </div>
+        <button @click="userNotification = null" class="text-white hover:text-emerald-200 text-sm font-bold">✕</button>
       </div>
     </div>
 
-    <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 sticky top-0 z-50">
+    <!-- الهيدر الاحترافي -->
+    <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sticky top-0 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 cursor-pointer" @click="activeRoom=null">
-          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl">🎙️</div>
-          <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE - مصلح</h1>
+        <div class="flex items-center justify-between w-full sm:w-auto">
+          <div class="flex items-center gap-2.5 cursor-pointer" @click="activeRoom = null; searchResult = null; searchQuery = ''">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-600/30">🎙️</div>
+            <div>
+              <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
+              <p class="text-[9px] text-purple-300 font-bold tracking-wider">منصة الرومات الصوتية</p>
+            </div>
+          </div>
+
+          <div v-if="currentUser" class="flex sm:hidden items-center gap-2">
+            <button @click="openSocialModal" :class="['relative bg-slate-800 p-2 rounded-xl', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
+              💬 <span v-if="totalUnreadCount > 0" class="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{{ totalUnreadCount }}</span>
+            </button>
+            <img :src="currentUser.avatar" @click="showProfileModal = true" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
+          </div>
         </div>
+
+        <form @submit.prevent="handleGlobalSearch" class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="text" v-model="searchQuery" placeholder="بحث بـ ID مستخدم أو روم..." class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500 shadow-inner" />
+          <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-2xl transition-all shadow-md shadow-purple-600/20">بحث</button>
+        </form>
+
         <div class="hidden sm:flex items-center gap-3">
           <template v-if="currentUser">
-            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel=true" class="relative bg-amber-600 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse">👑 الطلبات <span v-if="pendingDepositsCount>0" class="bg-rose-600 w-5 h-5 rounded-full inline-flex items-center justify-center">{{ pendingDepositsCount }}</span></button>
-            <button @click="showDepositModal=true" class="bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-2xl">💳 شحن</button>
-            <div class="flex items-center gap-2.5 bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-700"><img :src="currentUser.avatar" class="w-8 h-8 rounded-full ring-2 ring-purple-500" /><div><p class="text-xs font-black">{{ currentUser.username }} - 💎 {{ (currentUser.coins||0).toLocaleString() }}</p><p class="text-[9px] text-rose-400 font-mono">{{ currentUser.id }}</p></div></div>
-            <button @click="handleLogout" class="text-xs text-rose-400 bg-rose-500/10 px-3 py-2 rounded-2xl">خروج</button>
+            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="relative bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse shadow-lg flex items-center gap-1.5 transition-all">
+              <span>👑 لوحة طلبات الحوالات</span>
+              <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">{{ pendingDepositsCount }}</span>
+            </button>
+
+            <button @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-1.5 transition-all">
+              <span>💳 شحن شام كاش</span>
+            </button>
+
+            <button @click="openSocialModal" :class="['relative bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
+              <span>💬 الرسائل</span> <span v-if="totalUnreadCount > 0" class="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce">{{ totalUnreadCount }}</span>
+            </button>
+            <button @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg shadow-purple-600/20">➕ روم</button>
+            
+            <div class="flex items-center gap-2.5 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-slate-700/60 shadow-xl">
+              <img :src="currentUser.avatar" class="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500" />
+              <div>
+                <div class="flex items-center gap-2">
+                  <p class="text-xs font-black text-white leading-tight">{{ currentUser.username }}</p>
+                  <span class="bg-purple-500/20 text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-black border border-purple-500/40">💎 {{ currentUser.coins || 0 }}</span>
+                </div>
+                <p class="text-[9px] text-rose-400 font-mono font-bold">{{ currentUser.id }}</p>
+              </div>
+              <button @click="showProfileModal = true" class="text-xs bg-slate-700 hover:bg-slate-600 p-1.5 rounded-full transition-all">✏️</button>
+            </div>
+            <button @click="handleLogout" class="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-2xl font-bold transition-all">خروج</button>
           </template>
-          <template v-else><button @click="showAuthModal=true" class="bg-purple-600 text-white text-xs font-bold px-6 py-2.5 rounded-2xl">دخول</button></template>
+          <template v-else>
+            <button @click="showAuthModal = true" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-lg shadow-purple-600/30 transition-all">تسجيل الدخول</button>
+          </template>
+        </div>
+
+        <div v-if="!currentUser" class="flex sm:hidden w-full">
+          <button @click="showAuthModal = true" class="w-full bg-purple-600 text-white text-xs font-bold py-2.5 rounded-2xl shadow-lg">تسجيل الدخول / حساب جديد</button>
+        </div>
+
+        <div v-if="currentUser" class="flex sm:hidden w-full items-center justify-between pt-2 border-t border-slate-800 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400 font-mono font-bold">{{ currentUser.id }}</span>
+            <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">💎 {{ currentUser.coins || 0 }}</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="bg-amber-600 text-white px-2.5 py-1.5 rounded-xl font-bold animate-pulse">👑 الطلبات ({{ pendingDepositsCount }})</button>
+            <button @click="showDepositModal = true" class="bg-emerald-600 px-2.5 py-1.5 rounded-xl font-bold">شحن</button>
+            <button @click="openSocialModal" class="bg-purple-600 px-2.5 py-1.5 rounded-xl font-bold">الرسائل</button>
+            <button @click="handleLogout" class="bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-xl font-bold">خروج</button>
+          </div>
         </div>
       </div>
     </header>
 
+    <!-- المحتوى الرئيسي -->
     <main class="max-w-6xl w-full mx-auto p-4 flex-1">
-      <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-        <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6"><div><h2 class="text-xl font-black">{{ activeRoom.title }}</h2><p class="text-xs text-slate-400">المضيف: {{ activeRoom.host_name }}</p></div><button @click="leaveRoom" class="bg-slate-800 text-xs font-bold px-4 py-2 rounded-xl">← خروج</button></div>
-        <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
-          <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
-            <div @click="seat.user ? viewingUser=seat.user : claimSeat(seat.index)" class="w-20 h-20 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center cursor-pointer relative overflow-hidden">
-              <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" /><span v-else class="text-slate-600 text-xs font-bold">{{ seat.index+1 }} 🎙️</span>
-              <div v-if="seat.user && seat.isSpeaking" class="absolute inset-0 border-2 border-emerald-400 rounded-2xl animate-pulse"></div>
-            </div>
-            <p class="text-[11px] font-black mt-1.5">{{ seat.user?seat.user.name:'فارغ' }}</p>
-          </div>
+      <div v-if="searchResult" class="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 mb-6 shadow-xl">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-xs font-bold text-purple-400">نتيجة البحث:</h3>
+          <button @click="searchResult = null" class="text-xs text-slate-400 hover:text-white">✕ إغلاق</button>
         </div>
-        <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800">
-          <div class="flex gap-2 mb-3"><button @click="enableMic" class="bg-emerald-600 text-xs font-bold px-3 py-2 rounded-xl">🎤 تشغيل المايك</button><button @click="disableMic" class="bg-slate-800 text-xs font-bold px-3 py-2 rounded-xl">🔇 إيقاف</button><span class="text-[10px] text-slate-400 self-center">{{ micStatus }}</span></div>
-          <div class="h-32 overflow-y-auto space-y-1.5 mb-3 text-xs bg-slate-900/40 p-3 rounded-xl"><div v-for="m in roomChat" :key="m.id"><span class="text-purple-400 font-black">{{ m.sender }}:</span> {{ m.text }}</div></div>
-          <form @submit.prevent="sendRoomChat" class="flex gap-2"><input type="text" v-model="roomChatInput" placeholder="اكتب رسالة..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white" /><button type="submit" class="bg-purple-600 text-xs font-bold px-4 py-2 rounded-xl">إرسال</button></form>
+        <div v-if="searchResult.type === 'room'" class="flex justify-between items-center bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+          <span class="text-white text-xs font-bold">{{ searchResult.data.title }}</span>
+          <button @click="enterRoom(searchResult.data); searchResult = null;" class="bg-purple-600 hover:bg-purple-500 text-xs font-bold px-4 py-2 rounded-xl transition-all">دخول</button>
+        </div>
+        <div v-else class="flex justify-between items-center bg-slate-950 p-3.5 rounded-2xl border border-slate-800 cursor-pointer" @click="viewingUser = searchResult.data">
+          <div class="flex items-center gap-3">
+            <img :src="searchResult.data.avatar" class="w-11 h-11 rounded-full object-cover ring-2 ring-purple-500" />
+            <div>
+              <p class="text-xs font-black text-white">{{ searchResult.data.username }}</p>
+              <p class="text-[10px] text-rose-400 font-mono font-bold">{{ searchResult.data.id }}</p>
+            </div>
+          </div>
+          <button class="bg-purple-600 text-xs font-bold px-3.5 py-1.5 rounded-xl">عرض الملف</button>
         </div>
       </div>
+      <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
+
+      <!-- داخل الروم -->
+      <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
+          <div>
+            <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
+            <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
+            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span></p>
+          </div>
+          <button @click="activeRoom = null" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج من الروم</button>
+        </div>
+
+        <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
+          <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
+            <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all">
+              <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
+              <span v-else class="text-slate-600 text-xs font-bold">{{ seat.index + 1 }} 🎙️</span>
+            </div>
+            <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ seat.user ? seat.user.name : 'فارغ' }}</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800/80">
+          <h4 class="text-xs font-bold text-slate-400 mb-2.5">دردشة الغرفة الحية</h4>
+          <div class="h-32 overflow-y-auto space-y-1.5 mb-3 text-xs bg-slate-900/40 p-3 rounded-xl">
+            <div v-for="m in roomChat" :key="m.id"><span class="text-purple-400 font-black">{{ m.sender }}:</span> <span class="text-slate-200">{{ m.text }}</span></div>
+          </div>
+          <form @submit.prevent="sendRoomChat" class="flex gap-2">
+            <input type="text" v-model="roomChatInput" placeholder="اكتب رسالة..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+            <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-xs font-bold px-4 py-2 rounded-xl transition-all">إرسال</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- الواجهة الرئيسية -->
       <template v-else>
-        <div class="flex justify-between items-center mb-4"><h3 class="text-base font-black">الرومات النشطة ({{ rooms.length }})</h3><button @click="fetchRooms" class="text-xs text-purple-400">🔄 تحديث</button></div>
+        <!-- بانر الترحيب والشحن -->
+        <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/20 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-right">
+          <div>
+            <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
+              ✨ المعاملات المالية عبر شام كاش (ShamCash)
+            </span>
+            <h2 class="text-2xl sm:text-4xl font-black text-white mb-2">مرحباً بك في <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</span></h2>
+            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في الرومات الصوتية.</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap transition-all">
+              💳 طلب شحن رصيد (شام كاش)
+            </button>
+            <button v-if="currentUser" @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
+              🎙️ فتح روم صوتي
+            </button>
+          </div>
+        </div>
+
+        <!-- 🚀 قسم من نحن (About Us) -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-lg">🏢</div>
+            <div>
+              <h3 class="text-lg font-black text-white">من نحن (About DEDE LIVE)</h3>
+              <p class="text-xs text-purple-400 font-bold">الرؤية والتميز في عالم الصوتيات</p>
+            </div>
+          </div>
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            تعتبر منصة <strong class="text-purple-400 font-bold">DEDE LIVE</strong> الوجهة الأولى والأكثر تطوراً لعشاق التواصل الصوتي التفاعلي. نحن نجمع بين تقنيات البث الصوتي الفائق والشفافة المالية المطلقة المدعومة حصرياً عبر محفظة <span class="text-emerald-400 font-bold">شام كاش (ShamCash)</span> لضمان إيداع وسحب آمن وسلس.
+          </p>
+        </div>
+
+        <!-- 💰 قسم نظام الشحن والأسعار -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg">💵</div>
+            <div>
+              <h3 class="text-lg font-black text-white">نظام الكوينز عبر شام كاش (أسعار الصرف الرسمية)</h3>
+              <p class="text-xs text-emerald-400 font-bold">1 دولار = 40,000 كوينز</p>
+            </div>
+          </div>
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            بعد التحويل إلى محفظتنا الرسمية، أدخل رقم العملية والمبلغ هنا داخل الموقع، وسيقوم الأدمن بمراجعتها واعتمادها لتنضاف الكوينزات لحسابك فوراً.
+          </p>
+        </div>
+
+        <!-- قائمة الرومات النشطة -->
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-base font-black text-white">الرومات النشطة حالياً (<span class="text-purple-400">{{ rooms.length }}</span>)</h3>
+          <button @click="fetchRooms" class="text-xs font-bold text-purple-400 hover:text-purple-300">🔄 تحديث القائمة</button>
+        </div>
+
         <div v-if="loadingRooms" class="text-center py-12 text-slate-500 text-xs">جاري جلب الرومات...</div>
+        <div v-else-if="rooms.length === 0" class="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center text-slate-400 text-xs">
+          لا توجد رومات مفتوحة حالياً. كن أول من يفتح غرفة جديدة!
+        </div>
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div v-for="room in rooms" :key="room.id" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden"><div class="relative h-36"><img :src="room.cover_image" class="w-full h-full object-cover" /><div class="absolute bottom-3 right-3 left-3 flex items-center gap-2.5"><img :src="room.host_avatar" class="w-9 h-9 rounded-full ring-2 ring-purple-500" /><div><h4 class="text-white text-xs font-black">{{ room.title }}</h4><p class="text-[10px] text-slate-400">المضيف: {{ room.host_name }}</p></div></div></div><div class="p-3 flex justify-between items-center text-xs border-t border-slate-800"><span>🎙️ {{ room.max_seats||8 }}</span><button @click="enterRoom(room)" class="bg-purple-600 text-white font-bold px-3.5 py-1.5 rounded-xl">دخول ←</button></div></div>
+          <div v-for="room in rooms" :key="room.id" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl hover:border-purple-500/50 transition-all">
+            <div class="relative h-36">
+              <img :src="room.cover_image" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+              <span class="absolute top-3 right-3 bg-slate-950/80 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                {{ room.category }}
+              </span>
+              <div class="absolute bottom-3 right-3 left-3 flex items-center gap-2.5">
+                <img :src="room.host_avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
+                <div class="truncate">
+                  <h4 class="text-white text-xs font-black truncate">{{ room.title }}</h4>
+                  <p class="text-[10px] text-slate-400 truncate">المضيف: {{ room.host_name }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 bg-slate-900 flex justify-between items-center text-xs border-t border-slate-800">
+              <span class="text-slate-400 font-bold">🎙️ مقاعد الروم: {{ room.max_seats || 8 }}</span>
+              <button @click="enterRoom(room)" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md">دخول الروم ←</button>
+            </div>
+          </div>
         </div>
       </template>
     </main>
 
+    <!-- نافذة طلب شحن شام كاش (للمستخدم داخل الموقع) -->
     <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-sm w-full relative">
-        <button @click="showDepositModal=false" class="absolute top-4 left-4 text-slate-400">✕</button>
-        <h3 class="text-lg font-black text-center mb-4">إيداع شام كاش</h3>
-        <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 mb-4 text-center"><span class="text-[10px] text-slate-400 block mb-1">محفظة الإيداع:</span><span class="text-xs font-mono font-black text-emerald-400 select-all">c97ee7954214e0b9c32a91d6f07a93ba</span></div>
-        <div v-if="depositMsg" :class="['mb-3 text-xs p-2.5 rounded-xl text-center font-bold', depositSuccess?'bg-emerald-500/10 text-emerald-300':'bg-rose-500/10 text-rose-300']">{{ depositMsg }}</div>
+      <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
+        <button @click="showDepositModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <div class="text-center mb-4">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mx-auto mb-2 font-black">💳</div>
+          <h3 class="text-lg font-black text-white">إيداع رصيد عبر شام كاش</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">محفظة الإيداع الرسمية والحصرية للمنصة</p>
+        </div>
+
+        <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 mb-4 text-center">
+          <span class="text-[10px] text-slate-400 block mb-1">رقم محفظة شام كاش للتحويل:</span>
+          <span class="text-xs font-mono font-black text-emerald-400 select-all bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20 inline-block break-all">c97ee7954214e0b9c32a91d6f07a93ba</span>
+          <p class="text-[10px] text-slate-500 mt-2">قم بالتحويل أولاً إلى هذا الرقم، ثم أدخل رقم العملية والمبلغ أدناه.</p>
+        </div>
+
+        <div v-if="depositMsg" :class="['mb-3 text-xs p-2.5 rounded-xl text-center font-bold', depositSuccess ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300']">
+          {{ depositMsg }}
+        </div>
+
         <form @submit.prevent="handleDepositSubmit" class="space-y-3.5 text-xs text-right">
-          <div><label class="font-bold block mb-1">رقم العملية</label><input type="text" v-model="depositTxId" required placeholder="SC-982104" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" /></div>
-          <div><label class="font-bold block mb-1">المبلغ ($)</label><input type="number" v-model="depositAmount" required min="1" placeholder="10" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" /><p class="text-[10px] text-purple-400 mt-1">ستحصل على: {{ ((depositAmount||0)*40000).toLocaleString() }} كوينز</p></div>
-          <button type="submit" :disabled="depositLoading" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">{{ depositLoading?'جاري...':'إرسال الطلب 🚀' }}</button>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">رقم العملية / الحوالة</label>
+            <input type="text" v-model="depositTxId" required placeholder="مثال: SC-982104" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">المبلغ المحول ($)</label>
+            <input type="number" v-model="depositAmount" required min="1" placeholder="مثال: 10 أو 50" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+            <p class="text-[10px] text-purple-400 mt-1">ستحصل على: <span class="font-bold">{{ (depositAmount || 0) * 40000 }}</span> كوينز</p>
+          </div>
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">إرسال طلب التحويل للأدمن 🚀</button>
         </form>
       </div>
     </div>
 
+    <!-- لوحة تحكم الأدمن (للموافقة على الحوالات وإرسال الإشعار والكوينزات فوراً) -->
     <div v-if="showAdminPanel && isSuperAdmin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 relative">
-        <button @click="showAdminPanel=false" class="absolute top-4 left-4 text-slate-400">✕</button>
-        <h3 class="text-lg font-black text-amber-400 mb-4">👑 طلبات الحوالات - آمن</h3>
-        <div class="space-y-3 max-h-96 overflow-y-auto">
-          <div v-if="adminDeposits.length===0" class="text-center py-12 text-slate-500 text-xs">لا توجد طلبات</div>
-          <div v-for="dep in adminDeposits" :key="dep.id" class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between gap-3">
-            <div><p class="text-xs font-black text-amber-400">{{ dep.tx_id }} - {{ dep.username }}</p><p class="text-xs">${{ dep.amount }} = {{ dep.coins.toLocaleString() }} كوينز</p></div>
-            <div class="flex gap-2"><button @click="approveDeposit(dep)" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl">قبول ✔️</button><button @click="rejectDeposit(dep.id)" class="bg-rose-600 text-white text-xs font-bold px-4 py-2 rounded-xl">رفض ❌</button></div>
+      <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl">
+        <button @click="showAdminPanel = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-lg">👑</div>
+          <div>
+            <h3 class="text-lg font-black text-amber-400">لوحة تحكم طلبات الحوالات (الأدمن)</h3>
+            <p class="text-xs text-slate-400">اضغط قبول ليتم تحديث رصيد المستخدم وإرسال إشعار فوري له</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
+          <div v-if="adminDeposits.length === 0" class="text-center py-12 text-slate-500 text-xs">
+            لا توجد طلبات إيداع معلقة حالياً داخل الموقع.
+          </div>
+          <div v-for="dep in adminDeposits" :key="dep.id" class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-black text-amber-400">رقم الحوالة: {{ dep.tx_id }}</span>
+                <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">المستخدم: {{ dep.username }} (ID: {{ dep.user_id }})</span>
+              </div>
+              <p class="text-xs text-slate-300 font-bold">المبلغ: <span class="text-emerald-400 font-mono">${{ dep.amount }}</span> | الكوينز المستحقة: <span class="text-purple-400 font-mono">{{ dep.coins.toLocaleString() }} 💎</span></p>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <button @click="approveDeposit(dep)" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md">قبول ✔️</button>
+              <button @click="rejectDeposit(dep.id)" class="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md">رفض ❌</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="showAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4"><div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative"><button @click="showAuthModal=false" class="absolute top-4 left-4 text-slate-400">✕</button><h3 class="text-lg font-black text-center mb-3">{{ isSignup?'حساب جديد':'دخول' }}</h3><form @submit.prevent="handleAuth" class="space-y-3.5 text-xs text-right"><div v-if="isSignup"><label class="font-bold block mb-1">اسم المستخدم</label><input type="text" v-model="authUsername" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" /></div><div><label class="font-bold block mb-1">البريد</label><input type="email" v-model="authEmail" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" /></div><button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 rounded-xl">دخول</button></form></div></div>
+    <!-- نافذة تعديل الملف الشخصي -->
+    <div v-if="showProfileModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+        <button @click="showProfileModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <h3 class="text-lg font-black text-white mb-3">تعديل الملف الشخصي</h3>
+        <div v-if="profileUpdateMsg" class="text-xs text-purple-300 font-bold mb-3 bg-purple-500/10 p-2 rounded-xl">{{ profileUpdateMsg }}</div>
+        <form @submit.prevent="handleSaveProfile" class="space-y-3.5 text-xs text-right">
+          <div class="flex flex-col items-center gap-2 mb-2">
+            <img :src="editAvatar || currentUser.avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-purple-600 shadow-lg" />
+            <label class="bg-purple-600/20 text-purple-300 text-[11px] font-bold px-3 py-1.5 rounded-xl cursor-pointer border border-purple-500/30">
+              📂 اختيار صورة جديدة
+              <input type="file" accept="image/*" @change="handleImageUpload" class="hidden" />
+            </label>
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+            <input type="text" v-model="editName" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">حفظ التغييرات</button>
+        </form>
+      </div>
+    </div>
 
-    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-400 mt-12">DEDE LIVE - نسخة مصلحة - آمنة 100% بدون فقدان داتا</footer>
-</div>
+    <!-- نافذة الرسائل والصداقات -->
+    <div v-if="showSocialModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2">
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="bg-slate-950 px-4 py-3 flex justify-between items-center border-b border-slate-800">
+          <div class="flex gap-2 text-xs">
+            <button @click="activeTab = 'messages'; activePrivateChat = null;" :class="['px-3.5 py-2 rounded-xl font-bold transition-all', activeTab === 'messages' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 bg-slate-900']">الرسائل</button>
+            <button @click="activeTab = 'requests'" :class="['px-3.5 py-2 rounded-xl font-bold transition-all', activeTab === 'requests' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 bg-slate-900']">الطلبات ({{ friendRequests.length }})</button>
+          </div>
+          <button @click="showSocialModal = false; activePrivateChat = null;" class="text-slate-400 bg-slate-800 p-2 rounded-full text-xs">✕</button>
+        </div>
 
-<script>
-const { createApp, ref, computed, onMounted } = Vue;
-createApp({
- setup(){
-  const SUPABASE_BASE_URL="https://yhsehpcosswgehonzzcq.supabase.co/rest/v1";
-  const SUPABASE_KEY="sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
-  const ADMIN_EMAIL="zzx640616@gmail.com";
-  const HEADERS={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'};
-  const currentUser=ref(JSON.parse(localStorage.getItem('dede_user')||'null'));
-  const rooms=ref([]);const loadingRooms=ref(true);const activeRoom=ref(null);const roomSeatsData=ref([]);const roomChat=ref([]);const roomChatInput=ref('');
-  const showAuthModal=ref(false);const isSignup=ref(false);const authEmail=ref('');const authUsername=ref('');const errorMsg=ref('');
-  const showDepositModal=ref(false);const depositTxId=ref('');const depositAmount=ref('');const depositMsg=ref('');const depositSuccess=ref(false);const depositLoading=ref(false);const showAdminPanel=ref(false);const adminDeposits=ref([]);const pendingDepositsCount=ref(0);const userNotification=ref(null);
-  const viewingUser=ref(null);const micStatus=ref('المايك متوقف'); let localStream=null;
-  const isSuperAdmin=computed(()=>currentUser.value?.email?.toLowerCase().trim()===ADMIN_EMAIL.toLowerCase().trim());
-  const fetchRooms=async()=>{loadingRooms.value=true;try{const res=await fetch(`${SUPABASE_BASE_URL}/rooms?select=*&order=created_at.desc`,{headers:HEADERS});if(res.ok)rooms.value=await res.json();}catch(e){}finally{loadingRooms.value=false;}};
-  const fetchAdminDeposits=async()=>{if(!isSuperAdmin.value)return;try{const res=await fetch(`${SUPABASE_BASE_URL}/deposits?status=eq.pending&order=created_at.desc`,{headers:HEADERS});if(res.ok){const data=await res.json();adminDeposits.value=data;pendingDepositsCount.value=data.length;}}catch(e){}};
-  const checkUserApprovedDeposits=async()=>{
-    if(!currentUser.value||isSuperAdmin.value)return;
-    try{
-      const res=await fetch(`${SUPABASE_BASE_URL}/deposits?user_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.approved&notified=is.null&select=*`,{headers:HEADERS});
-      if(res.ok){
-        const list=await res.json();
-        for(let dep of list){
-          const uRes=await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(currentUser.value.id)}&select=coins`,{headers:HEADERS});
-          if(uRes.ok){const uData=await uRes.json(); if(uData.length>0){currentUser.value.coins=uData[0].coins; localStorage.setItem('dede_user',JSON.stringify(currentUser.value));}}
-          userNotification.value=`تم قبول ${dep.tx_id} وإضافة ${dep.coins.toLocaleString()} كوينز!`;
-          await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({notified:true})});
-        }
+        <div class="flex-1 flex overflow-hidden">
+          <div v-if="activeTab === 'requests'" class="flex-1 p-4 overflow-y-auto text-xs space-y-2.5 bg-slate-950/50">
+            <p v-if="friendRequests.length === 0" class="text-center text-slate-500 py-16">لا توجد طلبات صداقة جديدة.</p>
+            <div v-for="r in friendRequests" :key="r.id" class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex justify-between items-center">
+              <span class="font-bold text-white">{{ r.sender_name }}</span>
+              <div class="flex gap-1.5">
+                <button @click="respondToFriendRequest(r.id, true)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl font-bold">قبول</button>
+                <button @click="respondToFriendRequest(r.id, false)" class="bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-1.5 rounded-xl font-bold">رفض</button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex-1 flex flex-col sm:flex-row overflow-hidden text-xs">
+            <div :class="['w-full sm:w-64 bg-slate-950/85 border-l border-slate-800 overflow-y-auto p-2 space-y-1', activePrivateChat ? 'hidden sm:block' : 'block']">
+              <p v-if="friendsList.length === 0" class="p-6 text-slate-500 text-center">لا توجد أصدقاء بعد.</p>
+              <div v-for="f in friendsList" :key="f.id" @click="openPrivateChat(f)" class="p-3 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-900 transition-all">
+                <p class="font-black text-white">{{ f.sender_id === currentUser.id ? f.receiver_name : f.sender_name }}</p>
+                <p class="text-[10px] text-slate-400 truncate mt-0.5">{{ friendsLastMessages[f.sender_id === currentUser.id ? f.receiver_id : f.sender_id] || "ابدأ المحادثة..." }}</p>
+              </div>
+            </div>
+
+            <div :class="['flex-1 flex flex-col bg-slate-900', !activePrivateChat ? 'hidden sm:flex' : 'flex']">
+              <template v-if="activePrivateChat">
+                <div class="p-3 bg-slate-950 border-b border-slate-800 flex items-center gap-2">
+                  <button @click="activePrivateChat = null" class="sm:hidden text-purple-400 bg-slate-800 px-2.5 py-1 rounded-lg">←</button>
+                  <span class="font-black text-white">{{ activePrivateChat.name }}</span>
+                </div>
+                <div class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-950/40">
+                  <div v-for="m in privateMessages" :key="m.id" :class="['flex', m.sender_id === currentUser.id ? 'justify-end' : 'justify-start']">
+                    <div :class="['p-3 rounded-2xl max-w-[75%] font-medium', m.sender_id === currentUser.id ? 'bg-purple-600 text-white rounded-bl-none' : 'bg-slate-800 text-slate-100 rounded-br-none border border-slate-700']">
+                      {{ m.message_text }}
+                    </div>
+                  </div>
+                </div>
+                <form @submit.prevent="sendPrivateMessage" class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
+                  <input type="text" v-model="privateMsgInput" placeholder="اكتب رسالتك..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
+                  <button type="submit" class="bg-purple-600 hover:bg-purple-500 font-bold px-4 py-2 rounded-xl transition-all">إرسال</button>
+                </form>
+              </template>
+              <template v-else>
+                <div class="flex-1 flex items-center justify-center text-slate-500 text-center p-6">اختر صديقاً من القائمة الجانبية لبدء المحادثة الفورية.</div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة إنشاء روم -->
+    <div v-if="showCreateRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
+        <button @click="showCreateRoomModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <h3 class="text-lg font-black text-white mb-3 text-center">إنشاء روم صوتي</h3>
+        <div v-if="createRoomError" class="text-xs text-rose-400 mb-3 text-center font-bold bg-rose-500/10 p-2 rounded-xl">{{ createRoomError }}</div>
+        <form @submit.prevent="handleCreateRoom" class="space-y-3.5 text-xs text-right">
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">عنوان الروم</label>
+            <input type="text" v-model="roomTitle" required placeholder="عنوان الغرفة..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">التصنيف</label>
+            <select v-model="roomCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold">
+              <option value="حوار ونقاش">حوار ونقاش</option>
+              <option value="موسيقى وغناء">موسيقى وغناء</option>
+              <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
+            </select>
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">نشر الروم الآن</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- نافذة تسجيل الدخول -->
+    <div v-if="showAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
+        <button @click="showAuthModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <h3 class="text-lg font-black text-white mb-3 text-center">{{ isSignup ? 'حساب جديد' : 'تسجيل الدخول' }}</h3>
+        <div v-if="errorMsg" class="text-xs text-rose-400 mb-3 text-center font-bold bg-rose-500/10 p-2 rounded-xl">{{ errorMsg }}</div>
+        <form @submit.prevent="handleAuth" class="space-y-3.5 text-xs text-right">
+          <div v-if="isSignup">
+            <label class="font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+            <input type="text" v-model="authUsername" required placeholder="اسمك..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">البريد الإلكتروني</label>
+            <input type="email" v-model="authEmail" required placeholder="email@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">كلمة المرور</label>
+            <input type="password" value="123456" disabled class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-500" />
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">دخول</button>
+        </form>
+        <p class="text-center text-[11px] text-slate-400 mt-4">
+          <button @click="isSignup = !isSignup" class="text-purple-400 font-bold hover:underline">{{ isSignup ? 'لديك حساب؟ تسجيل الدخول' : 'حساب جديد؟ انضم إلينا' }}</button>
+        </p>
+      </div>
+    </div>
+
+    <!-- عرض ملف المستخدم -->
+    <div v-if="viewingUser" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+        <button @click="viewingUser = null" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <img :src="viewingUser.avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3 shadow-lg" />
+        <h3 class="text-lg font-black text-white">{{ viewingUser.username }}</h3>
+        <p class="text-xs text-rose-500 font-mono font-black mt-0.5">{{ viewingUser.id }}</p>
+        <div v-if="actionMsg" class="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl font-bold">{{ actionMsg }}</div>
+        <div class="mt-5">
+          <button @click="sendFriendRequest(viewingUser)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg">➕ إرسال طلب صداقة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer class="border-t border-slate-800/80 py-6 bg-slate-900/40 mt-12 text-center text-xs text-slate-400">
+      DEDE LIVE © 2026 - جميع الحقوق محفوظة
+    </footer>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const SUPABASE_BASE_URL = "https://yhsehpcosswgehonzzcq.supabase.co/rest/v1";
+        const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
+        const ADMIN_EMAIL = "zzx640616@gmail.com";
+        const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' };
+
+        const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
+        const rooms = ref([]);
+        const loadingRooms = ref(true);
+        const activeRoom = ref(null);
+        const roomSeatsData = ref([]);
+        const roomChat = ref([]);
+        const roomChatInput = ref('');
+
+        const searchQuery = ref('');
+        const searchResult = ref(null);
+        const searchError = ref('');
+
+        const showAuthModal = ref(false);
+        const isSignup = ref(false);
+        const authEmail = ref('');
+        const authUsername = ref('');
+        const errorMsg = ref('');
+
+        const showCreateRoomModal = ref(false);
+        const roomTitle = ref('');
+        const roomCategory = ref('حوار ونقاش');
+        const createRoomError = ref('');
+
+        const showProfileModal = ref(false);
+        const editName = ref(currentUser.value?.username || '');
+        const editAvatar = ref(currentUser.value?.avatar || '');
+        const profileUpdateMsg = ref('');
+
+        // نظام الحوالات وشام كاش
+        const showDepositModal = ref(false);
+        const depositTxId = ref('');
+        const depositAmount = ref('');
+        const depositMsg = ref('');
+        const depositSuccess = ref(false);
+        const showAdminPanel = ref(false);
+        const adminDeposits = ref([]);
+        const pendingDepositsCount = ref(0);
+        const userNotification = ref(null); // إشعار القبول العائم للمستخدم
+
+        const viewingUser = ref(null);
+        const friendRequests = ref([]);
+        const friendsList = ref([]);
+        const showSocialModal = ref(false);
+        const activeTab = ref('messages');
+        const activePrivateChat = ref(null);
+        const privateMessages = ref([]);
+        const privateMsgInput = ref('');
+        const actionMsg = ref('');
+        const friendsLastMessages = ref({});
+        const unreadFriends = ref({});
+
+        const totalUnreadCount = computed(() => Object.keys(unreadFriends.value).length + friendRequests.value.length);
+        const hasUnreadActivity = computed(() => totalUnreadCount.value > 0);
+        const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
+
+        const fetchRooms = async () => {
+          loadingRooms.value = true;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/rooms?select=*`, { headers: HEADERS });
+            if (res.ok) rooms.value = await res.json();
+          } catch (e) {} finally { loadingRooms.value = false; }
+        };
+
+        const fetchAdminDeposits = async () => {
+          if (!isSuperAdmin.value) return;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?status=eq.pending&order=created_at.desc`, { headers: HEADERS });
+            if (res.ok) {
+              const data = await res.json();
+              adminDeposits.value = data;
+              pendingDepositsCount.value = data.length;
+            }
+          } catch (e) {}
+        };
+
+        // التحقق الدوري من حالة طلبات المستخدم لتظهر له شاشة القبول والإشعار تلقائياً
+        const checkUserApprovedDeposits = async () => {
+          if (!currentUser.value || isSuperAdmin.value) return;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?user_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.approved&notified=is.null`, { headers: HEADERS });
+            if (res.ok) {
+              const approvedList = await res.json();
+              if (approvedList.length > 0) {
+                const dep = approvedList[0];
+                // إظهار الإشعار الفوري
+                userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
+                
+                // تحديث رصيد المستخدم محلياً وفي قاعدة البيانات
+                currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
+                localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+
+                // تحديث الطلب حتى لا تكرر إظهار الإشعار
+                await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ notified: true })
+                });
+              }
+            }
+          } catch (e) {}
+        };
+
+        const handleDepositSubmit = async () => {
+          if (!currentUser.value) return;
+          depositMsg.value = "جاري إرسال طلب التحويل للأدمن...";
+          depositSuccess.value = false;
+
+          const amountVal = parseFloat(depositAmount.value);
+          const coinsVal = amountVal * 40000;
+          const cleanTxId = depositTxId.value.trim();
+
+          const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}_${Date.now().toString().slice(-4)}`;
+
+          const depositPayload = {
+            id: uniqueId,
+            user_id: currentUser.value.id,
+            username: currentUser.value.username,
+            tx_id: cleanTxId,
+            amount: amountVal,
+            coins: coinsVal,
+            status: 'pending'
+          };
+
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits`, {
+              method: 'POST',
+              headers: HEADERS,
+              body: JSON.stringify(depositPayload)
+            });
+
+            if (res.ok) {
+              depositMsg.value = "تم إرسال طلب الشحن بنجاح! بانتظار موافقة الأدمن. 🟢";
+              depositSuccess.value = true;
+              depositTxId.value = '';
+              depositAmount.value = '';
+              setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
+            } else {
+              depositMsg.value = "حدث خطأ أثناء إرسال الطلب.";
+            }
+          } catch (e) {
+            depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
+          }
+        };
+
+        // دالة قبول الحوالة من طرف الأدمن وتحديث رصيد المستخدم فوراً
+        const approveDeposit = async (dep) => {
+          try {
+            // 1. تحديث حالة الحوالة إلى approved
+            const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'approved' })
+            });
+
+            if (!patchRes.ok) {
+              alert("تعذر تحديث حالة الحوالة.");
+              return;
+            }
+
+            // 2. جلب رصيد المستخدم الحالي من جدول users وإضافة الكوينز المحددة للحوالة
+            const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              if (userData.length > 0) {
+                const currentCoins = userData[0].coins || 0;
+                const newCoins = currentCoins + dep.coins;
+
+                await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ coins: newCoins })
+                });
+              }
+            }
+
+            fetchAdminDeposits();
+            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات المخصصة للحوالة إلى حساب المستخدم فوراً 💎");
+          } catch (e) {
+            alert("حدث خطأ أثناء تنفيذ عملية التأكيد.");
+          }
+        };
+
+        const rejectDeposit = async (depId) => {
+          try {
+            await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${depId}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'rejected' })
+            });
+            fetchAdminDeposits();
+            alert("تم رفض الحوالة.");
+          } catch (e) {}
+        };
+
+        const fetchFriendData = async () => {
+          if (!currentUser.value) return;
+          try {
+            const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.pending`, { headers: HEADERS });
+            if (reqRes.ok) friendRequests.value = await reqRes.json();
+
+            const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)})&status=eq.accepted`, { headers: HEADERS });
+            if (friendsRes.ok) {
+              const fList = await friendsRes.json();
+              friendsList.value = fList;
+              const lastMsgs = {};
+              const unread = {};
+              for (let f of fList) {
+                const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
+                const msgRes = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.desc&limit=1`, { headers: HEADERS });
+                if (msgRes.ok) {
+                  const data = await msgRes.json();
+                  if (data.length > 0) {
+                    lastMsgs[fId] = data[0].message_text;
+                    if (data[0].sender_id !== currentUser.value.id && (!activePrivateChat.value || activePrivateChat.value.id !== fId)) {
+                      unread[fId] = true;
+                    }
+                  } else { lastMsgs[fId] = "ابدأ المحادثة..."; }
+                }
+              }
+              friendsLastMessages.value = lastMsgs;
+              unreadFriends.value = unread;
+            }
+          } catch (e) {}
+        };
+
+        onMounted(() => {
+          fetchRooms();
+          if (currentUser.value) {
+            fetchFriendData();
+            if (isSuperAdmin.value) fetchAdminDeposits();
+            else checkUserApprovedDeposits();
+
+            // فحص دوري كل 4 ثوانٍ لتحديث الحوالات، الإشعارات، والأرصدة
+            setInterval(() => {
+              fetchFriendData();
+              if (isSuperAdmin.value) fetchAdminDeposits();
+              else checkUserApprovedDeposits();
+            }, 4000);
+          }
+        });
+
+        const handleGlobalSearch = async () => {
+          searchError.value = ''; searchResult.value = null;
+          const q = searchQuery.value.trim();
+          if (!q) return;
+          const room = rooms.value.find(r => r.id.toLowerCase() === q.toLowerCase());
+          if (room) { searchResult.value = { type: 'room', data: room }; return; }
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/users?or=(id.ilike.*${q}*,username.ilike.*${q}*)`, { headers: HEADERS });
+            if (res.ok) {
+              const users = await res.json();
+              if (users.length > 0) { searchResult.value = { type: 'user', data: users[0] }; return; }
+            }
+          } catch (e) {}
+          searchError.value = 'لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.';
+        };
+
+        const enterRoom = (room) => {
+          activeRoom.value = room;
+          const seats = room.max_seats || 8;
+          roomSeatsData.value = Array.from({ length: seats }, (_, i) => i === 0 ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true } : { index: i, user: null, isHost: false });
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}".` }];
+        };
+
+        const claimSeat = (index) => {
+          if (!currentUser.value) return alert("سجل الدخول أولاً للصعود إلى المايك!");
+          const updated = [...roomSeatsData.value];
+          if (updated[index].user) return;
+          const old = updated.findIndex(s => s.user?.id === currentUser.value.id);
+          if (old !== -1) updated[old].user = null;
+          updated[index].user = { name: currentUser.value.username, avatar: currentUser.value.avatar, id: currentUser.value.id, role: 'عضو' };
+          roomSeatsData.value = updated;
+        };
+
+        const sendRoomChat = () => {
+          if (!roomChatInput.value.trim() || !currentUser.value) return;
+          roomChat.value.push({ id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() });
+          roomChatInput.value = '';
+        };
+
+        const handleAuth = async () => {
+          errorMsg.value = '';
+          const email = authEmail.value.trim().toLowerCase();
+          const isAdmin = email === ADMIN_EMAIL.toLowerCase();
+          const pId = isAdmin ? "ADMIN-MASTER-ID" : `ID-${Math.floor(100000 + Math.random() * 900000)}`;
+          const userObj = { id: pId, username: authUsername.value || email.split('@')[0], email, password_hash: "123456", coins: 0, level: 1, role: isAdmin ? "👑 مدير التطبيق" : "عضو", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200" };
+
+          try {
+            if (isSignup.value) {
+              const res = await fetch(`${SUPABASE_BASE_URL}/users`, { method: 'POST', headers: HEADERS, body: JSON.stringify(userObj) });
+              if (!res.ok) { errorMsg.value = "البريد مستخدم مسبقاً"; return; }
+            } else {
+              const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(email)}`, { headers: HEADERS });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.length > 0) Object.assign(userObj, data[0]);
+                else { errorMsg.value = "البريد غير مسجل"; return; }
+              }
+            }
+            currentUser.value = userObj;
+            localStorage.setItem('dede_user', JSON.stringify(userObj));
+            showAuthModal.value = false;
+            fetchFriendData();
+            if (isSuperAdmin.value) fetchAdminDeposits();
+          } catch (e) { errorMsg.value = "خطأ في الاتصال بالسيرفر"; }
+        };
+
+        const handleLogout = () => { currentUser.value = null; localStorage.removeItem('dede_user'); };
+
+        const handleCreateRoom = async () => {
+          createRoomError.value = '';
+          if (!currentUser.value) return;
+          const newRoom = { id: `ROOM-${Math.floor(1000 + Math.random() * 9000)}`, host_id: currentUser.value.id, host_name: currentUser.value.username, host_avatar: currentUser.value.avatar, title: roomTitle.value, category: roomCategory.value, cover_image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600", max_seats: 8, listeners_count: 1 };
+          const res = await fetch(`${SUPABASE_BASE_URL}/rooms`, { method: 'POST', headers: HEADERS, body: JSON.stringify(newRoom) });
+          if (res.ok) { showCreateRoomModal.value = false; roomTitle.value = ''; fetchRooms(); }
+          else { createRoomError.value = "فشل إنشاء الروم"; }
+        };
+
+        const openSocialModal = () => { fetchFriendData(); showSocialModal.value = true; };
+
+        const sendFriendRequest = async (target) => {
+          if (!currentUser.value) return;
+          actionMsg.value = "جاري الإرسال...";
+          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, sender_name: currentUser.value.username, receiver_id: target.id, status: 'pending' }) });
+          if (res.ok) actionMsg.value = "تم إرسال طلب الصداقة بنجاح! 🟢"; else actionMsg.value = "تم إرسال طلب مسبقاً لهذا المستخدم.";
+        };
+
+        const respondToFriendRequest = async (id, accept) => {
+          if (accept) {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: 'accepted' }) });
+          } else {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+          }
+          fetchFriendData();
+        };
+
+        const openPrivateChat = async (f) => {
+          const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
+          const fName = f.sender_id === currentUser.value.id ? (f.receiver_name || "صديق") : f.sender_name;
+          activePrivateChat.value = { id: fId, name: fName };
+          const u = { ...unreadFriends.value }; delete u[fId]; unreadFriends.value = u;
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.asc`, { headers: HEADERS });
+          if (res.ok) privateMessages.value = await res.json();
+        };
+
+        const sendPrivateMessage = async () => {
+          if (!privateMsgInput.value.trim() || !activePrivateChat.value) return;
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, message_text: privateMsgInput.value.trim() }) });
+          if (res.ok) { privateMsgInput.value = ''; openPrivateChat({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, receiver_name: activePrivateChat.value.name }); fetchFriendData(); }
+        };
+
+        const handleImageUpload = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 200; canvas.height = 200;
+              canvas.getContext('2d').drawImage(img, 0, 0, 200, 200);
+              editAvatar.value = canvas.toDataURL('image/jpeg', 0.8);
+            };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(file);
+        };
+
+        const handleSaveProfile = async () => {
+          if (!currentUser.value) return;
+          profileUpdateMsg.value = "جاري الحفظ...";
+          const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.value.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ username: editName.value.trim(), avatar: editAvatar.value || currentUser.value.avatar }) });
+          if (res.ok) {
+            currentUser.value.username = editName.value.trim();
+            if (editAvatar.value) currentUser.value.avatar = editAvatar.value;
+            localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+            profileUpdateMsg.value = "تم الحفظ بنجاح! ✅";
+            setTimeout(() => { showProfileModal.value = false; profileUpdateMsg.value = ''; }, 1000);
+          } else { profileUpdateMsg.value = "تعذر الحفظ"; }
+        };
+
+        return {
+          currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
+          searchQuery, searchResult, searchError, showAuthModal, isSignup, authEmail, authUsername, errorMsg,
+          showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
+          showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
+          viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
+          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
+          fetchRooms, handleGlobalSearch, enterRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
+          openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
+          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
+        };
       }
-    }catch(e){}
-  };
-  const handleDepositSubmit=async()=>{
-    if(!currentUser.value)return;
-    if(!depositTxId.value.trim()||!depositAmount.value){depositMsg.value="املأ كل الحقول";return;}
-    const amountVal=parseFloat(depositAmount.value);
-    if(amountVal<=0){depositMsg.value="المبلغ غير صحيح";return;}
-    depositLoading.value=true;depositMsg.value="جاري الإرسال...";depositSuccess.value=false;
-    const coinsVal=Math.floor(amountVal*40000);
-    const cleanTxId=depositTxId.value.trim();
-    try{
-      const checkRes=await fetch(`${SUPABASE_BASE_URL}/deposits?tx_id=eq.${encodeURIComponent(cleanTxId)}&select=id`,{headers:HEADERS});
-      if(checkRes.ok){const exists=await checkRes.json(); if(exists.length>0){depositMsg.value="رقم الحوالة مستخدم من قبل!"; depositLoading.value=false; return;}}
-    }catch(e){}
-    const uniqueId=`DEP-${Date.now()}-${Math.floor(Math.random()*10000)}`;
-    const payload={id:uniqueId,user_id:currentUser.value.id,username:currentUser.value.username,tx_id:cleanTxId,amount:amountVal,coins:coinsVal,status:'pending',notified:null};
-    try{
-      const res=await fetch(`${SUPABASE_BASE_URL}/deposits`,{method:'POST',headers:HEADERS,body:JSON.stringify(payload)});
-      if(res.ok){depositMsg.value="تم الإرسال! بانتظار الأدمن 🟢";depositSuccess.value=true;depositTxId.value='';depositAmount.value='';}
-      else{depositMsg.value="خطأ في الإرسال";}
-    }catch(e){depositMsg.value="فشل الاتصال";}
-    finally{depositLoading.value=false;}
-  };
-  const approveDeposit=async(dep)=>{
-    try{
-      const check=await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}&status=eq.pending&select=*`,{headers:HEADERS});
-      if(check.ok){const d=await check.json(); if(d.length===0){alert("تمت معالجته مسبقاً"); fetchAdminDeposits(); return;}}
-      const userRes=await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}&select=coins`,{headers:HEADERS});
-      if(!userRes.ok){alert("لا يمكن جلب اليوزر"); return;}
-      const userData=await userRes.json(); if(userData.length===0){alert("اليوزر غير موجود"); return;}
-      const newCoins=(userData[0].coins||0)+dep.coins;
-      const updUser=await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({coins:newCoins})});
-      if(!updUser.ok){alert("فشل تحديث الرصيد"); return;}
-      await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({status:'approved'})});
-      alert(`تم قبول ${dep.tx_id} وإضافة ${dep.coins.toLocaleString()} 💎`);
-      fetchAdminDeposits();
-    }catch(e){alert("خطأ: "+e.message);}
-  };
-  const rejectDeposit=async(depId)=>{try{await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${depId}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({status:'rejected',notified:true})});fetchAdminDeposits();}catch(e){}};
-  const enableMic=async()=>{try{localStream=await navigator.mediaDevices.getUserMedia({audio:true}); micStatus.value='🎤 المايك شغال'; const mySeat=roomSeatsData.value.find(s=>s.user?.id===currentUser.value?.id); if(mySeat){mySeat.isSpeaking=true;}}catch(e){micStatus.value='❌ لازم HTTPS'; alert('لازم تفتح الموقع https:// حتى يشتغل المايك');}};
-  const disableMic=()=>{if(localStream){localStream.getTracks().forEach(t=>t.stop()); localStream=null;} micStatus.value='المايك متوقف'; const mySeat=roomSeatsData.value.find(s=>s.user?.id===currentUser.value?.id); if(mySeat)mySeat.isSpeaking=false;};
-  const leaveRoom=()=>{disableMic(); activeRoom.value=null;};
-  onMounted(()=>{fetchRooms(); if(currentUser.value){if(isSuperAdmin.value)fetchAdminDeposits(); else checkUserApprovedDeposits(); setInterval(()=>{if(isSuperAdmin.value)fetchAdminDeposits(); else checkUserApprovedDeposits();},4000);}});
-  const enterRoom=(room)=>{activeRoom.value=room; const seats=room.max_seats||8; roomSeatsData.value=Array.from({length:seats},(_,i)=>i===0?{index:0,user:{name:room.host_name,avatar:room.host_avatar,id:room.host_id},isSpeaking:false}:{index:i,user:null,isSpeaking:false}); roomChat.value=[{id:1,sender:'النظام 🤖',text:`أهلاً بك في ${room.title}`}];};
-  const claimSeat=(index)=>{if(!currentUser.value)return alert("سجل دخول"); const updated=[...roomSeatsData.value]; if(updated[index].user)return; const old=updated.findIndex(s=>s.user?.id===currentUser.value.id); if(old!==-1)updated[old].user=null; updated[index].user={name:currentUser.value.username,avatar:currentUser.value.avatar,id:currentUser.value.id}; roomSeatsData.value=updated;};
-  const sendRoomChat=()=>{if(!roomChatInput.value.trim()||!currentUser.value)return;roomChat.value.push({id:Date.now(),sender:currentUser.value.username,text:roomChatInput.value.trim()});roomChatInput.value='';};
-  const handleAuth=async()=>{const email=authEmail.value.trim().toLowerCase();const isAdmin=email===ADMIN_EMAIL.toLowerCase();const pId=isAdmin?"ADMIN-MASTER-ID":`ID-${Math.floor(100000+Math.random()*900000)}`;const userObj={id:pId,username:authUsername.value||email.split('@')[0],email,coins:0,avatar:"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"};try{if(isSignup.value){const res=await fetch(`${SUPABASE_BASE_URL}/users`,{method:'POST',headers:HEADERS,body:JSON.stringify(userObj)});if(!res.ok)return;}else{const res=await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(email)}`,{headers:HEADERS});if(res.ok){const data=await res.json();if(data.length>0)Object.assign(userObj,data[0]);}}currentUser.value=userObj;localStorage.setItem('dede_user',JSON.stringify(userObj));showAuthModal.value=false;if(isSuperAdmin.value)fetchAdminDeposits();}catch(e){}};
-  const handleLogout=()=>{disableMic(); currentUser.value=null;localStorage.removeItem('dede_user');};
-  return{currentUser,rooms,loadingRooms,activeRoom,roomSeatsData,roomChat,roomChatInput,showAuthModal,isSignup,authEmail,authUsername,showDepositModal,depositTxId,depositAmount,depositMsg,depositSuccess,depositLoading,showAdminPanel,adminDeposits,pendingDepositsCount,userNotification,viewingUser,micStatus,isSuperAdmin,fetchRooms,enterRoom,claimSeat,sendRoomChat,handleAuth,handleLogout,handleDepositSubmit,fetchAdminDeposits,approveDeposit,rejectDeposit,enableMic,disableMic,leaveRoom};
- }
-}).mount('#app');
-</script>
+    }).mount('#app');
+  </script>
 </body>
 </html>
