@@ -10,13 +10,8 @@
   <!-- مكتبة Supabase الرسمية -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- مكتبة ZEGOCLOUD الصوتية مع نظام روابط احتياطية للتأكد من التحميل -->
+  <!-- مكتبة ZEGOCLOUD الصوتية (الاستدعاء النظامي المباشر بدون حظر) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/zego-express-engine-webrtc/2.20.0/index.js"></script>
-  <script>
-    if (typeof ZegoExpressEngine === 'undefined') {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/zego-express-engine-webrtc/index.js"><\/script>');
-    }
-  </script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -693,7 +688,7 @@
             }
           } catch (err) {
             console.error("خطأ المايك:", err);
-            alert("تعذر الوصول إلى المايكروفون. تأكد من إعطاء إذن المايك للمتصفح عبر إعدادات الأمان للرابط (يجب أن يكون الرابط آمن HTTPS).");
+            alert("تعذر الوصول إلى المايكروفون. تأكد من إعطاء إذن المايك للمتصفح.");
           }
         };
 
