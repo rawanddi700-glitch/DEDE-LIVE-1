@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -33,6 +34,41 @@
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
   </style>
 </head>
+  <script>
+    // 1. الاتصال بسيرفرك على Render
+    const socket = io("https://dede-backend-d0bm.onrender.com");
+
+    socket.on('connect', () => {
+        console.log('تم الاتصال بنجاح بالسيرفر، معرف المستخدم:', socket.id);
+    });
+
+    // 2. استقبال قائمة الرومات وتحديثها على الواجهة
+    socket.on('update_rooms', (rooms) => {
+        console.log('تم تحديث الرومات:', rooms);
+        // إذا كان لديك دالة تعرض الرومات في الواجهة، استدعها هنا، مثال: renderRooms(rooms);
+    });
+
+    // 3. دالة إنشاء روم جديدة (يمكن ربطها بزر "إنشاء روم" في موقعك)
+    function createNewRoom(title, category, hostName, hostAvatar) {
+        socket.emit('create_room', {
+            title: title,
+            category: category,
+            host_name: hostName,
+            host_avatar: hostAvatar
+        });
+    }
+
+    // 4. دالة الانضمام لروم معين
+    function joinSpecificRoom(roomId) {
+        socket.emit('join_room', roomId);
+    }
+
+    // 5. استقبال بيانات الروم عند دخوله
+    socket.on('room_data', (room) => {
+        console.log('بيانات الروم الحالي:', room);
+        // هنا يتم تحديث شاشة الروم (المقاعد، الأسماء، المتحدثين)
+    });
+</script>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
