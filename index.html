@@ -10,8 +10,8 @@
   <!-- مكتبة Supabase الرسمية -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- مكتبة ZEGOCLOUD الصوتية (الاستدعاء النظامي المباشر بدون حظر) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/zego-express-engine-webrtc/2.20.0/index.js"></script>
+  <!-- مكتبة ZEGOCLOUD الصوتية (مضمنة محلياً عبر النسخة البرمجية المستقرة لمنع الحظر) -->
+  <script src="https://unpkg.com/zego-express-engine-webrtc@2.20.0/index.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -512,7 +512,6 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
 
-        // إعدادات ZEGOCLOUD الصوتية
         const ZEGO_APP_ID = 1856957631;
         let zegoClient = null;
         let localStream = null;
@@ -615,7 +614,6 @@
           } catch (e) {}
         };
 
-        // --- تهيئة ZEGOCLOUD وإدارة الصوت بالكامل ---
         const initZegoEngine = async (roomId) => {
           try {
             if (typeof ZegoExpressEngine === 'undefined') {
