@@ -7,10 +7,9 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <!-- إضافة مكتبة Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- إضافة مكتبة ZEGOCLOUD الرسمية للتشغيل الصوتي عبر الـ Web -->
-  <script src="https://unpkg.com/zego-express-engine-webrtc/index.js"></script>
+  <!-- استبدال رابط مكتبة زيفو بالرابط الرسمي المعتمد للويب لضمان عدم حدوث Error -->
+  <script src="https://download.zego.im/sdk/zego_express_web_v3.6.0.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -155,7 +154,7 @@
       </div>
       <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-      <!-- داخل الروم الصوتي التفاعلي (Voice Room) -->
+      <!-- داخل الروم المباشر (Realtime Room) -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
         <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
           <div>
@@ -164,21 +163,19 @@
             <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ النظام الصوتي متصل</span></p>
           </div>
           <div class="flex items-center gap-2">
-            <!-- أزرار التحكم الصوتي العامة للمستخدم الحالي -->
-            <button v-if="isMicOn" @click="toggleMic(false)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">mute 🔇 كتم المايك</button>
-            <button v-else @click="toggleMic(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">unmute 🎙️ فتح المايك</button>
+            <!-- أزرار التحكم الصوتي -->
+            <button v-if="isMicOn" @click="toggleMic(false)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🔇 كتم المايك</button>
+            <button v-else @click="toggleMic(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🎙️ فتح المايك</button>
             <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج</button>
           </div>
         </div>
 
-        <!-- المقاعد الصوتية -->
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
           <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
             <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all">
               <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
               <span v-else class="text-slate-600 text-xs font-bold">{{ seat.index + 1 }} 🎙️</span>
-              <!-- إشارة المايك المفتوح على المقعد -->
-              <div v-if="seat.user && seat.isMuted === false" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">🎙️ يتحدث</div>
+              <div v-if="seat.user && seat.isMuted === false" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">يتحدث</div>
             </div>
             <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ seat.user ? seat.user.name : 'فارغ' }}</p>
           </div>
@@ -514,9 +511,8 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
 
-        // إعدادات ZEGOCLOUD الصوتية المباشرة
+        // إعدادات ZEGOCLOUD
         const ZEGO_APP_ID = 1856957631;
-        const ZEGO_SERVER = "wss://webliveroom1856957631-api.zego.im/ws"; 
         let zegoClient = null;
         let localStream = null;
         const isMicOn = ref(false);
@@ -618,12 +614,17 @@
           } catch (e) {}
         };
 
-        // --- 🎙️ تشغيل وإدارة الصوت الفعلي عبر ZEGOCLOUD (مُحدث مع طلب الإذن) ---
-        
+        // --- تهيئة ZEGOCLOUD بشكل آمن ---
         const initZegoEngine = async (roomId) => {
           try {
+            // التحقق من توفر المكتبة في النافذة
+            if (typeof ZegoExpressEngine === 'undefined') {
+              console.error("مكتبة Zego لم تحمل بعد!");
+              return;
+            }
+
             if (!zegoClient) {
-              zegoClient = new ZegoExpressEngine(ZEGO_APP_ID, ZEGO_SERVER);
+              zegoClient = new ZegoExpressEngine(ZEGO_APP_ID, "");
             }
 
             zegoClient.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
@@ -647,10 +648,8 @@
 
             const userID = currentUser.value ? currentUser.value.id : `guest_${Math.floor(Math.random()*10000)}`;
             const userName = currentUser.value ? currentUser.value.username : 'زائر';
-            const token = ""; 
 
-            await zegoClient.loginRoom(roomId, token, { userID, userName }, { userUpdate: true });
-            console.log("تم الاتصال بنجاح بالغرفة الصوتية:", roomId);
+            await zegoClient.loginRoom(roomId, "", { userID, userName }, { userUpdate: true });
           } catch (err) {
             console.error("خطأ في الاتصال بنظام الصوت:", err);
           }
@@ -659,11 +658,14 @@
         const toggleMic = async (turnOn) => {
           if (!currentUser.value) return alert("سجل الدخول أولاً!");
           try {
+            if (!zegoClient) {
+              alert("نظام الصوت لم يتصل بعد بالروم، يرجى إعادة دخول الروم.");
+              return;
+            }
+
             if (turnOn) {
-              // 1. طلب إذن المايك من المتصفح صراحةً أولاً لضمان عدم ظهور خطأ الصلاحيات
               await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
-              // 2. إنشاء المايك الخاص بـ Zego بعد السماح بالإذن
               localStream = await zegoClient.createZegoStream({ camera: { audio: true, video: false } });
               const streamID = `stream_${currentUser.value.id}_${Date.now()}`;
               await zegoClient.startPublishingStream(streamID, localStream);
@@ -818,8 +820,6 @@
           }
           activeRoom.value = null;
         };
-
-        // --- دوال الشحن، الأدمن، والملف الشخصي ---
 
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
