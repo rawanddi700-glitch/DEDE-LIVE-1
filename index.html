@@ -209,13 +209,13 @@
 
         <!-- مقاعد المايكات الثمانية مع حركة التحدث (Animation) -->
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
-          <div v-for="(seat, idx) in roomSeatsData" :key="idx" class="flex flex-col items-center">
-            <div @click="seat && seat.user ? viewingUser = seat.user : claimSeat(idx)" :class="['w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all', seat && seat.isSpeaking ? 'speaking-glow' : 'hover:border-purple-500']">
-              <img v-if="seat && seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
-              <span v-else class="text-slate-600 text-xs font-bold">{{ idx + 1 }} 🎙️</span>
-              <span v-if="seat && seat.isSpeaking" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 rounded-full font-bold animate-bounce">يتحدث 🟢</span>
+          <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
+            <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" :class="['w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all', seat.isSpeaking ? 'speaking-glow' : 'hover:border-purple-500']">
+              <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
+              <span v-else class="text-slate-600 text-xs font-bold">{{ seat.index + 1 }} 🎙️</span>
+              <span v-if="seat.isSpeaking" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 rounded-full font-bold animate-bounce">يتحدث 🟢</span>
             </div>
-            <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ (seat && seat.user) ? seat.user.username : 'فارغ' }}</p>
+            <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ seat.user ? seat.user.name : 'فارغ' }}</p>
           </div>
         </div>
 
@@ -504,17 +504,23 @@
 
     createApp({
       setup() {
-        const currentUser = ref({
+        // تثبيت بيانات المستخدم عبر localStorage لتثبيت الحساب وعدم تغير الأيدي مع التحديث
+        const savedUser = localStorage.getItem('dede_current_user');
+        const initialUser = savedUser ? JSON.parse(savedUser) : {
           id: 'USER-' + Math.floor(1000 + Math.random() * 9000),
           username: 'مستخدم ' + Math.floor(10 + Math.random() * 90),
           avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + Math.random(),
           coins: 100000
-        });
+        };
+        if (!savedUser) {
+          localStorage.setItem('dede_current_user', JSON.stringify(initialUser));
+        }
 
+        const currentUser = ref(initialUser);
         const rooms = ref([]);
         const loadingRooms = ref(false);
         const activeRoom = ref(null);
-        const roomSeatsData = ref(Array(8).fill(null));
+        const roomSeatsData = ref(Array(8).fill(null).map((_, i) => ({ index: i, user: null, isSpeaking: false })));
         const isMicActive = ref(false);
         const roomChat = ref([]);
         const roomChatInput = ref('');
@@ -528,6 +534,15 @@
         const isGamePlaying = ref(false);
         const gameResultMessage = ref('');
         const gameWinAmount = ref(0);
+        const searchResult = ref(null);
+        const searchQuery = ref('');
+        const searchError = ref('');
+        const hasUnreadActivity = ref(false);
+        const totalUnreadCount = ref(0);
+        const isSuperAdmin = ref(true);
+        const pendingDepositsCount = ref(0);
+        const showAdminPanel = ref(false);
+        const showProfileModal = ref(false);
 
         // مراقبة أحداث Socket.io مع السيرفر الخلفي
         onMounted(() => {
@@ -609,13 +624,23 @@
 
         const openGame = (type) => { activeGameModal.value = type; };
         const closeGameModal = () => { activeGameModal.value = null; };
+        const handleLogout = () => {
+          localStorage.removeItem('dede_current_user');
+          currentUser.value = null;
+        };
+        const handleGlobalSearch = () => {};
+        const openSocialModal = () => {};
+        const fetchAdminDeposits = () => {};
 
         return {
           currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, isMicActive,
           roomChat, roomChatInput, userNotification, showDepositModal, showCreateRoomModal,
           newRoomTitle, newRoomCategory, activeGameModal, selectedBet, isGamePlaying,
-          gameResultMessage, gameWinAmount, fetchRooms, createRoom, enterRoom, leaveVoiceRoom,
-          claimSeat, toggleMicrophone, sendRoomChat, openGame, closeGameModal
+          gameResultMessage, gameWinAmount, searchResult, searchQuery, searchError,
+          hasUnreadActivity, totalUnreadCount, isSuperAdmin, pendingDepositsCount,
+          showAdminPanel, showProfileModal, fetchRooms, createRoom, enterRoom, leaveVoiceRoom,
+          claimSeat, toggleMicrophone, sendRoomChat, openGame, closeGameModal, handleLogout,
+          handleGlobalSearch, openSocialModal, fetchAdminDeposits
         };
       }
     }).mount('#app');
