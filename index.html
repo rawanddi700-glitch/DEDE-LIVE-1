@@ -192,7 +192,7 @@
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ أنت داخل الروم وجاهز للتحدث</span></p>
+            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ أنت متصل بالروم الصوتي الجماعي</span></p>
           </div>
           <button @click="leaveVoiceRoom(); activeRoom = null;" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">← مغادرة الروم الصوتي</button>
         </div>
@@ -208,13 +208,16 @@
           </div>
         </div>
 
-        <!-- زر المايك المباشر (تم تعديله ليتطابق حصرياً مع متطلبات الرابط الأساسي https) -->
+        <!-- زر المايك الجماعي المباشر -->
         <div class="flex items-center justify-center gap-3 mb-6 bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-inner">
           <button @click="toggleMicrophone" :class="['px-6 py-3.5 rounded-2xl text-xs font-black transition-all shadow-xl flex items-center gap-2.5', isMicActive ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse ring-4 ring-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300']">
             <span class="text-base">{{ isMicActive ? '🎙️' : '🔇' }}</span>
-            <span>{{ isMicActive ? 'المايك مفتوح ويبث صوتك الآن (اضغط للكتم)' : 'اضغط هنا لفتح المايك وتفعيل الصوت 🎙️' }}</span>
+            <span>{{ isMicActive ? 'المايك مفتوح ويبث صوتك للجميع الآن (اضغط للكتم)' : 'اضغط هنا لفتح المايك والتحدث للجميع 🎙️' }}</span>
           </button>
         </div>
+
+        <!-- عنصر صوتي مخفي لتشغيل صوت المتحدثين الآخرين -->
+        <audio id="remote-audio-player" autoplay playsinline style="display:none;"></audio>
 
         <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800/80">
           <h4 class="text-xs font-bold text-slate-400 mb-2.5">دردشة الغرفة الحية</h4>
@@ -277,7 +280,7 @@
           </div>
         </div>
 
-        <!-- 🌟 ثانياً: الرومات الصوتية النشطة -->
+        <!-- 🌟 ثانياً: الرومات الصوتية النشطة (المحدثة لحظياً لتلتقي بالجميع) -->
         <div class="mb-10">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
@@ -701,9 +704,10 @@
 
         let threeScene, threeCamera, threeRenderer, wheelGroup, animFrameId;
 
-        // متغيرات الصوت المباشر والمايك
+        // متغيرات الصوت الجماعي المباشر (WebRTC / Audio Peer)
         let localAudioStream = null;
         const isMicActive = ref(false);
+        let audioSyncInterval = null;
 
         const viewingUser = ref(null);
         const friendRequests = ref([]);
@@ -721,6 +725,7 @@
         const hasUnreadActivity = computed(() => totalUnreadCount.value > 0);
         const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
 
+        // جلب الرومات المتاحة بشكل حي ومستمر
         const fetchRooms = async () => {
           try {
             const res = await fetch(`${SUPABASE_BASE_URL}/rooms?select=*&order=created_at.desc`, { headers: HEADERS });
@@ -776,7 +781,7 @@
           } catch (e) {}
         };
 
-        // دالة المايك المرنة والمحدثة خصيصاً للرابط الأساسي الآمن (HTTPS)
+        // دالة تفعيل المايك وبث الصوت جماعياً للجميع في الروم
         const toggleMicrophone = async () => {
           if (!activeRoom.value) {
             alert("يرجى الدخول إلى الروم أولاً!");
@@ -785,36 +790,104 @@
 
           if (!isMicActive.value) {
             try {
-              // التحقق من دعم المتصفح للوصول إلى المايكروفون
               if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("متصفحك لا يدعم الوصول المباشر إلى المايكروفون. يرجى استخدام متصفح حديث مثل Chrome أو Safari عبر اتصال آمن (HTTPS).");
+                alert("متصفحك لا يدعم الوصول المباشر إلى المايكروفون عبر HTTPS.");
                 return;
               }
 
               localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
               isMicActive.value = true;
-              roomChat.value.push({ id: Date.now(), sender: 'النظام 🤖', text: '🎙️ تم تفعيل المايك وبث صوتك بنجاح!' });
+              roomChat.value.push({ id: Date.now(), sender: 'النظام 🤖', text: '🎙️ تم فتح المايك وبث صوتك للجميع بنجاح!' });
+
+              // تشغيل دورة الفحص للاستماع لصوت باقي المتحدثين في الروم
+              startAudioStreamSync();
             } catch (err) {
               console.error(err);
               alert("تعذر تشغيل المايك. تأكد من إعطاء إذن (السماح بالمايكروفون) من إعدادات المتصفح.");
               isMicActive.value = false;
             }
           } else {
-            if (localAudioStream) {
-              localAudioStream.getTracks().forEach(track => track.stop());
-              localAudioStream = null;
-            }
-            isMicActive.value = false;
-            roomChat.value.push({ id: Date.now(), sender: 'النظام 🤖', text: '🔇 تم كتم المايك.' });
+            stopMicrophone();
           }
         };
 
-        const leaveVoiceRoom = () => {
+        const stopMicrophone = () => {
           if (localAudioStream) {
             localAudioStream.getTracks().forEach(track => track.stop());
             localAudioStream = null;
           }
           isMicActive.value = false;
+          if (audioSyncInterval) clearInterval(audioSyncInterval);
+          roomChat.value.push({ id: Date.now(), sender: 'النظام 🤖', text: '🔇 تم كتم المايك.' });
+        };
+
+        // مزامنة الصوت المباشر بين المتواجدين في نفس الروم
+        const startAudioStreamSync = () => {
+          if (audioSyncInterval) clearInterval(audioSyncInterval);
+          audioSyncInterval = setInterval(async () => {
+            if (!activeRoom.value || !isMicActive.value || !localAudioStream) return;
+            try {
+              // تحويل عينة الصوت الحية إلى بيانات رقمية (Blob) لنقلها مؤقتاً عبر قناة الروم للجميع
+              const mediaRecorder = new MediaRecorder(localAudioStream, { mimeType: 'audio/webm' });
+              let chunks = [];
+              mediaRecorder.ondataavailable = e => chunks.push(e.data);
+              mediaRecorder.onstop = async () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                if (blob.size > 100) {
+                  const reader = new FileReader();
+                  reader.readAsDataURL(blob);
+                  reader.onloadend = async () => {
+                    const baseAudio = reader.result;
+                    // إرسال التدفق الصوتي عبر الشات الفوري للروم ليستمع له باقي المتواجدين
+                    await fetch(`${SUPABASE_BASE_URL}/room_messages`, {
+                      method: 'POST',
+                      headers: HEADERS,
+                      body: JSON.stringify({
+                        room_id: activeRoom.value.id,
+                        sender: currentUser.value.username,
+                        text: `[AUDIO_STREAM]:${baseAudio}`
+                      })
+                    }).catch(() => {});
+                  };
+                }
+              };
+              mediaRecorder.start();
+              setTimeout(() => { if (mediaRecorder.state === 'recording') mediaRecorder.stop(); }, 1500);
+            } catch (e) {}
+          }, 3000);
+        };
+
+        // الاستماع لرسائل الروم والصوت الوارد من باقي المستخدمين
+        const listenToRoomUpdates = () => {
+          setInterval(async () => {
+            if (!activeRoom.value) return;
+            try {
+              const res = await fetch(`${SUPABASE_BASE_URL}/room_messages?room_id=eq.${encodeURIComponent(activeRoom.value.id)}&order=created_at.desc&limit=15`, { headers: HEADERS });
+              if (res.ok) {
+                const msgs = await res.json();
+                const formatted = msgs.reverse().map(m => {
+                  if (m.text && m.text.startsWith('[AUDIO_STREAM]:')) {
+                    // إذا كان الوارد مقطع صوتي من مستخدم آخر، نقوم بتشغيله تلقائياً في الخلفية
+                    const audioSrc = m.text.replace('[AUDIO_STREAM]:', '');
+                    if (m.sender !== currentUser.value?.username) {
+                      const remotePlayer = document.getElementById('remote-audio-player');
+                      if (remotePlayer && remotePlayer.paused) {
+                        remotePlayer.src = audioSrc;
+                        remotePlayer.play().catch(() => {});
+                      }
+                    }
+                    return { id: m.id, sender: m.sender, text: '🎙️ [تحدث على المايك]' };
+                  }
+                  return { id: m.id, sender: m.sender, text: m.text };
+                });
+                roomChat.value = formatted;
+              }
+            } catch (e) {}
+          }, 2000);
+        };
+
+        const leaveVoiceRoom = () => {
+          stopMicrophone();
           activeRoom.value = null;
         };
 
@@ -1092,6 +1165,7 @@
             if (isSuperAdmin.value) fetchAdminDeposits();
             else checkUserApprovedDeposits();
 
+            // تحديث دوري للقائمة والرومات لتلتقي بالجميع أونلاين فوراً
             setInterval(() => {
               fetchRooms();
               fetchFriendData();
@@ -1121,7 +1195,8 @@
           activeRoom.value = room;
           const seats = room.max_seats || 8;
           roomSeatsData.value = Array.from({ length: seats }, (_, i) => i === 0 ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true } : { index: i, user: null, isHost: false });
-          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". يمكنك فتح المايك والتحدث!` }];
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". يمكنك فتح المايك والتحدث مع الحضور!` }];
+          listenToRoomUpdates();
         };
 
         const claimSeat = (index) => {
@@ -1134,10 +1209,19 @@
           roomSeatsData.value = updated;
         };
 
-        const sendRoomChat = () => {
-          if (!roomChatInput.value.trim() || !currentUser.value) return;
-          roomChat.value.push({ id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() });
+        const sendRoomChat = async () => {
+          if (!roomChatInput.value.trim() || !currentUser.value || !activeRoom.value) return;
+          const txt = roomChatInput.value.trim();
           roomChatInput.value = '';
+          await fetch(`${SUPABASE_BASE_URL}/room_messages`, {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify({
+              room_id: activeRoom.value.id,
+              sender: currentUser.value.username,
+              text: txt
+            })
+          }).catch(() => {});
         };
 
         const handleAuth = async () => {
