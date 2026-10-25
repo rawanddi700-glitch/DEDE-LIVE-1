@@ -9,8 +9,14 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <!-- مكتبة Supabase الرسمية -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- مكتبة ZEGOCLOUD الصوتية الرسمية للويب -->
-  <script src="https://unpkg.com/zego-express-engine-webrtc/index.js"></script>
+  
+  <!-- مكتبة ZEGOCLOUD الصوتية مع نظام روابط احتياطية للتأكد من التحميل -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zego-express-engine-webrtc/2.20.0/index.js"></script>
+  <script>
+    if (typeof ZegoExpressEngine === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/zego-express-engine-webrtc/index.js"><\/script>');
+    }
+  </script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -155,15 +161,15 @@
       </div>
       <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-      <!-- داخل الروم الصوتي التفاعلي -->
+      <!-- داخل الروم الصوتي المباشر -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
-        <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 mb-6 gap-3">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
             <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ نظام الصوت متصل</span></p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button v-if="isMicOn" @click="toggleMic(false)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🔇 كتم المايك</button>
             <button v-else @click="toggleMic(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🎙️ فتح المايك</button>
             <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج</button>
