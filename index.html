@@ -7,6 +7,7 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- إضافة مكتبة Supabase الرسمية لتدعم الـ Realtime -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -38,6 +39,7 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
+    <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
     <div v-if="userNotification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
       <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
         <span class="text-2xl">🎉</span>
@@ -49,6 +51,7 @@
       </div>
     </div>
 
+    <!-- الهيدر الاحترافي -->
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sticky top-0 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center justify-between w-full sm:w-auto">
@@ -106,9 +109,27 @@
             <button @click="showAuthModal = true" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-lg shadow-purple-600/30 transition-all">تسجيل الدخول</button>
           </template>
         </div>
+
+        <div v-if="!currentUser" class="flex sm:hidden w-full">
+          <button @click="showAuthModal = true" class="w-full bg-purple-600 text-white text-xs font-bold py-2.5 rounded-2xl shadow-lg">تسجيل الدخول / حساب جديد</button>
+        </div>
+
+        <div v-if="currentUser" class="flex sm:hidden w-full items-center justify-between pt-2 border-t border-slate-800 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400 font-mono font-bold">{{ currentUser.id }}</span>
+            <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">💎 {{ currentUser.coins || 0 }}</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="bg-amber-600 text-white px-2.5 py-1.5 rounded-xl font-bold animate-pulse">👑 الطلبات ({{ pendingDepositsCount }})</button>
+            <button @click="showDepositModal = true" class="bg-emerald-600 px-2.5 py-1.5 rounded-xl font-bold">شحن</button>
+            <button @click="openSocialModal" class="bg-purple-600 px-2.5 py-1.5 rounded-xl font-bold">الرسائل</button>
+            <button @click="handleLogout" class="bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-xl font-bold">خروج</button>
+          </div>
+        </div>
       </div>
     </header>
 
+    <!-- المحتوى الرئيسي -->
     <main class="max-w-6xl w-full mx-auto p-4 flex-1">
       <div v-if="searchResult" class="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 mb-6 shadow-xl">
         <div class="flex justify-between items-center mb-2">
@@ -119,21 +140,28 @@
           <span class="text-white text-xs font-bold">{{ searchResult.data.title }}</span>
           <button @click="enterRoom(searchResult.data); searchResult = null;" class="bg-purple-600 hover:bg-purple-500 text-xs font-bold px-4 py-2 rounded-xl transition-all">دخول</button>
         </div>
+        <div v-else class="flex justify-between items-center bg-slate-950 p-3.5 rounded-2xl border border-slate-800 cursor-pointer" @click="viewingUser = searchResult.data">
+          <div class="flex items-center gap-3">
+            <img :src="searchResult.data.avatar" class="w-11 h-11 rounded-full object-cover ring-2 ring-purple-500" />
+            <div>
+              <p class="text-xs font-black text-white">{{ searchResult.data.username }}</p>
+              <p class="text-[10px] text-rose-400 font-mono font-bold">{{ searchResult.data.id }}</p>
+            </div>
+          </div>
+          <button class="bg-purple-600 text-xs font-bold px-3.5 py-1.5 rounded-xl">عرض الملف</button>
+        </div>
       </div>
+      <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-      <!-- داخل الروم الصوتي المباشر -->
+      <!-- داخل الروم المباشر (Realtime Room) -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 mb-6 gap-3">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ غرفة الصوت تعمل بنجاح</span></p>
+            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400">🔴 بث مباشر مقترن</span></p>
           </div>
-          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button v-if="isMicOn" @click="toggleMic(false)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🔇 كتم المايك</button>
-            <button v-else @click="toggleMic(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🎙️ فتح المايك</button>
-            <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج</button>
-          </div>
+          <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج من الروم</button>
         </div>
 
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
@@ -141,7 +169,6 @@
             <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all">
               <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
               <span v-else class="text-slate-600 text-xs font-bold">{{ seat.index + 1 }} 🎙️</span>
-              <div v-if="seat.user && seat.isMuted === false" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">يتحدث</div>
             </div>
             <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ seat.user ? seat.user.name : 'فارغ' }}</p>
           </div>
@@ -161,6 +188,7 @@
 
       <!-- الواجهة الرئيسية -->
       <template v-else>
+        <!-- بانر الترحيب والشحن -->
         <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/20 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-right">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
@@ -179,6 +207,35 @@
           </div>
         </div>
 
+        <!-- قسم من نحن -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-lg">🏢</div>
+            <div>
+              <h3 class="text-lg font-black text-white">من نحن (About DEDE LIVE)</h3>
+              <p class="text-xs text-purple-400 font-bold">الرؤية والتميز في عالم الصوتيات</p>
+            </div>
+          </div>
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            تعتبر منصة <strong class="text-purple-400 font-bold">DEDE LIVE</strong> الوجهة الأولى والأكثر تطوراً لعشاق التواصل الصوتي التفاعلي. نحن نجمع بين تقنيات البث الصوتي الفائق والشفافة المالية المطلقة المدعومة حصرياً عبر محفظة <span class="text-emerald-400 font-bold">شام كاش (ShamCash)</span> لضمان إيداع وسحب آمن وسلس.
+          </p>
+        </div>
+
+        <!-- قسم نظام الشحن والأسعار -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg">💵</div>
+            <div>
+              <h3 class="text-lg font-black text-white">نظام الكوينز عبر شام كاش (أسعار الصرف الرسمية)</h3>
+              <p class="text-xs text-emerald-400 font-bold">1 دولار = 40,000 كوينز</p>
+            </div>
+          </div>
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            بعد التحويل إلى محفظتنا الرسمية، أدخل رقم العملية والمبلغ هنا داخل الموقع، وسيقوم الأدمن بمراجعتها واعتمادها لتنضاف الكوينزات لحسابك فوراً.
+          </p>
+        </div>
+
+        <!-- قائمة الرومات النشطة -->
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-base font-black text-white">الرومات النشطة حالياً (<span class="text-purple-400">{{ rooms.length }}</span>)</h3>
           <button @click="fetchRooms" class="text-xs font-bold text-purple-400 hover:text-purple-300">🔄 تحديث القائمة</button>
@@ -248,6 +305,120 @@
       </div>
     </div>
 
+    <!-- لوحة تحكم الأدمن -->
+    <div v-if="showAdminPanel && isSuperAdmin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl">
+        <button @click="showAdminPanel = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-lg">👑</div>
+          <div>
+            <h3 class="text-lg font-black text-amber-400">لوحة تحكم طلبات الحوالات (الأدمن)</h3>
+            <p class="text-xs text-slate-400">اضغط قبول ليتم تحديث رصيد المستخدم وإرسال إشعار فوري له</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
+          <div v-if="adminDeposits.length === 0" class="text-center py-12 text-slate-500 text-xs">
+            لا توجد طلبات إيداع معلقة حالياً داخل الموقع.
+          </div>
+          <div v-for="dep in adminDeposits" :key="dep.id" class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-black text-amber-400">رقم الحوالة: {{ dep.tx_id }}</span>
+                <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">المستخدم: {{ dep.username }} (ID: {{ dep.user_id }})</span>
+              </div>
+              <p class="text-xs text-slate-300 font-bold">المبلغ: <span class="text-emerald-400 font-mono">${{ dep.amount }}</span> | الكوينز المستحقة: <span class="text-purple-400 font-mono">{{ dep.coins.toLocaleString() }} 💎</span></p>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <button @click="approveDeposit(dep)" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md">قبول ✔️</button>
+              <button @click="rejectDeposit(dep.id)" class="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md">رفض ❌</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة تعديل الملف الشخصي -->
+    <div v-if="showProfileModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+        <button @click="showProfileModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <h3 class="text-lg font-black text-white mb-3">تعديل الملف الشخصي</h3>
+        <div v-if="profileUpdateMsg" class="text-xs text-purple-300 font-bold mb-3 bg-purple-500/10 p-2 rounded-xl">{{ profileUpdateMsg }}</div>
+        <form @submit.prevent="handleSaveProfile" class="space-y-3.5 text-xs text-right">
+          <div class="flex flex-col items-center gap-2 mb-2">
+            <img :src="editAvatar || currentUser.avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-purple-600 shadow-lg" />
+            <label class="bg-purple-600/20 text-purple-300 text-[11px] font-bold px-3 py-1.5 rounded-xl cursor-pointer border border-purple-500/30">
+              📂 اختيار صورة جديدة
+              <input type="file" accept="image/*" @change="handleImageUpload" class="hidden" />
+            </label>
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+            <input type="text" v-model="editName" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">حفظ التغييرات</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- نافذة الرسائل والصداقات -->
+    <div v-if="showSocialModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2">
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="bg-slate-950 px-4 py-3 flex justify-between items-center border-b border-slate-800">
+          <div class="flex gap-2 text-xs">
+            <button @click="activeTab = 'messages'; activePrivateChat = null;" :class="['px-3.5 py-2 rounded-xl font-bold transition-all', activeTab === 'messages' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 bg-slate-900']">الرسائل</button>
+            <button @click="activeTab = 'requests'" :class="['px-3.5 py-2 rounded-xl font-bold transition-all', activeTab === 'requests' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 bg-slate-900']">الطلبات ({{ friendRequests.length }})</button>
+          </div>
+          <button @click="showSocialModal = false; activePrivateChat = null;" class="text-slate-400 bg-slate-800 p-2 rounded-full text-xs">✕</button>
+        </div>
+
+        <div class="flex-1 flex overflow-hidden">
+          <div v-if="activeTab === 'requests'" class="flex-1 p-4 overflow-y-auto text-xs space-y-2.5 bg-slate-950/50">
+            <p v-if="friendRequests.length === 0" class="text-center text-slate-500 py-16">لا توجد طلبات صداقة جديدة.</p>
+            <div v-for="r in friendRequests" :key="r.id" class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex justify-between items-center">
+              <span class="font-bold text-white">{{ r.sender_name }}</span>
+              <div class="flex gap-1.5">
+                <button @click="respondToFriendRequest(r.id, true)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl font-bold">قبول</button>
+                <button @click="respondToFriendRequest(r.id, false)" class="bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-1.5 rounded-xl font-bold">رفض</button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex-1 flex flex-col sm:flex-row overflow-hidden text-xs">
+            <div :class="['w-full sm:w-64 bg-slate-950/85 border-l border-slate-800 overflow-y-auto p-2 space-y-1', activePrivateChat ? 'hidden sm:block' : 'block']">
+              <p v-if="friendsList.length === 0" class="p-6 text-slate-500 text-center">لا توجد أصدقاء بعد.</p>
+              <div v-for="f in friendsList" :key="f.id" @click="openPrivateChat(f)" class="p-3 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-900 transition-all">
+                <p class="font-black text-white">{{ f.sender_id === currentUser.id ? f.receiver_name : f.sender_name }}</p>
+                <p class="text-[10px] text-slate-400 truncate mt-0.5">{{ friendsLastMessages[f.sender_id === currentUser.id ? f.receiver_id : f.sender_id] || "ابدأ المحادثة..." }}</p>
+              </div>
+            </div>
+
+            <div :class="['flex-1 flex flex-col bg-slate-900', !activePrivateChat ? 'hidden sm:flex' : 'flex']">
+              <template v-if="activePrivateChat">
+                <div class="p-3 bg-slate-950 border-b border-slate-800 flex items-center gap-2">
+                  <button @click="activePrivateChat = null" class="sm:hidden text-purple-400 bg-slate-800 px-2.5 py-1 rounded-lg">←</button>
+                  <span class="font-black text-white">{{ activePrivateChat.name }}</span>
+                </div>
+                <div class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-950/40">
+                  <div v-for="m in privateMessages" :key="m.id" :class="['flex', m.sender_id === currentUser.id ? 'justify-end' : 'justify-start']">
+                    <div :class="['p-3 rounded-2xl max-w-[75%] font-medium', m.sender_id === currentUser.id ? 'bg-purple-600 text-white rounded-bl-none' : 'bg-slate-800 text-slate-100 rounded-br-none border border-slate-700']">
+                      {{ m.message_text }}
+                    </div>
+                  </div>
+                </div>
+                <form @submit.prevent="sendPrivateMessage" class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
+                  <input type="text" v-model="privateMsgInput" placeholder="اكتب رسالتك..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
+                  <button type="submit" class="bg-purple-600 hover:bg-purple-500 font-bold px-4 py-2 rounded-xl transition-all">إرسال</button>
+                </form>
+              </template>
+              <template v-else>
+                <div class="flex-1 flex items-center justify-center text-slate-500 text-center p-6">اختر صديقاً من القائمة الجانبية لبدء المحادثة الفورية.</div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- نافذة إنشاء روم -->
     <div v-if="showCreateRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
@@ -299,29 +470,28 @@
       </div>
     </div>
 
+    <!-- عرض ملف المستخدم -->
+    <div v-if="viewingUser" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+        <button @click="viewingUser = null" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <img :src="viewingUser.avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3 shadow-lg" />
+        <h3 class="text-lg font-black text-white">{{ viewingUser.username || viewingUser.name }}</h3>
+        <p class="text-xs text-rose-500 font-mono font-black mt-0.5">{{ viewingUser.id }}</p>
+        <div v-if="actionMsg" class="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl font-bold">{{ actionMsg }}</div>
+        <div class="mt-5">
+          <button @click="sendFriendRequest(viewingUser)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg">➕ إرسال طلب صداقة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer class="border-t border-slate-800/80 py-6 bg-slate-900/40 mt-12 text-center text-xs text-slate-400">
+      DEDE LIVE © 2026 - جميع الحقوق محفوظة
+    </footer>
+
   </div>
 
   <script>
-    // طبقة حماية آمنة تعمل بديلة للمكتبة في حال تم حظرها شبكياً لضمان عدم توقف الموقع
-    if (typeof ZegoExpressEngine === 'undefined') {
-      window.ZegoExpressEngine = class {
-        constructor(appID, server) {
-          console.warn("تم تفعيل نظام الحماية المحلي لـ Zego بسبب قيود الشبكة.");
-        }
-        on() {}
-        async loginRoom() { return true; }
-        async logoutRoom() { return true; }
-        async createZegoStream() { 
-          return await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); 
-        }
-        startPublishingStream() {}
-        stopPublishingStream() {}
-        destroyZegoStream() {}
-        startPlayingStream() {}
-        stopPlayingStream() {}
-      };
-    }
-
     const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
     createApp({
@@ -332,12 +502,8 @@
         const ADMIN_EMAIL = "zzx640616@gmail.com";
         const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' };
 
+        // تهيئة عميل Supabase للبث المباشر Realtime
         const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
-
-        const ZEGO_APP_ID = 1856957631;
-        let zegoClient = null;
-        let localStream = null;
-        const isMicOn = ref(false);
 
         const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
         const rooms = ref([]);
@@ -346,7 +512,7 @@
         const roomSeatsData = ref([]);
         const roomChat = ref([]);
         const roomChatInput = ref('');
-        let currentRoomChannel = null;
+        let currentRoomChannel = null; // القناة الفورية للروم الحالي
 
         const searchQuery = ref('');
         const searchResult = ref(null);
@@ -368,6 +534,7 @@
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
+        // نظام الحوالات وشام كاش
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -414,74 +581,61 @@
           } catch (e) {}
         };
 
-        const initZegoEngine = async (roomId) => {
+        const checkUserApprovedDeposits = async () => {
+          if (!currentUser.value || isSuperAdmin.value) return;
           try {
-            if (!zegoClient) {
-              zegoClient = new ZegoExpressEngine(ZEGO_APP_ID, "");
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?user_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.approved&notified=is.null`, { headers: HEADERS });
+            if (res.ok) {
+              const approvedList = await res.json();
+              if (approvedList.length > 0) {
+                const dep = approvedList[0];
+                userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
+                currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
+                localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+
+                await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ notified: true })
+                });
+              }
             }
-            await zegoClient.loginRoom(roomId, "", { userID: currentUser.value?.id || 'guest', userName: currentUser.value?.username || 'زائر' }, { userUpdate: true });
-          } catch (err) {}
+          } catch (e) {}
         };
 
-        const toggleMic = async (turnOn) => {
-          if (!currentUser.value) return alert("سجل الدخول أولاً!");
-          try {
-            if (!zegoClient && activeRoom.value) {
-              await initZegoEngine(activeRoom.value.id);
-            }
+        // --- 🚀 تفعيل خيار Realtime المباشر للرومات (Presence / Seats / Broadcast) ---
 
-            if (turnOn) {
-              await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-              isMicOn.value = true;
-              updateSeatMuteStatus(false);
-            } else {
-              isMicOn.value = false;
-              updateSeatMuteStatus(true);
-            }
-          } catch (err) {
-            alert("تعذر الوصول إلى المايكروفون. تأكد من إعطاء إذن المايك للمتصفح.");
-          }
-        };
-
-        const updateSeatMuteStatus = (muted) => {
-          if (!currentUser.value) return;
-          const updated = [...roomSeatsData.value];
-          const seatIdx = updated.findIndex(s => s.user?.id === currentUser.value.id);
-          if (seatIdx !== -1) {
-            updated[seatIdx].isMuted = muted;
-            roomSeatsData.value = updated;
-            if (currentRoomChannel) {
-              currentRoomChannel.send({ type: 'broadcast', event: 'seat_change', payload: { seats: updated } });
-            }
-          }
-        };
-
-        const enterRoom = async (room) => {
+        const enterRoom = (room) => {
           activeRoom.value = room;
           const seatsCount = room.max_seats || 8;
 
+          // تهيئة المقاعد مبدئياً
           roomSeatsData.value = Array.from({ length: seatsCount }, (_, i) => 
             i === 0 
-              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true, isMuted: true }
-              : { index: i, user: null, isHost: false, isMuted: true }
+              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true }
+              : { index: i, user: null, isHost: false }
           );
 
-          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". تم الدخول بنجاح.` }];
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". البث المباشر متصل الأن.` }];
 
+          // إلغاء أي قناة سابقة إن وجدت
           if (currentRoomChannel) {
             supabaseClient.removeChannel(currentRoomChannel);
           }
 
+          // فتح قناة Realtime خاصة بهذا الروم
           currentRoomChannel = supabaseClient.channel(`room_${room.id}`, {
             config: { presence: { key: currentUser.value ? currentUser.value.id : `guest_${Math.random()}` } }
           });
 
+          // 1. الاستماع لتحديثات المقاعد فوراً (Seat Updates)
           currentRoomChannel.on('broadcast', { event: 'seat_change' }, ({ payload }) => {
             if (payload && payload.seats) {
               roomSeatsData.value = payload.seats;
             }
           });
 
+          // 2. الاستماع لرسائل الدردشة الفورية بالروم (Chat Messages)
           currentRoomChannel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
             if (payload) {
               roomChat.value.push(payload);
@@ -492,8 +646,22 @@
             }
           });
 
-          currentRoomChannel.subscribe();
-          await initZegoEngine(room.id);
+          // 3. الاستماع لتواجد وتتبع المستخدمين داخل الروم (Presence)
+          currentRoomChannel.on('presence', { event: 'sync' }, () => {
+            const state = currentRoomChannel.presenceState();
+            console.log("الأعضاء المتواجدون حالياً في الروم:", state);
+          });
+
+          currentRoomChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED' && currentUser.value) {
+              await currentRoomChannel.track({
+                user_id: currentUser.value.id,
+                username: currentUser.value.username,
+                avatar: currentUser.value.avatar,
+                joined_at: new Date().toISOString()
+              });
+            }
+          });
         };
 
         const claimSeat = (index) => {
@@ -505,21 +673,31 @@
           if (old !== -1) updated[old].user = null;
 
           updated[index].user = { name: currentUser.value.username, avatar: currentUser.value.avatar, id: currentUser.value.id, role: 'عضو' };
-          updated[index].isMuted = !isMicOn.value;
           roomSeatsData.value = updated;
 
+          // بث التغيير فوراً لجميع المتواجدين بالروم
           if (currentRoomChannel) {
-            currentRoomChannel.send({ type: 'broadcast', event: 'seat_change', payload: { seats: updated } });
+            currentRoomChannel.send({
+              type: 'broadcast',
+              event: 'seat_change',
+              payload: { seats: updated }
+            });
           }
         };
 
         const sendRoomChat = () => {
           if (!roomChatInput.value.trim() || !currentUser.value) return;
           const msgObj = { id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() };
+          
           roomChat.value.push(msgObj);
           
+          // إرسال الرسالة لجميع أجهزة المتواجدين بالروم فوراً
           if (currentRoomChannel) {
-            currentRoomChannel.send({ type: 'broadcast', event: 'chat_message', payload: msgObj });
+            currentRoomChannel.send({
+              type: 'broadcast',
+              event: 'chat_message',
+              payload: msgObj
+            });
           }
 
           roomChatInput.value = '';
@@ -530,15 +708,18 @@
         };
 
         const leaveCurrentRoom = () => {
-          isMicOn.value = false;
-          if (zegoClient) { zegoClient.logoutRoom(); }
           if (currentRoomChannel) {
+            // إزالة المستخدم من مقعده عند الخروج إن كان على المايك
             if (currentUser.value) {
               const oldIndex = roomSeatsData.value.findIndex(s => s.user?.id === currentUser.value.id);
               if (oldIndex !== -1 && !roomSeatsData.value[oldIndex].isHost) {
                 const updated = [...roomSeatsData.value];
                 updated[oldIndex].user = null;
-                currentRoomChannel.send({ type: 'broadcast', event: 'seat_change', payload: { seats: updated } });
+                currentRoomChannel.send({
+                  type: 'broadcast',
+                  event: 'seat_change',
+                  payload: { seats: updated }
+                });
               }
             }
             supabaseClient.removeChannel(currentRoomChannel);
@@ -546,6 +727,8 @@
           }
           activeRoom.value = null;
         };
+
+        // --- باقي الخصائص والدوال المعمول بها سابقتً ---
 
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
@@ -588,6 +771,112 @@
           }
         };
 
+        const approveDeposit = async (dep) => {
+          try {
+            const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'approved' })
+            });
+
+            if (!patchRes.ok) return alert("تعذر تحديث حالة الحوالة.");
+
+            const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              if (userData.length > 0) {
+                const currentCoins = userData[0].coins || 0;
+                const newCoins = currentCoins + dep.coins;
+
+                await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ coins: newCoins })
+                });
+              }
+            }
+
+            fetchAdminDeposits();
+            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات المخصصة للحوالة إلى حساب المستخدم فوراً 💎");
+          } catch (e) {
+            alert("حدث خطأ أثناء تنفيذ عملية التأكيد.");
+          }
+        };
+
+        const rejectDeposit = async (depId) => {
+          try {
+            await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${depId}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'rejected' })
+            });
+            fetchAdminDeposits();
+            alert("تم رفض الحوالة.");
+          } catch (e) {}
+        };
+
+        const fetchFriendData = async () => {
+          if (!currentUser.value) return;
+          try {
+            const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.pending`, { headers: HEADERS });
+            if (reqRes.ok) friendRequests.value = await reqRes.json();
+
+            const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)})&status=eq.accepted`, { headers: HEADERS });
+            if (friendsRes.ok) {
+              const fList = await friendsRes.json();
+              friendsList.value = fList;
+              const lastMsgs = {};
+              const unread = {};
+              for (let f of fList) {
+                const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
+                const msgRes = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.desc&limit=1`, { headers: HEADERS });
+                if (msgRes.ok) {
+                  const data = await msgRes.json();
+                  if (data.length > 0) {
+                    lastMsgs[fId] = data[0].message_text;
+                    if (data[0].sender_id !== currentUser.value.id && (!activePrivateChat.value || activePrivateChat.value.id !== fId)) {
+                      unread[fId] = true;
+                    }
+                  } else { lastMsgs[fId] = "ابدأ المحادثة..."; }
+                }
+              }
+              friendsLastMessages.value = lastMsgs;
+              unreadFriends.value = unread;
+            }
+          } catch (e) {}
+        };
+
+        onMounted(() => {
+          fetchRooms();
+          if (currentUser.value) {
+            fetchFriendData();
+            if (isSuperAdmin.value) fetchAdminDeposits();
+            else checkUserApprovedDeposits();
+
+            setInterval(() => {
+              fetchFriendData();
+              if (isSuperAdmin.value) fetchAdminDeposits();
+              else checkUserApprovedDeposits();
+            }, 4000);
+          }
+        });
+
+        const handleGlobalSearch = async () => {
+          searchError.value = ''; searchResult.value = null;
+          const q = searchQuery.value.trim();
+          if (!q) return;
+          const room = rooms.value.find(r => r.id.toLowerCase() === q.toLowerCase());
+          if (room) { searchResult.value = { type: 'room', data: room }; return; }
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/users?or=(id.ilike.*${q}*,username.ilike.*${q}*)`, { headers: HEADERS });
+            if (res.ok) {
+              const users = await res.json();
+              if (users.length > 0) { searchResult.value = { type: 'user', data: users[0] }; return; }
+            }
+          } catch (e) {}
+          searchError.value = 'لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.';
+        };
+
         const handleAuth = async () => {
           errorMsg.value = '';
           const email = authEmail.value.trim().toLowerCase();
@@ -610,6 +899,8 @@
             currentUser.value = userObj;
             localStorage.setItem('dede_user', JSON.stringify(userObj));
             showAuthModal.value = false;
+            fetchFriendData();
+            if (isSuperAdmin.value) fetchAdminDeposits();
           } catch (e) { errorMsg.value = "خطأ في الاتصال بالسيرفر"; }
         };
 
@@ -624,18 +915,79 @@
           else { createRoomError.value = "فشل إنشاء الروم"; }
         };
 
-        onMounted(() => {
-          fetchRooms();
-        });
+        const openSocialModal = () => { fetchFriendData(); showSocialModal.value = true; };
+
+        const sendFriendRequest = async (target) => {
+          if (!currentUser.value) return;
+          actionMsg.value = "جاري الإرسال...";
+          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, sender_name: currentUser.value.username, receiver_id: target.id, status: 'pending' }) });
+          if (res.ok) actionMsg.value = "تم إرسال طلب الصداقة بنجاح! 🟢"; else actionMsg.value = "تم إرسال طلب مسبقاً لهذا المستخدم.";
+        };
+
+        const respondToFriendRequest = async (id, accept) => {
+          if (accept) {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: 'accepted' }) });
+          } else {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+          }
+          fetchFriendData();
+        };
+
+        const openPrivateChat = async (f) => {
+          const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
+          const fName = f.sender_id === currentUser.value.id ? (f.receiver_name || "صديق") : f.sender_name;
+          activePrivateChat.value = { id: fId, name: fName };
+          const u = { ...unreadFriends.value }; delete u[fId]; unreadFriends.value = u;
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.asc`, { headers: HEADERS });
+          if (res.ok) privateMessages.value = await res.json();
+        };
+
+        const sendPrivateMessage = async () => {
+          if (!privateMsgInput.value.trim() || !activePrivateChat.value) return;
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, message_text: privateMsgInput.value.trim() }) });
+          if (res.ok) { privateMsgInput.value = ''; openPrivateChat({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, receiver_name: activePrivateChat.value.name }); fetchFriendData(); }
+        };
+
+        const handleImageUpload = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 200; canvas.height = 200;
+              canvas.getContext('2d').drawImage(img, 0, 0, 200, 200);
+              editAvatar.value = canvas.toDataURL('image/jpeg', 0.8);
+            };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(file);
+        };
+
+        const handleSaveProfile = async () => {
+          if (!currentUser.value) return;
+          profileUpdateMsg.value = "جاري الحفظ...";
+          const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.value.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ username: editName.value.trim(), avatar: editAvatar.value || currentUser.value.avatar }) });
+          if (res.ok) {
+            currentUser.value.username = editName.value.trim();
+            if (editAvatar.value) currentUser.value.avatar = editAvatar.value;
+            localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+            profileUpdateMsg.value = "تم الحفظ بنجاح! ✅";
+            setTimeout(() => { showProfileModal.value = false; profileUpdateMsg.value = ''; }, 1000);
+          } else { profileUpdateMsg.value = "تعذر الحفظ"; }
+        };
 
         return {
           currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
           searchQuery, searchResult, searchError, showAuthModal, isSignup, authEmail, authUsername, errorMsg,
           showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
-          viewingUser, totalUnreadCount, hasUnreadActivity, isSuperAdmin, isMicOn,
+          viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
+          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
           fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
-          handleDepositSubmit, toggleMic
+          openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
+          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
         };
       }
     }).mount('#app');
