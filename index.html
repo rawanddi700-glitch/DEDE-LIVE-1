@@ -46,7 +46,7 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
-    <!-- عنصر مخفي لتشغيل صوت الروم العام -->
+    <!-- حاوية مخفية لتدفقات الصوت المستقبلية من الأعضاء الآخرين -->
     <div id="remoteAudioContainer" class="hidden"></div>
 
     <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
@@ -165,14 +165,14 @@
 
       <!-- داخل الروم المباشر (Realtime Room) -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
-        <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6 flex-wrap gap-3">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
             <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400">🔴 بث صوتي مباشر HD</span></p>
           </div>
 
-          <!-- شريط التحكم بالصوت المباشر -->
+          <!-- شريط التحكم الصوتي المباشر داخل الروم -->
           <div class="flex items-center gap-2">
             <button @click="toggleMic" :class="['px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md', isMicMuted ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white']">
               <span>{{ isMicMuted ? '🎙️ المايك مكتوم' : '🎙️ المايك يعمل' }}</span>
@@ -180,7 +180,7 @@
             <button @click="toggleSpeaker" :class="['px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md', isSpeakerMuted ? 'bg-slate-800 text-rose-400 border border-rose-500/40' : 'bg-slate-800 text-emerald-400 border border-slate-700']">
               <span>{{ isSpeakerMuted ? '🔇 الصوت مكتوم' : '🔊 الصوت يعمل' }}</span>
             </button>
-            <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج</button>
+            <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج من الروم</button>
           </div>
         </div>
 
@@ -448,126 +448,231 @@
         <div v-if="createRoomError" class="text-xs text-rose-400 mb-3 text-center font-bold bg-rose-500/10 p-2 rounded-xl">{{ createRoomError }}</div>
         <form @submit.prevent="handleCreateRoom" class="space-y-3.5 text-xs text-right">
           <div>
-            <label class="font-bold text-slate-300 block mb-1">اسم الروم</label>
-            <input type="text" v-model="newRoomTitle" required placeholder="مثال: روم الأصدقاء والوناسة" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+            <label class="font-bold text-slate-300 block mb-1">عنوان الروم</label>
+            <input type="text" v-model="roomTitle" required placeholder="عنوان الغرفة..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
           </div>
           <div>
             <label class="font-bold text-slate-300 block mb-1">التصنيف</label>
-            <select v-model="newRoomCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold">
-              <option value="عام">عام</option>
-              <option value="شعر وموسيقى">شعر وموسيقى</option>
-              <option value="دردشة وشباب">دردشة وشباب</option>
-              <option value="ألعاب وترفيه">ألعاب وترفيه</option>
+            <select v-model="roomCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold">
+              <option value="حوار ونقاش">حوار ونقاش</option>
+              <option value="موسيقى وغناء">موسيقى وغناء</option>
+              <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
             </select>
           </div>
-          <button type="submit" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg">إنشاء وبدء البث 🎙️</button>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">نشر الروم الآن</button>
         </form>
       </div>
     </div>
 
+    <!-- نافذة تسجيل الدخول -->
+    <div v-if="showAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
+        <button @click="showAuthModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <h3 class="text-lg font-black text-white mb-3 text-center">{{ isSignup ? 'حساب جديد' : 'تسجيل الدخول' }}</h3>
+        <div v-if="errorMsg" class="text-xs text-rose-400 mb-3 text-center font-bold bg-rose-500/10 p-2 rounded-xl">{{ errorMsg }}</div>
+        <form @submit.prevent="handleAuth" class="space-y-3.5 text-xs text-right">
+          <div v-if="isSignup">
+            <label class="font-bold text-slate-300 block mb-1">اسم المستخدم</label>
+            <input type="text" v-model="authUsername" required placeholder="اسمك..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">البريد الإلكتروني</label>
+            <input type="email" v-model="authEmail" required placeholder="email@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-300 block mb-1">كلمة المرور</label>
+            <input type="password" value="123456" disabled class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-500" />
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">دخول</button>
+        </form>
+        <p class="text-center text-[11px] text-slate-400 mt-4">
+          <button @click="isSignup = !isSignup" class="text-purple-400 font-bold hover:underline">{{ isSignup ? 'لديك حساب؟ تسجيل الدخول' : 'حساب جديد؟ انضم إلينا' }}</button>
+        </p>
+      </div>
+    </div>
+
+    <!-- عرض ملف المستخدم -->
+    <div v-if="viewingUser" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+        <button @click="viewingUser = null" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <img :src="viewingUser.avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3 shadow-lg" />
+        <h3 class="text-lg font-black text-white">{{ viewingUser.username || viewingUser.name }}</h3>
+        <p class="text-xs text-rose-500 font-mono font-black mt-0.5">{{ viewingUser.id }}</p>
+        <div v-if="actionMsg" class="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl font-bold">{{ actionMsg }}</div>
+        <div class="mt-5">
+          <button @click="sendFriendRequest(viewingUser)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-lg">➕ إرسال طلب صداقة</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer class="border-t border-slate-800/80 py-6 bg-slate-900/40 mt-12 text-center text-xs text-slate-400">
+      DEDE LIVE © 2026 - جميع الحقوق محفوظة
+    </footer>
+
   </div>
 
   <script>
-    const { createApp, ref, onMounted, computed, watch } = Vue;
-
-    // تهيئة Supabase Realtime Signaling للاتصال الصوتي المباشر
-    const SUPABASE_URL = "https://your-supabase-url.supabase.co"; 
-    const SUPABASE_ANON_KEY = "your-anon-key";
-    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
-        const currentUser = ref(JSON.parse(localStorage.getItem('dede_user')) || { id: 'ID-' + Math.floor(100000 + Math.random() * 900000), username: 'مستخدم ' + Math.floor(Math.random()*100), avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + Math.random(), coins: 1000 });
+        const SUPABASE_URL_HOST = "https://yhsehpcosswgehonzzcq.supabase.co";
+        const SUPABASE_BASE_URL = `${SUPABASE_URL_HOST}/rest/v1`;
+        const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
+        const ADMIN_EMAIL = "zzx640616@gmail.com";
+        const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' };
+
+        // تهيئة عميل Supabase للبث المباشر Realtime
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
+
+        const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
         const rooms = ref([]);
+        const loadingRooms = ref(true);
         const activeRoom = ref(null);
-        const roomSeatsData = ref(Array.from({ length: 8 }, (_, i) => ({ index: i, user: null })));
+        const roomSeatsData = ref([]);
         const roomChat = ref([]);
         const roomChatInput = ref('');
-        const showCreateRoomModal = ref(false);
-        const newRoomTitle = ref('');
-        const newRoomCategory = ref('عام');
-        const showDepositModal = ref(false);
-        const depositTxId = ref('');
-        const depositAmount = ref(10);
-        const depositMsg = ref('');
-        const depositSuccess = ref(false);
-        const userNotification = ref(null);
-        const isSuperAdmin = computed(() => currentUser.value && currentUser.value.id === 'ADMIN-1');
-        const showAdminPanel = ref(false);
-        const adminDeposits = ref([]);
-        const pendingDepositsCount = ref(0);
-        const showProfileModal = ref(false);
-        const editName = ref(currentUser.value ? currentUser.value.username : '');
-        const editAvatar = ref('');
-        const profileUpdateMsg = ref('');
-        const showSocialModal = ref(false);
-        const activeTab = ref('messages');
-        const friendRequests = ref([]);
-        const friendsList = ref([]);
-        const friendsLastMessages = ref({});
-        const activePrivateChat = null;
-        const privateMessages = ref([]);
-        const privateMsgInput = ref('');
-        const searchResult = ref(null);
-        const searchError = ref('');
-        const searchQuery = ref('');
+        let currentRoomChannel = null; // القناة الفورية للروم الحالي
 
-        // --- محرك الصوت الفائق WebRTC Voice Call System ---
+        // --- محرك الاتصال الصوتي WebRTC Voice Call ---
         const localStream = ref(null);
         const peerConnections = ref({});
         const isMicMuted = ref(false);
         const isSpeakerMuted = ref(false);
         const speakingUsers = ref({});
-        let roomVoiceChannel = null;
+
+        const searchQuery = ref('');
+        const searchResult = ref(null);
+        const searchError = ref('');
+
+        const showAuthModal = ref(false);
+        const isSignup = ref(false);
+        const authEmail = ref('');
+        const authUsername = ref('');
+        const errorMsg = ref('');
+
+        const showCreateRoomModal = ref(false);
+        const roomTitle = ref('');
+        const roomCategory = ref('حوار ونقاش');
+        const createRoomError = ref('');
+
+        const showProfileModal = ref(false);
+        const editName = ref(currentUser.value?.username || '');
+        const editAvatar = ref(currentUser.value?.avatar || '');
+        const profileUpdateMsg = ref('');
+
+        // نظام الحوالات وشام كاش
+        const showDepositModal = ref(false);
+        const depositTxId = ref('');
+        const depositAmount = ref('');
+        const depositMsg = ref('');
+        const depositSuccess = ref(false);
+        const showAdminPanel = ref(false);
+        const adminDeposits = ref([]);
+        const pendingDepositsCount = ref(0);
+        const userNotification = ref(null);
+
+        const viewingUser = ref(null);
+        const friendRequests = ref([]);
+        const friendsList = ref([]);
+        const showSocialModal = ref(false);
+        const activeTab = ref('messages');
+        const activePrivateChat = ref(null);
+        const privateMessages = ref([]);
+        const privateMsgInput = ref('');
+        const actionMsg = ref('');
+        const friendsLastMessages = ref({});
+        const unreadFriends = ref({});
+
+        const totalUnreadCount = computed(() => Object.keys(unreadFriends.value).length + friendRequests.value.length);
+        const hasUnreadActivity = computed(() => totalUnreadCount.value > 0);
+        const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
+
+        const fetchRooms = async () => {
+          loadingRooms.value = true;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/rooms?select=*`, { headers: HEADERS });
+            if (res.ok) rooms.value = await res.json();
+          } catch (e) {} finally { loadingRooms.value = false; }
+        };
+
+        const fetchAdminDeposits = async () => {
+          if (!isSuperAdmin.value) return;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?status=eq.pending&order=created_at.desc`, { headers: HEADERS });
+            if (res.ok) {
+              const data = await res.json();
+              adminDeposits.value = data;
+              pendingDepositsCount.value = data.length;
+            }
+          } catch (e) {}
+        };
+
+        const checkUserApprovedDeposits = async () => {
+          if (!currentUser.value || isSuperAdmin.value) return;
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?user_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.approved&notified=is.null`, { headers: HEADERS });
+            if (res.ok) {
+              const approvedList = await res.json();
+              if (approvedList.length > 0) {
+                const dep = approvedList[0];
+                userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
+                currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
+                localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+
+                await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ notified: true })
+                });
+              }
+            }
+          } catch (e) {}
+        };
+
+        // --- 🎙️ تفعيل نظام الصوت والـ Realtime Signaling ---
 
         const initVoiceCall = async () => {
           try {
             localStream.value = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setupAudioAnalyser(localStream.value, currentUser.value.id);
           } catch (err) {
-            console.warn("الميكروفون غير متاح أو تم رفض إذن الوصول", err);
+            console.warn("تعذر الوصول للميكروفون أو لم يتم منح الإذن:", err);
           }
 
-          if (!supabase || !activeRoom.value) return;
+          if (!currentRoomChannel || !currentUser.value) return;
 
-          roomVoiceChannel = supabase.channel(`voice-room-${activeRoom.value.id}`, {
-            config: { presence: { key: currentUser.value.id } }
+          // استقبال الإشارات والاتصالات من المستخدمين الآخرين في الروم
+          currentRoomChannel.on('broadcast', { event: 'webrtc_signal' }, async ({ payload }) => {
+            if (payload.target !== currentUser.value.id) return;
+            const { sender, signal } = payload;
+
+            if (!peerConnections.value[sender]) {
+              peerConnections.value[sender] = createPeerConnection(sender);
+            }
+            const pc = peerConnections.value[sender];
+
+            if (signal.sdp) {
+              await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+              if (signal.sdp.type === 'offer') {
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                sendWebrtcSignal(sender, { sdp: pc.localDescription });
+              }
+            } else if (signal.candidate) {
+              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            }
           });
 
-          roomVoiceChannel
-            .on('broadcast', { event: 'signal' }, async ({ payload }) => {
-              if (payload.target !== currentUser.value.id) return;
-              const { sender, signal } = payload;
-
-              if (!peerConnections.value[sender]) {
-                peerConnections.value[sender] = createPeerConnection(sender);
-              }
-
-              const pc = peerConnections.value[sender];
-
-              if (signal.sdp) {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-                if (signal.sdp.type === 'offer') {
-                  const answer = await pc.createAnswer();
-                  await pc.setLocalDescription(answer);
-                  sendSignal(sender, { sdp: pc.localDescription });
-                }
-              } else if (signal.candidate) {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-              }
-            })
-            .on('presence', { event: 'join' }, ({ newPresences }) => {
-              newPresences.forEach(p => {
-                if (p.key !== currentUser.value.id) {
-                  initiatePeerConnection(p.key);
-                }
-              });
-            })
-            .subscribe(async (status) => {
-              if (status === 'SUBSCRIBED') {
-                await roomVoiceChannel.track({ user_id: currentUser.value.id });
+          // عند انضمام مستخدم جديد للقناة، نقوم ببدء الاتصال معه
+          currentRoomChannel.on('presence', { event: 'join' }, ({ newPresences }) => {
+            newPresences.forEach(p => {
+              if (p.user_id && p.user_id !== currentUser.value.id) {
+                initiatePeerConnection(p.user_id);
               }
             });
+          });
         };
 
         const createPeerConnection = (targetUserId) => {
@@ -584,15 +689,15 @@
 
           pc.onicecandidate = (event) => {
             if (event.candidate) {
-              sendSignal(targetUserId, { candidate: event.candidate });
+              sendWebrtcSignal(targetUserId, { candidate: event.candidate });
             }
           };
 
           pc.ontrack = (event) => {
-            let audioElem = document.getElementById(`audio-${targetUserId}`);
+            let audioElem = document.getElementById(`audio_${targetUserId}`);
             if (!audioElem) {
               audioElem = document.createElement('audio');
-              audioElem.id = `audio-${targetUserId}`;
+              audioElem.id = `audio_${targetUserId}`;
               audioElem.autoplay = true;
               document.getElementById('remoteAudioContainer').appendChild(audioElem);
             }
@@ -604,19 +709,20 @@
         };
 
         const initiatePeerConnection = async (targetUserId) => {
+          if (peerConnections.value[targetUserId]) return;
           const pc = createPeerConnection(targetUserId);
           peerConnections.value[targetUserId] = pc;
 
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          sendSignal(targetUserId, { sdp: pc.localDescription });
+          sendWebrtcSignal(targetUserId, { sdp: pc.localDescription });
         };
 
-        const sendSignal = (target, signal) => {
-          if (roomVoiceChannel) {
-            roomVoiceChannel.send({
+        const sendWebrtcSignal = (target, signal) => {
+          if (currentRoomChannel) {
+            currentRoomChannel.send({
               type: 'broadcast',
-              event: 'signal',
+              event: 'webrtc_signal',
               payload: { sender: currentUser.value.id, target, signal }
             });
           }
@@ -632,17 +738,16 @@
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
             const checkVolume = () => {
+              if (!activeRoom.value) return;
               analyser.getByteFrequencyData(dataArray);
               let sum = 0;
               for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
               let average = sum / dataArray.length;
-              speakingUsers.value[userId] = average > 15;
-              if (activeRoom.value) requestAnimationFrame(checkVolume);
+              speakingUsers.value[userId] = average > 12;
+              requestAnimationFrame(checkVolume);
             };
             checkVolume();
-          } catch (e) {
-            console.log(e);
-          }
+          } catch (e) {}
         };
 
         const toggleMic = () => {
@@ -673,106 +778,388 @@
           }
           Object.values(peerConnections.value).forEach(pc => pc.close());
           peerConnections.value = {};
-          if (roomVoiceChannel) {
-            roomVoiceChannel.unsubscribe();
-            roomVoiceChannel = null;
-          }
           const container = document.getElementById('remoteAudioContainer');
           if (container) container.innerHTML = '';
+          speakingUsers.value = {};
+          isMicMuted.value = false;
+          isSpeakerMuted.value = false;
         };
 
-        // --- وظائف الروم والواجهة الأساسية ---
+        // --- إدارة الدخول والخروج من الرومات ---
+
         const enterRoom = (room) => {
           activeRoom.value = room;
-          roomSeatsData.value[0].user = { id: room.host_id, name: room.host_name, avatar: room.host_avatar };
-          initVoiceCall();
+          const seatsCount = room.max_seats || 8;
+
+          roomSeatsData.value = Array.from({ length: seatsCount }, (_, i) => 
+            i === 0 
+              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true }
+              : { index: i, user: null, isHost: false }
+          );
+
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". الاتصال الصوتي المباشر مفعل.` }];
+
+          if (currentRoomChannel) {
+            supabaseClient.removeChannel(currentRoomChannel);
+          }
+
+          currentRoomChannel = supabaseClient.channel(`room_${room.id}`, {
+            config: { presence: { key: currentUser.value ? currentUser.value.id : `guest_${Math.random()}` } }
+          });
+
+          currentRoomChannel.on('broadcast', { event: 'seat_change' }, ({ payload }) => {
+            if (payload && payload.seats) {
+              roomSeatsData.value = payload.seats;
+            }
+          });
+
+          currentRoomChannel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+            if (payload) {
+              roomChat.value.push(payload);
+              nextTick(() => {
+                const chatBox = document.getElementById('roomChatBox');
+                if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+              });
+            }
+          });
+
+          currentRoomChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED' && currentUser.value) {
+              await currentRoomChannel.track({
+                user_id: currentUser.value.id,
+                username: currentUser.value.username,
+                avatar: currentUser.value.avatar,
+                joined_at: new Date().toISOString()
+              });
+              // بدء الاتصال الصوتي بعد الانضمام للقناة
+              initVoiceCall();
+            }
+          });
+        };
+
+        const claimSeat = (index) => {
+          if (!currentUser.value) return alert("سجل الدخول أولاً للصعود إلى المقعد الصوتي!");
+          const updated = [...roomSeatsData.value];
+          if (updated[index].user) return;
+          
+          const old = updated.findIndex(s => s.user?.id === currentUser.value.id);
+          if (old !== -1) updated[old].user = null;
+
+          updated[index].user = { name: currentUser.value.username, avatar: currentUser.value.avatar, id: currentUser.value.id, role: 'عضو' };
+          roomSeatsData.value = updated;
+
+          if (currentRoomChannel) {
+            currentRoomChannel.send({
+              type: 'broadcast',
+              event: 'seat_change',
+              payload: { seats: updated }
+            });
+          }
+        };
+
+        const sendRoomChat = () => {
+          if (!roomChatInput.value.trim() || !currentUser.value) return;
+          const msgObj = { id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() };
+          
+          roomChat.value.push(msgObj);
+          
+          if (currentRoomChannel) {
+            currentRoomChannel.send({
+              type: 'broadcast',
+              event: 'chat_message',
+              payload: msgObj
+            });
+          }
+
+          roomChatInput.value = '';
+          nextTick(() => {
+            const chatBox = document.getElementById('roomChatBox');
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+          });
         };
 
         const leaveCurrentRoom = () => {
           closeVoiceCall();
+          if (currentRoomChannel) {
+            if (currentUser.value) {
+              const oldIndex = roomSeatsData.value.findIndex(s => s.user?.id === currentUser.value.id);
+              if (oldIndex !== -1 && !roomSeatsData.value[oldIndex].isHost) {
+                const updated = [...roomSeatsData.value];
+                updated[oldIndex].user = null;
+                currentRoomChannel.send({
+                  type: 'broadcast',
+                  event: 'seat_change',
+                  payload: { seats: updated }
+                });
+              }
+            }
+            supabaseClient.removeChannel(currentRoomChannel);
+            currentRoomChannel = null;
+          }
           activeRoom.value = null;
-          roomSeatsData.value = Array.from({ length: 8 }, (_, i) => ({ index: i, user: null }));
         };
 
-        const claimSeat = (index) => {
+        // --- باقي الوظائف (الحوالات، الحسابات، الأصدقاء) ---
+
+        const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
-          roomSeatsData.value[index].user = {
-            id: currentUser.value.id,
-            name: currentUser.value.username,
-            avatar: currentUser.value.avatar
+          depositMsg.value = "جاري إرسال طلب التحويل للأدمن...";
+          depositSuccess.value = false;
+
+          const amountVal = parseFloat(depositAmount.value);
+          const coinsVal = amountVal * 40000;
+          const cleanTxId = depositTxId.value.trim();
+          const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}_${Date.now().toString().slice(-4)}`;
+
+          const depositPayload = {
+            id: uniqueId,
+            user_id: currentUser.value.id,
+            username: currentUser.value.username,
+            tx_id: cleanTxId,
+            amount: amountVal,
+            coins: coinsVal,
+            status: 'pending'
           };
+
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/deposits`, {
+              method: 'POST',
+              headers: HEADERS,
+              body: JSON.stringify(depositPayload)
+            });
+
+            if (res.ok) {
+              depositMsg.value = "تم إرسال طلب الشحن بنجاح! بانتظار موافقة الأدمن. 🟢";
+              depositSuccess.value = true;
+              depositTxId.value = '';
+              depositAmount.value = '';
+              setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
+            } else {
+              depositMsg.value = "حدث خطأ أثناء إرسال الطلب.";
+            }
+          } catch (e) {
+            depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
+          }
         };
 
-        const handleCreateRoom = () => {
-          if (!newRoomTitle.value) return;
-          const newRoom = {
-            id: 'ROOM-' + Math.floor(Math.random() * 9000),
-            title: newRoomTitle.value,
-            category: newRoomCategory.value,
-            host_name: currentUser.value.username,
-            host_id: currentUser.value.id,
-            host_avatar: currentUser.value.avatar,
-            cover_image: 'https://picsum.photos/400/200?random=' + Math.random(),
-            max_seats: 8
-          };
-          rooms.value.unshift(newRoom);
-          showCreateRoomModal.value = false;
-          enterRoom(newRoom);
+        const approveDeposit = async (dep) => {
+          try {
+            const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'approved' })
+            });
+
+            if (!patchRes.ok) return alert("تعذر تحديث حالة الحوالة.");
+
+            const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              if (userData.length > 0) {
+                const currentCoins = userData[0].coins || 0;
+                const newCoins = currentCoins + dep.coins;
+
+                await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, {
+                  method: 'PATCH',
+                  headers: HEADERS,
+                  body: JSON.stringify({ coins: newCoins })
+                });
+              }
+            }
+
+            fetchAdminDeposits();
+            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات المخصصة للحوالة إلى حساب المستخدم فوراً 💎");
+          } catch (e) {
+            alert("حدث خطأ أثناء تنفيذ عملية التأكيد.");
+          }
         };
 
-        const sendRoomChat = () => {
-          if (!roomChatInput.value) return;
-          roomChat.value.push({
-            id: Date.now(),
-            sender: currentUser.value.username,
-            text: roomChatInput.value
-          });
-          roomChatInput.value = '';
-          setTimeout(() => {
-            const box = document.getElementById('roomChatBox');
-            if (box) box.scrollTop = box.scrollHeight;
-          }, 50);
+        const rejectDeposit = async (depId) => {
+          try {
+            await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${depId}`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ status: 'rejected' })
+            });
+            fetchAdminDeposits();
+            alert("تم رفض الحوالة.");
+          } catch (e) {}
         };
 
-        const handleDepositSubmit = () => {
-          depositSuccess.value = true;
-          depositMsg.value = 'تم إرسال طلب الشحن بنجاح! ينتظر اعتماد الأدمن.';
-          setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 2000);
+        const fetchFriendData = async () => {
+          if (!currentUser.value) return;
+          try {
+            const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.pending`, { headers: HEADERS });
+            if (reqRes.ok) friendRequests.value = await reqRes.json();
+
+            const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)})&status=eq.accepted`, { headers: HEADERS });
+            if (friendsRes.ok) {
+              const fList = await friendsRes.json();
+              friendsList.value = fList;
+              const lastMsgs = {};
+              const unread = {};
+              for (let f of fList) {
+                const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
+                const msgRes = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.desc&limit=1`, { headers: HEADERS });
+                if (msgRes.ok) {
+                  const data = await msgRes.json();
+                  if (data.length > 0) {
+                    lastMsgs[fId] = data[0].message_text;
+                    if (data[0].sender_id !== currentUser.value.id && (!activePrivateChat.value || activePrivateChat.value.id !== fId)) {
+                      unread[fId] = true;
+                    }
+                  } else { lastMsgs[fId] = "ابدأ المحادثة..."; }
+                }
+              }
+              friendsLastMessages.value = lastMsgs;
+              unreadFriends.value = unread;
+            }
+          } catch (e) {}
         };
 
-        const handleSaveProfile = () => {
-          currentUser.value.username = editName.value;
-          if (editAvatar.value) currentUser.value.avatar = editAvatar.value;
-          localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
-          showProfileModal.value = false;
+        onMounted(() => {
+          fetchRooms();
+          if (currentUser.value) {
+            fetchFriendData();
+            if (isSuperAdmin.value) fetchAdminDeposits();
+            else checkUserApprovedDeposits();
+
+            setInterval(() => {
+              fetchFriendData();
+              if (isSuperAdmin.value) fetchAdminDeposits();
+              else checkUserApprovedDeposits();
+            }, 4000);
+          }
+        });
+
+        const handleGlobalSearch = async () => {
+          searchError.value = ''; searchResult.value = null;
+          const q = searchQuery.value.trim();
+          if (!q) return;
+          const room = rooms.value.find(r => r.id.toLowerCase() === q.toLowerCase());
+          if (room) { searchResult.value = { type: 'room', data: room }; return; }
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/users?or=(id.ilike.*${q}*,username.ilike.*${q}*)`, { headers: HEADERS });
+            if (res.ok) {
+              const users = await res.json();
+              if (users.length > 0) { searchResult.value = { type: 'user', data: users[0] }; return; }
+            }
+          } catch (e) {}
+          searchError.value = 'لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.';
+        };
+
+        const handleAuth = async () => {
+          errorMsg.value = '';
+          const email = authEmail.value.trim().toLowerCase();
+          const isAdmin = email === ADMIN_EMAIL.toLowerCase();
+          const pId = isAdmin ? "ADMIN-MASTER-ID" : `ID-${Math.floor(100000 + Math.random() * 900000)}`;
+          const userObj = { id: pId, username: authUsername.value || email.split('@')[0], email, password_hash: "123456", coins: 0, level: 1, role: isAdmin ? "👑 مدير التطبيق" : "عضو", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200" };
+
+          try {
+            if (isSignup.value) {
+              const res = await fetch(`${SUPABASE_BASE_URL}/users`, { method: 'POST', headers: HEADERS, body: JSON.stringify(userObj) });
+              if (!res.ok) { errorMsg.value = "البريد مستخدم مسبقاً"; return; }
+            } else {
+              const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(email)}`, { headers: HEADERS });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.length > 0) Object.assign(userObj, data[0]);
+                else { errorMsg.value = "البريد غير مسجل"; return; }
+              }
+            }
+            currentUser.value = userObj;
+            localStorage.setItem('dede_user', JSON.stringify(userObj));
+            showAuthModal.value = false;
+            fetchFriendData();
+            if (isSuperAdmin.value) fetchAdminDeposits();
+          } catch (e) { errorMsg.value = "خطأ في الاتصال بالسيرفر"; }
+        };
+
+        const handleLogout = () => { currentUser.value = null; localStorage.removeItem('dede_user'); };
+
+        const handleCreateRoom = async () => {
+          createRoomError.value = '';
+          if (!currentUser.value) return;
+          const newRoom = { id: `ROOM-${Math.floor(1000 + Math.random() * 9000)}`, host_id: currentUser.value.id, host_name: currentUser.value.username, host_avatar: currentUser.value.avatar, title: roomTitle.value, category: roomCategory.value, cover_image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600", max_seats: 8, listeners_count: 1 };
+          const res = await fetch(`${SUPABASE_BASE_URL}/rooms`, { method: 'POST', headers: HEADERS, body: JSON.stringify(newRoom) });
+          if (res.ok) { showCreateRoomModal.value = false; roomTitle.value = ''; fetchRooms(); }
+          else { createRoomError.value = "فشل إنشاء الروم"; }
+        };
+
+        const openSocialModal = () => { fetchFriendData(); showSocialModal.value = true; };
+
+        const sendFriendRequest = async (target) => {
+          if (!currentUser.value) return;
+          actionMsg.value = "جاري الإرسال...";
+          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, sender_name: currentUser.value.username, receiver_id: target.id, status: 'pending' }) });
+          if (res.ok) actionMsg.value = "تم إرسال طلب الصداقة بنجاح! 🟢"; else actionMsg.value = "تم إرسال طلب مسبقاً لهذا المستخدم.";
+        };
+
+        const respondToFriendRequest = async (id, accept) => {
+          if (accept) {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: 'accepted' }) });
+          } else {
+            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+          }
+          fetchFriendData();
+        };
+
+        const openPrivateChat = async (f) => {
+          const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
+          const fName = f.sender_id === currentUser.value.id ? (f.receiver_name || "صديق") : f.sender_name;
+          activePrivateChat.value = { id: fId, name: fName };
+          const u = { ...unreadFriends.value }; delete u[fId]; unreadFriends.value = u;
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.asc`, { headers: HEADERS });
+          if (res.ok) privateMessages.value = await res.json();
+        };
+
+        const sendPrivateMessage = async () => {
+          if (!privateMsgInput.value.trim() || !activePrivateChat.value) return;
+          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, message_text: privateMsgInput.value.trim() }) });
+          if (res.ok) { privateMsgInput.value = ''; openPrivateChat({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, receiver_name: activePrivateChat.value.name }); fetchFriendData(); }
         };
 
         const handleImageUpload = (e) => {
           const file = e.target.files[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => { editAvatar.value = event.target.result; };
-            reader.readAsDataURL(file);
-          }
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 200; canvas.height = 200;
+              canvas.getContext('2d').drawImage(img, 0, 0, 200, 200);
+              editAvatar.value = canvas.toDataURL('image/jpeg', 0.8);
+            };
+            img.src = ev.target.result;
+          };
+          reader.readAsDataURL(file);
         };
 
-        const handleLogout = () => {
-          leaveCurrentRoom();
-          currentUser.value = null;
-          localStorage.removeItem('dede_user');
+        const handleSaveProfile = async () => {
+          if (!currentUser.value) return;
+          profileUpdateMsg.value = "جاري الحفظ...";
+          const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.value.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ username: editName.value.trim(), avatar: editAvatar.value || currentUser.value.avatar }) });
+          if (res.ok) {
+            currentUser.value.username = editName.value.trim();
+            if (editAvatar.value) currentUser.value.avatar = editAvatar.value;
+            localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+            profileUpdateMsg.value = "تم الحفظ بنجاح! ✅";
+            setTimeout(() => { showProfileModal.value = false; profileUpdateMsg.value = ''; }, 1000);
+          } else { profileUpdateMsg.value = "تعذر الحفظ"; }
         };
 
         return {
-          currentUser, rooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
-          showCreateRoomModal, newRoomTitle, newRoomCategory, showDepositModal,
-          depositTxId, depositAmount, depositMsg, depositSuccess, userNotification,
-          isSuperAdmin, showAdminPanel, adminDeposits, pendingDepositsCount,
-          showProfileModal, editName, editAvatar, profileUpdateMsg, showSocialModal,
-          activeTab, friendRequests, friendsList, friendsLastMessages, activePrivateChat,
-          privateMessages, privateMsgInput, searchResult, searchError, searchQuery,
-          enterRoom, leaveCurrentRoom, claimSeat, handleCreateRoom, sendRoomChat,
-          handleDepositSubmit, handleSaveProfile, handleImageUpload, handleLogout,
-          isMicMuted, isSpeakerMuted, speakingUsers, toggleMic, toggleSpeaker
+          currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
+          searchQuery, searchResult, searchError, showAuthModal, isSignup, authEmail, authUsername, errorMsg,
+          showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
+          showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
+          viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
+          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
+          isMicMuted, isSpeakerMuted, speakingUsers, toggleMic, toggleSpeaker,
+          fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
+          openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
+          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
         };
       }
     }).mount('#app');
