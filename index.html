@@ -7,6 +7,8 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- إضافة مكتبة Supabase الرسمية لتدعم الـ Realtime -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -53,7 +55,7 @@
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sticky top-0 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center justify-between w-full sm:w-auto">
-          <div class="flex items-center gap-2.5 cursor-pointer" @click="activeRoom = null; searchResult = null; searchQuery = ''">
+          <div class="flex items-center gap-2.5 cursor-pointer" @click="leaveCurrentRoom(); searchResult = null; searchQuery = ''">
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-600/30">🎙️</div>
             <div>
               <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
@@ -151,15 +153,15 @@
       </div>
       <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-      <!-- داخل الروم -->
+      <!-- داخل الروم المباشر (Realtime Room) -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
         <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span></p>
+            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400">🔴 بث مباشر مقترن</span></p>
           </div>
-          <button @click="activeRoom = null" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج من الروم</button>
+          <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج من الروم</button>
         </div>
 
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
@@ -173,12 +175,12 @@
         </div>
 
         <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800/80">
-          <h4 class="text-xs font-bold text-slate-400 mb-2.5">دردشة الغرفة الحية</h4>
-          <div class="h-32 overflow-y-auto space-y-1.5 mb-3 text-xs bg-slate-900/40 p-3 rounded-xl">
+          <h4 class="text-xs font-bold text-slate-400 mb-2.5">دردشة الغرفة الحية الفورية</h4>
+          <div id="roomChatBox" class="h-32 overflow-y-auto space-y-1.5 mb-3 text-xs bg-slate-900/40 p-3 rounded-xl">
             <div v-for="m in roomChat" :key="m.id"><span class="text-purple-400 font-black">{{ m.sender }}:</span> <span class="text-slate-200">{{ m.text }}</span></div>
           </div>
           <form @submit.prevent="sendRoomChat" class="flex gap-2">
-            <input type="text" v-model="roomChatInput" placeholder="اكتب رسالة..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+            <input type="text" v-model="roomChatInput" placeholder="اكتب رسالة في الروم..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
             <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-xs font-bold px-4 py-2 rounded-xl transition-all">إرسال</button>
           </form>
         </div>
@@ -205,7 +207,7 @@
           </div>
         </div>
 
-        <!-- 🚀 قسم من نحن (About Us) -->
+        <!-- قسم من نحن -->
         <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-lg">🏢</div>
@@ -219,7 +221,7 @@
           </p>
         </div>
 
-        <!-- 💰 قسم نظام الشحن والأسعار -->
+        <!-- قسم نظام الشحن والأسعار -->
         <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg">💵</div>
@@ -268,7 +270,7 @@
       </template>
     </main>
 
-    <!-- نافذة طلب شحن شام كاش (للمستخدم داخل الموقع) -->
+    <!-- نافذة طلب شحن شام كاش -->
     <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
         <button @click="showDepositModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
@@ -303,7 +305,7 @@
       </div>
     </div>
 
-    <!-- لوحة تحكم الأدمن (للموافقة على الحوالات وإرسال الإشعار والكوينزات فوراً) -->
+    <!-- لوحة تحكم الأدمن -->
     <div v-if="showAdminPanel && isSuperAdmin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl">
         <button @click="showAdminPanel = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
@@ -473,7 +475,7 @@
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
         <button @click="viewingUser = null" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
         <img :src="viewingUser.avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-purple-500 mx-auto mb-3 shadow-lg" />
-        <h3 class="text-lg font-black text-white">{{ viewingUser.username }}</h3>
+        <h3 class="text-lg font-black text-white">{{ viewingUser.username || viewingUser.name }}</h3>
         <p class="text-xs text-rose-500 font-mono font-black mt-0.5">{{ viewingUser.id }}</p>
         <div v-if="actionMsg" class="mt-3 bg-purple-500/10 text-purple-300 text-xs p-2.5 rounded-xl font-bold">{{ actionMsg }}</div>
         <div class="mt-5">
@@ -490,14 +492,18 @@
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
-        const SUPABASE_BASE_URL = "https://yhsehpcosswgehonzzcq.supabase.co/rest/v1";
+        const SUPABASE_URL_HOST = "https://yhsehpcosswgehonzzcq.supabase.co";
+        const SUPABASE_BASE_URL = `${SUPABASE_URL_HOST}/rest/v1`;
         const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
         const ADMIN_EMAIL = "zzx640616@gmail.com";
         const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' };
+
+        // تهيئة عميل Supabase للبث المباشر Realtime
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
 
         const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
         const rooms = ref([]);
@@ -506,6 +512,7 @@
         const roomSeatsData = ref([]);
         const roomChat = ref([]);
         const roomChatInput = ref('');
+        let currentRoomChannel = null; // القناة الفورية للروم الحالي
 
         const searchQuery = ref('');
         const searchResult = ref(null);
@@ -536,7 +543,7 @@
         const showAdminPanel = ref(false);
         const adminDeposits = ref([]);
         const pendingDepositsCount = ref(0);
-        const userNotification = ref(null); // إشعار القبول العائم للمستخدم
+        const userNotification = ref(null);
 
         const viewingUser = ref(null);
         const friendRequests = ref([]);
@@ -574,7 +581,6 @@
           } catch (e) {}
         };
 
-        // التحقق الدوري من حالة طلبات المستخدم لتظهر له شاشة القبول والإشعار تلقائياً
         const checkUserApprovedDeposits = async () => {
           if (!currentUser.value || isSuperAdmin.value) return;
           try {
@@ -583,14 +589,10 @@
               const approvedList = await res.json();
               if (approvedList.length > 0) {
                 const dep = approvedList[0];
-                // إظهار الإشعار الفوري
                 userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
-                
-                // تحديث رصيد المستخدم محلياً وفي قاعدة البيانات
                 currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
                 localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
 
-                // تحديث الطلب حتى لا تكرر إظهار الإشعار
                 await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
                   method: 'PATCH',
                   headers: HEADERS,
@@ -601,6 +603,133 @@
           } catch (e) {}
         };
 
+        // --- 🚀 تفعيل خيار Realtime المباشر للرومات (Presence / Seats / Broadcast) ---
+
+        const enterRoom = (room) => {
+          activeRoom.value = room;
+          const seatsCount = room.max_seats || 8;
+
+          // تهيئة المقاعد مبدئياً
+          roomSeatsData.value = Array.from({ length: seatsCount }, (_, i) => 
+            i === 0 
+              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true }
+              : { index: i, user: null, isHost: false }
+          );
+
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". البث المباشر متصل الأن.` }];
+
+          // إلغاء أي قناة سابقة إن وجدت
+          if (currentRoomChannel) {
+            supabaseClient.removeChannel(currentRoomChannel);
+          }
+
+          // فتح قناة Realtime خاصة بهذا الروم
+          currentRoomChannel = supabaseClient.channel(`room_${room.id}`, {
+            config: { presence: { key: currentUser.value ? currentUser.value.id : `guest_${Math.random()}` } }
+          });
+
+          // 1. الاستماع لتحديثات المقاعد فوراً (Seat Updates)
+          currentRoomChannel.on('broadcast', { event: 'seat_change' }, ({ payload }) => {
+            if (payload && payload.seats) {
+              roomSeatsData.value = payload.seats;
+            }
+          });
+
+          // 2. الاستماع لرسائل الدردشة الفورية بالروم (Chat Messages)
+          currentRoomChannel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+            if (payload) {
+              roomChat.value.push(payload);
+              nextTick(() => {
+                const chatBox = document.getElementById('roomChatBox');
+                if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+              });
+            }
+          });
+
+          // 3. الاستماع لتواجد وتتبع المستخدمين داخل الروم (Presence)
+          currentRoomChannel.on('presence', { event: 'sync' }, () => {
+            const state = currentRoomChannel.presenceState();
+            console.log("الأعضاء المتواجدون حالياً في الروم:", state);
+          });
+
+          currentRoomChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED' && currentUser.value) {
+              await currentRoomChannel.track({
+                user_id: currentUser.value.id,
+                username: currentUser.value.username,
+                avatar: currentUser.value.avatar,
+                joined_at: new Date().toISOString()
+              });
+            }
+          });
+        };
+
+        const claimSeat = (index) => {
+          if (!currentUser.value) return alert("سجل الدخول أولاً للصعود إلى المايك!");
+          const updated = [...roomSeatsData.value];
+          if (updated[index].user) return;
+          
+          const old = updated.findIndex(s => s.user?.id === currentUser.value.id);
+          if (old !== -1) updated[old].user = null;
+
+          updated[index].user = { name: currentUser.value.username, avatar: currentUser.value.avatar, id: currentUser.value.id, role: 'عضو' };
+          roomSeatsData.value = updated;
+
+          // بث التغيير فوراً لجميع المتواجدين بالروم
+          if (currentRoomChannel) {
+            currentRoomChannel.send({
+              type: 'broadcast',
+              event: 'seat_change',
+              payload: { seats: updated }
+            });
+          }
+        };
+
+        const sendRoomChat = () => {
+          if (!roomChatInput.value.trim() || !currentUser.value) return;
+          const msgObj = { id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() };
+          
+          roomChat.value.push(msgObj);
+          
+          // إرسال الرسالة لجميع أجهزة المتواجدين بالروم فوراً
+          if (currentRoomChannel) {
+            currentRoomChannel.send({
+              type: 'broadcast',
+              event: 'chat_message',
+              payload: msgObj
+            });
+          }
+
+          roomChatInput.value = '';
+          nextTick(() => {
+            const chatBox = document.getElementById('roomChatBox');
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+          });
+        };
+
+        const leaveCurrentRoom = () => {
+          if (currentRoomChannel) {
+            // إزالة المستخدم من مقعده عند الخروج إن كان على المايك
+            if (currentUser.value) {
+              const oldIndex = roomSeatsData.value.findIndex(s => s.user?.id === currentUser.value.id);
+              if (oldIndex !== -1 && !roomSeatsData.value[oldIndex].isHost) {
+                const updated = [...roomSeatsData.value];
+                updated[oldIndex].user = null;
+                currentRoomChannel.send({
+                  type: 'broadcast',
+                  event: 'seat_change',
+                  payload: { seats: updated }
+                });
+              }
+            }
+            supabaseClient.removeChannel(currentRoomChannel);
+            currentRoomChannel = null;
+          }
+          activeRoom.value = null;
+        };
+
+        // --- باقي الخصائص والدوال المعمول بها سابقتً ---
+
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
           depositMsg.value = "جاري إرسال طلب التحويل للأدمن...";
@@ -609,7 +738,6 @@
           const amountVal = parseFloat(depositAmount.value);
           const coinsVal = amountVal * 40000;
           const cleanTxId = depositTxId.value.trim();
-
           const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}_${Date.now().toString().slice(-4)}`;
 
           const depositPayload = {
@@ -643,22 +771,16 @@
           }
         };
 
-        // دالة قبول الحوالة من طرف الأدمن وتحديث رصيد المستخدم فوراً
         const approveDeposit = async (dep) => {
           try {
-            // 1. تحديث حالة الحوالة إلى approved
             const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
               method: 'PATCH',
               headers: HEADERS,
               body: JSON.stringify({ status: 'approved' })
             });
 
-            if (!patchRes.ok) {
-              alert("تعذر تحديث حالة الحوالة.");
-              return;
-            }
+            if (!patchRes.ok) return alert("تعذر تحديث حالة الحوالة.");
 
-            // 2. جلب رصيد المستخدم الحالي من جدول users وإضافة الكوينز المحددة للحوالة
             const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
             if (userRes.ok) {
               const userData = await userRes.json();
@@ -731,7 +853,6 @@
             if (isSuperAdmin.value) fetchAdminDeposits();
             else checkUserApprovedDeposits();
 
-            // فحص دوري كل 4 ثوانٍ لتحديث الحوالات، الإشعارات، والأرصدة
             setInterval(() => {
               fetchFriendData();
               if (isSuperAdmin.value) fetchAdminDeposits();
@@ -754,29 +875,6 @@
             }
           } catch (e) {}
           searchError.value = 'لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.';
-        };
-
-        const enterRoom = (room) => {
-          activeRoom.value = room;
-          const seats = room.max_seats || 8;
-          roomSeatsData.value = Array.from({ length: seats }, (_, i) => i === 0 ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true } : { index: i, user: null, isHost: false });
-          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}".` }];
-        };
-
-        const claimSeat = (index) => {
-          if (!currentUser.value) return alert("سجل الدخول أولاً للصعود إلى المايك!");
-          const updated = [...roomSeatsData.value];
-          if (updated[index].user) return;
-          const old = updated.findIndex(s => s.user?.id === currentUser.value.id);
-          if (old !== -1) updated[old].user = null;
-          updated[index].user = { name: currentUser.value.username, avatar: currentUser.value.avatar, id: currentUser.value.id, role: 'عضو' };
-          roomSeatsData.value = updated;
-        };
-
-        const sendRoomChat = () => {
-          if (!roomChatInput.value.trim() || !currentUser.value) return;
-          roomChat.value.push({ id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() });
-          roomChatInput.value = '';
         };
 
         const handleAuth = async () => {
@@ -887,7 +985,7 @@
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
           friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
-          fetchRooms, handleGlobalSearch, enterRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
+          fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
           openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
           handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
         };
