@@ -1,889 +1,451 @@
 <!DOCTYPE html>
-
 <html lang="ar" dir="rtl">
-
 <head>
-
   <meta charset="UTF-8" />
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
   <title>DEDE LIVE - منصة الدردشة الصوتية والألعاب 3D</title>
-
   
-
   <script src="https://cdn.tailwindcss.com"></script>
-
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-
   <!-- Three.js للعجلة والرسومات 3D الحقيقية -->
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
   <!-- GSAP للتحريك السلس 60FPS -->
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
   <!-- Confetti للاحتفال عند الفوز -->
-
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-
-
   <style>
-
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-
     body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
 
-
-
     @keyframes bellShake {
-
       0% { transform: rotate(0deg); }
-
       20% { transform: rotate(14deg); }
-
       40% { transform: rotate(-14deg); }
-
       60% { transform: rotate(8deg); }
-
       80% { transform: rotate(-8deg); }
-
       100% { transform: rotate(0deg); }
-
     }
-
     .bell-shake { animation: bellShake 0.6s ease-in-out infinite; }
 
-
-
     @keyframes slideDown {
-
       0% { transform: translateY(-50px); opacity: 0; }
-
       100% { transform: translateY(0); opacity: 1; }
-
     }
-
     .slide-down { animation: slideDown 0.5s ease-out forwards; }
 
-
-
     @keyframes marquee {
-
       0% { transform: translateX(100%); }
-
       100% { transform: translateX(-100%); }
-
     }
-
     .animate-marquee { display: inline-block; animation: marquee 18s linear infinite; }
 
-
-
     /* تأثير نبض المايك والتحدث (صوت نشط) */
-
     @keyframes speakingPulse {
-
       0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-
       70% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
-
       100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-
     }
-
     .speaking-glow { animation: speakingPulse 1.5s infinite; border: 2px solid #10b981 !important; }
 
-
-
     .card-3d {
-
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
       transform-style: preserve-3d;
-
       perspective: 1000px;
-
     }
-
     .card-3d:hover {
-
       transform: translateY(-8px) scale(1.03);
-
       box-shadow: 0 20px 30px -10px rgba(168, 85, 247, 0.4);
-
     }
-
-
 
     @keyframes floatIcon {
-
       0%, 100% { transform: translateY(0) rotate(0deg); }
-
       50% { transform: translateY(-6px) rotate(5deg); }
-
     }
-
     .floating-3d { animation: floatIcon 3s ease-in-out infinite; }
 
-
-
     ::-webkit-scrollbar { width: 5px; height: 5px; }
-
     ::-webkit-scrollbar-track { background: #020617; }
-
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-
   </style>
-
 </head>
-
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
-
-
   <div id="app" class="min-h-screen flex flex-col justify-between">
-
     
-
     <!-- الشريط المتحرك العلوي -->
-
     <div class="bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 text-white text-xs font-black py-2 overflow-hidden whitespace-nowrap shadow-md border-b border-purple-500/30">
-
       <div class="animate-marquee tracking-wider">
-
         ✨ روبرت يرحب بكم في DEDE LIVE بيتك الثاني 🎙️ | رومات صوتية حية مباشرة، ألعاب عجلة الحظ 3D بالكوينز الوهمية، وشحن فوري آمن عبر شام كاش 💎🚀 ✨
-
       </div>
-
     </div>
-
-
 
     <!-- إشعار عائم فوري -->
-
     <div v-if="userNotification" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-md slide-down">
-
       <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
-
         <span class="text-2xl">🎉</span>
-
         <div class="flex-1">
-
           <h4 class="text-xs font-black">شام كاش - تم قبول الحوالة</h4>
-
           <p class="text-xs font-bold mt-0.5">{{ userNotification }}</p>
-
         </div>
-
         <button @click="userNotification = null" class="text-white hover:text-emerald-200 text-sm font-bold">✕</button>
-
       </div>
-
     </div>
 
-
-
     <!-- الهيدر الاحترافي -->
-
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sticky top-0 z-50 shadow-lg">
-
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-
         <div class="flex items-center justify-between w-full sm:w-auto">
-
           <div class="flex items-center gap-2.5 cursor-pointer" @click="leaveVoiceRoom(); activeRoom = null; activeGameModal = null; searchResult = null; searchQuery = ''">
-
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-600/30">🎙️</div>
-
             <div>
-
               <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-
               <p class="text-[9px] text-purple-300 font-bold tracking-wider">منصة الرومات والألعاب</p>
-
             </div>
-
           </div>
-
-
 
           <div v-if="currentUser" class="flex sm:hidden items-center gap-2">
-
             <button @click="openSocialModal" :class="['relative bg-slate-800 p-2 rounded-xl', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
-
               💬 <span v-if="totalUnreadCount > 0" class="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{{ totalUnreadCount }}</span>
-
             </button>
-
             <img :src="currentUser.avatar" @click="showProfileModal = true" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
-
           </div>
-
         </div>
-
-
 
         <form @submit.prevent="handleGlobalSearch" class="flex items-center gap-2 w-full sm:w-auto">
-
           <input type="text" v-model="searchQuery" placeholder="بحث بـ ID مستخدم أو روم..." class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-2xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500 shadow-inner" />
-
           <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-2xl transition-all shadow-md shadow-purple-600/20">بحث</button>
-
         </form>
 
-
-
         <div class="hidden sm:flex items-center gap-3">
-
           <template v-if="currentUser">
-
             <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="relative bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse shadow-lg flex items-center gap-1.5 transition-all">
-
               <span>👑 لوحة طلبات الحوالات</span>
-
               <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">{{ pendingDepositsCount }}</span>
-
             </button>
-
-
 
             <button @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-1.5 transition-all">
-
               <span>💳 شحن شام كاش</span>
-
             </button>
-
-
 
             <button @click="openSocialModal" :class="['relative bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
-
               <span>💬 الرسائل</span> <span v-if="totalUnreadCount > 0" class="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce">{{ totalUnreadCount }}</span>
-
             </button>
-
             <button @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg shadow-purple-600/20">➕ روم</button>
-
             
-
             <div class="flex items-center gap-2.5 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-slate-700/60 shadow-xl">
-
               <img :src="currentUser.avatar" class="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500" />
-
               <div>
-
                 <div class="flex items-center gap-2">
-
                   <p class="text-xs font-black text-white leading-tight">{{ currentUser.username }}</p>
-
                   <span class="bg-purple-500/20 text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-black border border-purple-500/40">💎 {{ currentUser.coins || 0 }}</span>
-
                 </div>
-
                 <p class="text-[9px] text-rose-400 font-mono font-bold">{{ currentUser.id }}</p>
-
               </div>
-
               <button @click="showProfileModal = true" class="text-xs bg-slate-700 hover:bg-slate-600 p-1.5 rounded-full transition-all">✏️</button>
-
             </div>
-
             <button @click="handleLogout" class="text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500 text-white px-3 py-2 rounded-2xl font-bold transition-all">خروج</button>
-
           </template>
-
           <template v-else>
-
             <button @click="showAuthModal = true" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-lg shadow-purple-600/30 transition-all">تسجيل الدخول</button>
-
           </template>
-
         </div>
-
-
 
         <div v-if="!currentUser" class="flex sm:hidden w-full">
-
           <button @click="showAuthModal = true" class="w-full bg-purple-600 text-white text-xs font-bold py-2.5 rounded-2xl shadow-lg">تسجيل الدخول / حساب جديد</button>
-
         </div>
-
-
 
         <div v-if="currentUser" class="flex sm:hidden w-full items-center justify-between pt-2 border-t border-slate-800 text-xs">
-
           <div class="flex items-center gap-2">
-
             <span class="text-rose-400 font-mono font-bold">{{ currentUser.id }}</span>
-
             <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">💎 {{ currentUser.coins || 0 }}</span>
-
           </div>
-
           <div class="flex gap-1.5">
-
             <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="bg-amber-600 text-white px-2.5 py-1.5 rounded-xl font-bold animate-pulse">👑 الطلبات ({{ pendingDepositsCount }})</button>
-
             <button @click="showDepositModal = true" class="bg-emerald-600 px-2.5 py-1.5 rounded-xl font-bold">شحن</button>
-
             <button @click="openSocialModal" class="bg-purple-600 px-2.5 py-1.5 rounded-xl font-bold">الرسائل</button>
-
             <button @click="handleLogout" class="bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-xl font-bold">خروج</button>
-
           </div>
-
         </div>
-
       </div>
-
     </header>
 
-
-
     <!-- المحتوى الرئيسي -->
-
     <main class="max-w-6xl w-full mx-auto p-4 flex-1">
-
       <div v-if="searchResult" class="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 mb-6 shadow-xl">
-
         <div class="flex justify-between items-center mb-2">
-
           <h3 class="text-xs font-bold text-purple-400">نتيجة البحث:</h3>
-
           <button @click="searchResult = null" class="text-xs text-slate-400 hover:text-white">✕ إغلاق</button>
-
         </div>
-
         <div v-if="searchResult.type === 'room'" class="flex justify-between items-center bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
-
           <span class="text-white text-xs font-bold">{{ searchResult.data.title }}</span>
-
           <button @click="enterRoom(searchResult.data); searchResult = null;" class="bg-purple-600 hover:bg-purple-500 text-xs font-bold px-4 py-2 rounded-xl transition-all">دخول</button>
-
         </div>
-
         <div v-else class="flex justify-between items-center bg-slate-950 p-3.5 rounded-2xl border border-slate-800 cursor-pointer" @click="viewingUser = searchResult.data">
-
           <div class="flex items-center gap-3">
-
             <img :src="searchResult.data.avatar" class="w-11 h-11 rounded-full object-cover ring-2 ring-purple-500" />
-
             <div>
-
               <p class="text-xs font-black text-white">{{ searchResult.data.username }}</p>
-
               <p class="text-[10px] text-rose-400 font-mono font-bold">{{ searchResult.data.id }}</p>
-
             </div>
-
           </div>
-
           <button class="bg-purple-600 text-xs font-bold px-3.5 py-1.5 rounded-xl">عرض الملف</button>
-
         </div>
-
       </div>
-
       <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-
-
       <!-- داخل الروم الصوتي الحي المشترك -->
-
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
-
         <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
-
           <div>
-
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
-
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-
             <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ متصل في النظام الصوتي المشترك</span></p>
-
           </div>
-
           <button @click="leaveVoiceRoom(); activeRoom = null;" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">← مغادرة الروم الصوتي</button>
-
         </div>
-
-
 
         <!-- مقاعد المايكات الثمانية مع حركة التحدث (Animation) -->
-
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
-
           <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
-
             <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" :class="['w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all', seat.isSpeaking ? 'speaking-glow' : 'hover:border-purple-500']">
-
               <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
-
               <span v-else class="text-slate-600 text-xs font-bold">{{ seat.index + 1 }} 🎙️</span>
-
               <span v-if="seat.isSpeaking" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 rounded-full font-bold animate-bounce">يتحدث 🟢</span>
-
             </div>
-
             <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ seat.user ? seat.user.name : 'فارغ' }}</p>
-
           </div>
-
         </div>
-
-
 
         <!-- زر المايك المباشر مع تفاعل الصوت -->
-
         <div class="flex items-center justify-center gap-3 mb-6 bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-inner">
-
           <button @click="toggleMicrophone" :class="['px-6 py-3.5 rounded-2xl text-xs font-black transition-all shadow-xl flex items-center gap-2.5', isMicActive ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse ring-4 ring-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300']">
-
             <span class="text-base">{{ isMicActive ? '🎙️' : '🔇' }}</span>
-
             <span>{{ isMicActive ? 'المايك مفتوح (أنت تتحدث الآن - اضغط للكتم)' : 'اضغط هنا لفتح المايك وتفعيل صوتك للجميع 🎙️' }}</span>
-
           </button>
-
         </div>
-
-
 
         <audio id="remote-audio-player" autoplay playsinline style="display:none;"></audio>
 
-
-
         <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800/80">
-
           <h4 class="text-xs font-bold text-slate-400 mb-2.5">دردشة الغرفة الحية الموحدة</h4>
-
           <div class="h-32 overflow-y-auto space-y-1.5 mb-3 text-xs bg-slate-900/40 p-3 rounded-xl">
-
             <div v-for="m in roomChat" :key="m.id"><span class="text-purple-400 font-black">{{ m.sender }}:</span> <span class="text-slate-200">{{ m.text }}</span></div>
-
           </div>
-
           <form @submit.prevent="sendRoomChat" class="flex gap-2">
-
             <input type="text" v-model="roomChatInput" placeholder="اكتب رسالة لتظهر للجميع..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
-
             <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-xs font-bold px-4 py-2 rounded-xl transition-all">إرسال</button>
-
           </form>
-
         </div>
-
       </div>
-
-
 
       <!-- الواجهة الرئيسية -->
-
       <template v-else>
-
         
-
         <!-- 🌟 أولاً: صالة الألعاب مع عجلة الحظ الحقيقية 3D -->
-
         <div class="bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/50 shadow-2xl relative overflow-hidden">
-
           <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
-
           
-
           <div class="flex items-center justify-between mb-6 relative z-10">
-
             <div>
-
               <span class="bg-pink-500/20 text-pink-300 text-xs font-bold px-3 py-1 rounded-full border border-pink-400/30 inline-block mb-2 shadow-sm">
-
                 🎮 صالة الألعاب الترفيهية (عجلة الحظ الحقيقية 3D)
-
               </span>
-
               <h2 class="text-2xl sm:text-3xl font-black text-white">اختر عجلة الحظ وضاعف رصيدك الوهمي!</h2>
-
             </div>
-
             <div class="hidden sm:block text-4xl floating-3d">🎡</div>
-
           </div>
-
-
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 relative z-10">
-
             
-
             <!-- عجلة الحظ الحقيقية 3D -->
-
             <div @click="openGame('spin')" class="card-3d bg-slate-900/90 border border-purple-500/60 hover:border-pink-400 p-6 rounded-3xl cursor-pointer shadow-xl relative overflow-hidden group">
-
               <div class="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition-all"></div>
-
               <div class="text-4xl mb-3 floating-3d">🎡</div>
-
               <h4 class="text-lg font-black text-white mb-1">عجلة الحظ الحقيقية 3D</h4>
-
               <p class="text-xs text-slate-300 mb-4 leading-relaxed">عجلة 3D مجسمة حقيقية مع محاكاة فيزيائية وسرعة 60FPS.</p>
-
               <span class="text-xs font-black text-purple-300 bg-purple-500/20 px-3.5 py-1.5 rounded-xl border border-purple-500/40 inline-block shadow-md">العب الآن 🚀</span>
-
             </div>
-
-
 
             <!-- لعبة الجاكبوت 3D -->
-
             <div @click="openGame('jackpot')" class="card-3d bg-slate-900/90 border border-amber-500/60 hover:border-amber-400 p-6 rounded-3xl cursor-pointer shadow-xl relative overflow-hidden group">
-
               <div class="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
-
               <div class="text-4xl mb-3 floating-3d">💰</div>
-
               <h4 class="text-lg font-black text-white mb-1">صندوق الجاكبوت الكبرى</h4>
-
               <p class="text-xs text-slate-300 mb-4 leading-relaxed">افتح الصندوق الحظوظ واكشف جائزة الكوينز الضخمة الخاصة بك.</p>
-
               <span class="text-xs font-black text-amber-300 bg-amber-500/20 px-3.5 py-1.5 rounded-xl border border-amber-500/40 inline-block shadow-md">افتح الصندوق 🏆</span>
-
             </div>
-
-
 
             <!-- لعبة بوكر الأوراق 3D -->
-
             <div @click="openGame('poker')" class="card-3d bg-slate-900/90 border border-emerald-500/60 hover:border-emerald-400 p-6 rounded-3xl cursor-pointer shadow-xl relative overflow-hidden group">
-
               <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
-
               <div class="text-4xl mb-3 floating-3d">🃏</div>
-
               <h4 class="text-lg font-black text-white mb-1">بوكر الأوراق التفاعلي</h4>
-
               <p class="text-xs text-slate-300 mb-4 leading-relaxed">سحب أوراق حظ ثلاثية الأبعاد واهزم الموزع في لعبة السرعة.</p>
-
               <span class="text-xs font-black text-emerald-300 bg-emerald-500/20 px-3.5 py-1.5 rounded-xl border border-emerald-500/40 inline-block shadow-md">اسحب ورقة 🎴</span>
-
             </div>
 
-
-
           </div>
-
         </div>
-
-
 
         <!-- 🌟 ثانياً: الرومات الصوتية النشطة الموحدة بالكامل -->
-
         <div class="mb-10">
-
           <div class="flex justify-between items-center mb-4">
-
             <h3 class="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
-
               🎙️ الرومات الصوتية النشطة حالياً (<span class="text-white">{{ rooms.length }}</span>)
-
             </h3>
-
             <button @click="fetchRooms" class="text-xs font-bold text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/40 px-3 py-1.5 rounded-xl border border-purple-500/30 transition-all">🔄 تحديث القائمة</button>
-
           </div>
-
-
 
           <div v-if="loadingRooms" class="text-center py-12 text-slate-400 text-xs font-bold">جاري جلب الرومات المتاحة...</div>
-
           <div v-else-if="rooms.length === 0" class="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-12 text-center text-slate-300 text-xs font-bold shadow-xl">
-
             لا توجد رومات مفتوحة حالياً. كن أول من يفتح غرفة جديدة! 🚀
-
           </div>
-
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
             <div v-for="room in rooms" :key="room.id" class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl hover:border-purple-500 transition-all">
-
               <div class="relative h-36">
-
                 <img :src="room.cover_image" class="w-full h-full object-cover" />
-
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-
                 <span class="absolute top-3 right-3 bg-slate-950/90 text-purple-300 text-[11px] font-black px-3 py-1 rounded-full border border-purple-500/40 shadow-md">
-
                   ✨ {{ room.category }}
-
                 </span>
-
                 <div class="absolute bottom-3 right-3 left-3 flex items-center gap-2.5">
-
                   <img :src="room.host_avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500 shadow-lg" />
-
                   <div class="truncate">
-
                     <h4 class="text-white text-sm font-black truncate">{{ room.title }}</h4>
-
                     <p class="text-[11px] text-slate-300 truncate font-bold">المضيف: <span class="text-purple-400">{{ room.host_name }}</span></p>
-
                   </div>
-
                 </div>
-
               </div>
-
               <div class="p-3.5 bg-slate-900 flex justify-between items-center text-xs border-t border-slate-800/80">
-
                 <span class="text-slate-300 font-bold">👥 مقاعد الروم: <span class="text-purple-300 font-black">{{ room.max_seats || 8 }}</span></span>
-
                 <button @click="enterRoom(room)" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black px-4 py-2 rounded-xl transition-all shadow-lg">دخول الغرفة 🎧</button>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
-
 
         <!-- بانر الترحيب وشحن الرصيد -->
-
         <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/20 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-right">
-
           <div>
-
             <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
-
               ✨ المعاملات المالية الفورية عبر شام كاش (ShamCash)
-
             </span>
-
             <h2 class="text-2xl sm:text-4xl font-black text-white mb-2">مرحباً بك في <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</span></h2>
-
             <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في أمتع الرومات والألعاب التفاعلية.</p>
-
           </div>
-
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-
             <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap transition-all">
-
               💳 طلب شحن رصيد (شام كاش)
-
             </button>
-
             <button v-if="currentUser" @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
-
               🎙️ فتح روم صوتي
-
             </button>
-
           </div>
-
         </div>
-
-
 
         <!-- الأقسام الفخمة والتعريفات -->
-
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
           <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-purple-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-purple-500 transition-all">
-
             <div class="flex items-center gap-3 mb-4">
-
               <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-xl shadow-inner">🏢</div>
-
               <div>
-
                 <h3 class="text-base font-black text-white">من نحن (About Us)</h3>
-
                 <p class="text-[11px] text-purple-400 font-bold">رؤيتنا في عالم الصوتيات</p>
-
               </div>
-
             </div>
-
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-
               منصة <strong class="text-purple-400 font-black">DEDE LIVE</strong> هي مجتمعك التفاعلي الراقي للبث الصوتي. نجمع بين أعلى معايير الجودة التقنية والشفافية المالية المطلقة المدعومة بمحفظة <span class="text-emerald-400 font-black">شام كاش</span> لتجربة استثنائية لا تُضاهى.
-
             </p>
-
           </div>
-
-
 
           <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-emerald-500 transition-all">
-
             <div class="flex items-center gap-3 mb-4">
-
               <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl shadow-inner">💎</div>
-
               <div>
-
                 <h3 class="text-base font-black text-white">نظام الكوينز والدولار</h3>
-
                 <p class="text-[11px] text-emerald-400 font-bold">سعر الصرف الرسمي</p>
-
               </div>
-
             </div>
-
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-2">
-
               كل <strong class="text-emerald-400 font-black">1 دولار أمريكي</strong> تعادل حصرياً <span class="text-purple-400 font-black text-sm">40,000 كوينز 💎</span>.
-
             </p>
-
             <p class="text-slate-400 text-[11px] leading-relaxed">
-
               قم بالتحويل عبر شام كاش، أدخل رقم العملية والمبلغ، وسيقوم الأدمن بالموافقة لتنضاف الكوينزات لحسابك فوراً.
-
             </p>
-
           </div>
-
-
 
           <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-pink-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-pink-500 transition-all">
-
             <div class="flex items-center gap-3 mb-4">
-
               <div class="w-12 h-12 rounded-2xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-black text-xl shadow-inner">🔒</div>
-
               <div>
-
                 <h3 class="text-base font-black text-white">الخصوصية والأمان</h3>
-
                 <p class="text-[11px] text-pink-400 font-bold">بياناتك محمية بالكامل</p>
-
               </div>
-
             </div>
-
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-
               نضمن لك سرية تامة في المعاملات المالية ورسائل الدردشة الشخصية. ألعاب الكوينز الوهمية مخصصة للترفيه البحت وغير قابلة للسحب لضمان بيئة آمنة.
-
             </p>
-
           </div>
-
         </div>
-
-
 
       </template>
-
     </main>
 
-
-
     <!-- نافذة صالة الألعاب (عجلة الحظ 3D الحقيقية) -->
-
     <div v-if="activeGameModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-
       <div class="bg-slate-900 border border-purple-500/60 p-6 rounded-3xl max-w-md w-full relative shadow-2xl text-center">
-
         <button @click="closeGameModal" class="absolute top-4 left-4 text-slate-400 hover:text-white text-base">✕</button>
-
         
-
         <div class="mb-4">
-
           <span class="text-xs bg-purple-500/20 text-purple-300 font-black px-3 py-1 rounded-full border border-purple-500/40 inline-block mb-1 shadow-sm">🎮 عجلة الحظ 3D الحقيقية</span>
-
           <h3 class="text-xl font-black text-white mt-1">
-
             {{ activeGameModal === 'spin' ? 'عجلة الحظ المجسمة 3D 🎡' : activeGameModal === 'jackpot' ? 'صندوق الجاكبوت الكبرى 💰' : 'بوكر الأوراق السريع 🃏' }}
-
           </h3>
-
           <p class="text-xs text-slate-400 mt-1">رصيدك الحالي: <span class="text-purple-400 font-bold">💎 {{ currentUser?.coins || 0 }}</span></p>
-
         </div>
-
-
 
         <div class="mb-4">
-
           <label class="text-xs font-black text-slate-300 block mb-2">اختر قيمة الرهان بالكوينز الوهمية:</label>
-
           <div class="grid grid-cols-5 gap-1.5">
-
             <button v-for="bet in [1000, 5000, 10000, 50000, 100000]" :key="bet" @click="selectedBet = bet" :class="['py-2.5 rounded-xl text-xs font-black transition-all border', selectedBet === bet ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-400 shadow-lg scale-105' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
-
               {{ bet >= 1000 ? (bet/1000) + 'ألف' : bet }}
-
             </button>
-
           </div>
-
         </div>
-
-
 
         <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-4 relative overflow-hidden shadow-inner flex flex-col items-center justify-center">
-
           <div v-if="activeGameModal === 'spin'" id="three-wheel-container" class="w-full h-48 rounded-xl overflow-hidden relative"></div>
-
           <div v-else-if="activeGameModal === 'jackpot'" :class="['text-5xl py-8', isGamePlaying ? 'floating-3d' : '']">
-
             {{ jackpotResultIcon || '🎁' }}
-
           </div>
-
           <div v-else-if="activeGameModal === 'poker'" class="flex gap-3 text-2xl font-black py-6">
-
             <div v-for="(card, idx) in pokerCards" :key="idx" class="bg-white text-slate-950 px-3.5 py-4 rounded-2xl border-2 border-purple-500 shadow-2xl font-mono">
-
               {{ card }}
-
             </div>
-
           </div>
-
           <p v-if="gameResultMessage" :class="['mt-2 text-xs font-black', gameWinAmount > 0 ? 'text-emerald-400 animate-bounce' : 'text-rose-400']">
-
             {{ gameResultMessage }}
-
           </p>
-
         </div>
 
-
-
         <button @click="playGame" :disabled="isGamePlaying" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:opacity-95 text-white font-black py-3.5 rounded-xl transition-all shadow-xl text-sm disabled:opacity-50">
-
           {{ isGamePlaying ? 'جاري تدوير الحظ 60FPS... 🎡' : 'ابدأ اللعب الآن 🚀' }}
-
         </button>
-
       </div>
-
     </div>
 
-
-
     <!-- نافذة طلب شحن شام كاش -->
-
     <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-
       <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
-
         <button @click="showDepositModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-
         <div class="text-center mb-4">
-
           <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mx-auto mb-2 font-black">💳</div>
-
           <h3 class="text-lg font-black text-white">إيداع رصيد عبر شام كاش</h3>
-
-          <p class="text-[11px] text-slate-400 mt-0.5">محفظة
+          <p class="text-[11px] text-slate-400 mt-0.5">محفظة</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
