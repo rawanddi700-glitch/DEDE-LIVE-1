@@ -618,7 +618,7 @@
           } catch (e) {}
         };
 
-        // --- 🎙️ تشغيل وإدارة الصوت الفعلي عبر ZEGOCLOUD ---
+        // --- 🎙️ تشغيل وإدارة الصوت الفعلي عبر ZEGOCLOUD (مُحدث مع طلب الإذن) ---
         
         const initZegoEngine = async (roomId) => {
           try {
@@ -626,7 +626,6 @@
               zegoClient = new ZegoExpressEngine(ZEGO_APP_ID, ZEGO_SERVER);
             }
 
-            // الاستماع لقدوم أصوات من مستخدمين آخرين في الغرفة وتشغيلها تلقائياً
             zegoClient.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
               if (updateType === 'ADD') {
                 for (let stream of streamList) {
@@ -646,11 +645,8 @@
               }
             });
 
-            // تسجيل الدخول للغرفة الصوتية
             const userID = currentUser.value ? currentUser.value.id : `guest_${Math.floor(Math.random()*10000)}`;
             const userName = currentUser.value ? currentUser.value.username : 'زائر';
-            
-            // رمز دخول مؤقت للتجربة (Token مجاني للبث العام)
             const token = ""; 
 
             await zegoClient.loginRoom(roomId, token, { userID, userName }, { userUpdate: true });
@@ -664,13 +660,15 @@
           if (!currentUser.value) return alert("سجل الدخول أولاً!");
           try {
             if (turnOn) {
-              // إنشاء المايك الخاص بالمستخدم
+              // 1. طلب إذن المايك من المتصفح صراحةً أولاً لضمان عدم ظهور خطأ الصلاحيات
+              await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+              // 2. إنشاء المايك الخاص بـ Zego بعد السماح بالإذن
               localStream = await zegoClient.createZegoStream({ camera: { audio: true, video: false } });
               const streamID = `stream_${currentUser.value.id}_${Date.now()}`;
               await zegoClient.startPublishingStream(streamID, localStream);
               isMicOn.value = true;
               
-              // تحديث حالة المقعد ليشير إلى أن المستخدم يتحدث
               updateSeatMuteStatus(false);
             } else {
               if (localStream) {
@@ -682,8 +680,8 @@
               updateSeatMuteStatus(true);
             }
           } catch (err) {
-            console.error("فشل تشغيل المايك (تأكد من إذن المتصفح):", err);
-            alert("تعذر الوصول إلى المايكروفون. يرجى السماح للمتصفح بالوصول للمايك.");
+            console.error("خطأ المايك:", err);
+            alert("تعذر الوصول إلى المايكروفون. تأكد من إعطاء إذن المايك للمتصفح عبر إعدادات الأمان للرابط (يجب أن يكون الرابط آمن HTTPS).");
           }
         };
 
@@ -747,7 +745,6 @@
             }
           });
 
-          // تفعيل الاتصال الصوتي الحقيقي بـ Zego للروم الحالي
           await initZegoEngine(room.id);
         };
 
@@ -793,7 +790,6 @@
         };
 
         const leaveCurrentRoom = () => {
-          // إيقاف البث الصوتي ومغادرة غرفة الصوت
           if (localStream) {
             zegoClient.stopPublishingStream();
             zegoClient.destroyZegoStream(localStream);
