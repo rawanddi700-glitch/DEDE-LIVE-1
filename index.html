@@ -7,8 +7,10 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <!-- إضافة مكتبة Supabase الرسمية لتدعم الـ Realtime -->
+  <!-- إضافة مكتبة Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- إضافة مكتبة ZEGOCLOUD الرسمية للتشغيل الصوتي عبر الـ Web -->
+  <script src="https://unpkg.com/zego-express-engine-webrtc/index.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
@@ -153,22 +155,30 @@
       </div>
       <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3.5 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-      <!-- داخل الروم المباشر (Realtime Room) -->
+      <!-- داخل الروم الصوتي التفاعلي (Voice Room) -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
         <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400">🔴 بث مباشر مقترن</span></p>
+            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ النظام الصوتي متصل</span></p>
           </div>
-          <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج من الروم</button>
+          <div class="flex items-center gap-2">
+            <!-- أزرار التحكم الصوتي العامة للمستخدم الحالي -->
+            <button v-if="isMicOn" @click="toggleMic(false)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">mute 🔇 كتم المايك</button>
+            <button v-else @click="toggleMic(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">unmute 🎙️ فتح المايك</button>
+            <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج</button>
+          </div>
         </div>
 
+        <!-- المقاعد الصوتية -->
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
           <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
             <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all">
               <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
               <span v-else class="text-slate-600 text-xs font-bold">{{ seat.index + 1 }} 🎙️</span>
+              <!-- إشارة المايك المفتوح على المقعد -->
+              <div v-if="seat.user && seat.isMuted === false" class="absolute bottom-1 right-1 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">🎙️ يتحدث</div>
             </div>
             <p class="text-[11px] font-black text-white mt-1.5 truncate max-w-[80px]">{{ seat.user ? seat.user.name : 'فارغ' }}</p>
           </div>
@@ -502,8 +512,14 @@
         const ADMIN_EMAIL = "zzx640616@gmail.com";
         const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' };
 
-        // تهيئة عميل Supabase للبث المباشر Realtime
         const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
+
+        // إعدادات ZEGOCLOUD الصوتية المباشرة
+        const ZEGO_APP_ID = 1856957631;
+        const ZEGO_SERVER = "wss://webliveroom1856957631-api.zego.im/ws"; 
+        let zegoClient = null;
+        let localStream = null;
+        const isMicOn = ref(false);
 
         const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
         const rooms = ref([]);
@@ -512,7 +528,7 @@
         const roomSeatsData = ref([]);
         const roomChat = ref([]);
         const roomChatInput = ref('');
-        let currentRoomChannel = null; // القناة الفورية للروم الحالي
+        let currentRoomChannel = null;
 
         const searchQuery = ref('');
         const searchResult = ref(null);
@@ -534,7 +550,6 @@
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
-        // نظام الحوالات وشام كاش
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -603,39 +618,114 @@
           } catch (e) {}
         };
 
-        // --- 🚀 تفعيل خيار Realtime المباشر للرومات (Presence / Seats / Broadcast) ---
+        // --- 🎙️ تشغيل وإدارة الصوت الفعلي عبر ZEGOCLOUD ---
+        
+        const initZegoEngine = async (roomId) => {
+          try {
+            if (!zegoClient) {
+              zegoClient = new ZegoExpressEngine(ZEGO_APP_ID, ZEGO_SERVER);
+            }
 
-        const enterRoom = (room) => {
+            // الاستماع لقدوم أصوات من مستخدمين آخرين في الغرفة وتشغيلها تلقائياً
+            zegoClient.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
+              if (updateType === 'ADD') {
+                for (let stream of streamList) {
+                  const remoteStream = await zegoClient.startPlayingStream(stream.streamID);
+                  const audioEl = document.createElement('audio');
+                  audioEl.srcObject = remoteStream;
+                  audioEl.autoplay = true;
+                  audioEl.id = `audio_${stream.streamID}`;
+                  document.body.appendChild(audioEl);
+                }
+              } else if (updateType === 'DELETE') {
+                for (let stream of streamList) {
+                  zegoClient.stopPlayingStream(stream.streamID);
+                  const el = document.getElementById(`audio_${stream.streamID}`);
+                  if (el) el.remove();
+                }
+              }
+            });
+
+            // تسجيل الدخول للغرفة الصوتية
+            const userID = currentUser.value ? currentUser.value.id : `guest_${Math.floor(Math.random()*10000)}`;
+            const userName = currentUser.value ? currentUser.value.username : 'زائر';
+            
+            // رمز دخول مؤقت للتجربة (Token مجاني للبث العام)
+            const token = ""; 
+
+            await zegoClient.loginRoom(roomId, token, { userID, userName }, { userUpdate: true });
+            console.log("تم الاتصال بنجاح بالغرفة الصوتية:", roomId);
+          } catch (err) {
+            console.error("خطأ في الاتصال بنظام الصوت:", err);
+          }
+        };
+
+        const toggleMic = async (turnOn) => {
+          if (!currentUser.value) return alert("سجل الدخول أولاً!");
+          try {
+            if (turnOn) {
+              // إنشاء المايك الخاص بالمستخدم
+              localStream = await zegoClient.createZegoStream({ camera: { audio: true, video: false } });
+              const streamID = `stream_${currentUser.value.id}_${Date.now()}`;
+              await zegoClient.startPublishingStream(streamID, localStream);
+              isMicOn.value = true;
+              
+              // تحديث حالة المقعد ليشير إلى أن المستخدم يتحدث
+              updateSeatMuteStatus(false);
+            } else {
+              if (localStream) {
+                zegoClient.stopPublishingStream();
+                zegoClient.destroyZegoStream(localStream);
+                localStream = null;
+              }
+              isMicOn.value = false;
+              updateSeatMuteStatus(true);
+            }
+          } catch (err) {
+            console.error("فشل تشغيل المايك (تأكد من إذن المتصفح):", err);
+            alert("تعذر الوصول إلى المايكروفون. يرجى السماح للمتصفح بالوصول للمايك.");
+          }
+        };
+
+        const updateSeatMuteStatus = (muted) => {
+          if (!currentUser.value) return;
+          const updated = [...roomSeatsData.value];
+          const seatIdx = updated.findIndex(s => s.user?.id === currentUser.value.id);
+          if (seatIdx !== -1) {
+            updated[seatIdx].isMuted = muted;
+            roomSeatsData.value = updated;
+            if (currentRoomChannel) {
+              currentRoomChannel.send({ type: 'broadcast', event: 'seat_change', payload: { seats: updated } });
+            }
+          }
+        };
+
+        const enterRoom = async (room) => {
           activeRoom.value = room;
           const seatsCount = room.max_seats || 8;
 
-          // تهيئة المقاعد مبدئياً
           roomSeatsData.value = Array.from({ length: seatsCount }, (_, i) => 
             i === 0 
-              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true }
-              : { index: i, user: null, isHost: false }
+              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true, isMuted: true }
+              : { index: i, user: null, isHost: false, isMuted: true }
           );
 
-          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". البث المباشر متصل الأن.` }];
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". تم ربط نظام الصوت والصورة بنجاح.` }];
 
-          // إلغاء أي قناة سابقة إن وجدت
           if (currentRoomChannel) {
             supabaseClient.removeChannel(currentRoomChannel);
           }
 
-          // فتح قناة Realtime خاصة بهذا الروم
           currentRoomChannel = supabaseClient.channel(`room_${room.id}`, {
             config: { presence: { key: currentUser.value ? currentUser.value.id : `guest_${Math.random()}` } }
           });
 
-          // 1. الاستماع لتحديثات المقاعد فوراً (Seat Updates)
           currentRoomChannel.on('broadcast', { event: 'seat_change' }, ({ payload }) => {
             if (payload && payload.seats) {
               roomSeatsData.value = payload.seats;
             }
           });
 
-          // 2. الاستماع لرسائل الدردشة الفورية بالروم (Chat Messages)
           currentRoomChannel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
             if (payload) {
               roomChat.value.push(payload);
@@ -644,12 +734,6 @@
                 if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
               });
             }
-          });
-
-          // 3. الاستماع لتواجد وتتبع المستخدمين داخل الروم (Presence)
-          currentRoomChannel.on('presence', { event: 'sync' }, () => {
-            const state = currentRoomChannel.presenceState();
-            console.log("الأعضاء المتواجدون حالياً في الروم:", state);
           });
 
           currentRoomChannel.subscribe(async (status) => {
@@ -662,6 +746,9 @@
               });
             }
           });
+
+          // تفعيل الاتصال الصوتي الحقيقي بـ Zego للروم الحالي
+          await initZegoEngine(room.id);
         };
 
         const claimSeat = (index) => {
@@ -673,9 +760,9 @@
           if (old !== -1) updated[old].user = null;
 
           updated[index].user = { name: currentUser.value.username, avatar: currentUser.value.avatar, id: currentUser.value.id, role: 'عضو' };
+          updated[index].isMuted = !isMicOn.value;
           roomSeatsData.value = updated;
 
-          // بث التغيير فوراً لجميع المتواجدين بالروم
           if (currentRoomChannel) {
             currentRoomChannel.send({
               type: 'broadcast',
@@ -688,10 +775,8 @@
         const sendRoomChat = () => {
           if (!roomChatInput.value.trim() || !currentUser.value) return;
           const msgObj = { id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() };
-          
           roomChat.value.push(msgObj);
           
-          // إرسال الرسالة لجميع أجهزة المتواجدين بالروم فوراً
           if (currentRoomChannel) {
             currentRoomChannel.send({
               type: 'broadcast',
@@ -708,8 +793,18 @@
         };
 
         const leaveCurrentRoom = () => {
+          // إيقاف البث الصوتي ومغادرة غرفة الصوت
+          if (localStream) {
+            zegoClient.stopPublishingStream();
+            zegoClient.destroyZegoStream(localStream);
+            localStream = null;
+          }
+          isMicOn.value = false;
+          if (zegoClient) {
+            zegoClient.logoutRoom();
+          }
+
           if (currentRoomChannel) {
-            // إزالة المستخدم من مقعده عند الخروج إن كان على المايك
             if (currentUser.value) {
               const oldIndex = roomSeatsData.value.findIndex(s => s.user?.id === currentUser.value.id);
               if (oldIndex !== -1 && !roomSeatsData.value[oldIndex].isHost) {
@@ -728,7 +823,7 @@
           activeRoom.value = null;
         };
 
-        // --- باقي الخصائص والدوال المعمول بها سابقتً ---
+        // --- دوال الشحن، الأدمن، والملف الشخصي ---
 
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
@@ -984,10 +1079,10 @@
           showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
-          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
+          friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin, isMicOn,
           fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
           openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
-          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
+          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit, toggleMic
         };
       }
     }).mount('#app');
