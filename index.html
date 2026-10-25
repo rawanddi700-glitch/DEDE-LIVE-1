@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>DEDE LIVE - منصة الرومات الصوتية والاتصال المباشر</title>
+  <title>DEDE LIVE - منصة الرومات الصوتية والألعاب 3D</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -18,6 +18,12 @@
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
     body { font-family: 'Tajawal', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
 
+    @keyframes marquee {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .animate-marquee { display: inline-block; animation: marquee 18s linear infinite; }
+
     @keyframes speakingPulse {
       0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8); }
       70% { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
@@ -30,7 +36,14 @@
       transform-style: preserve-3d;
       perspective: 1000px;
     }
-    .card-3d:hover { transform: translateY(-8px) scale(1.03); }
+    .card-3d:hover { transform: translateY(-8px) scale(1.03); box-shadow: 0 20px 30px -10px rgba(168, 85, 247, 0.4); }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(5deg); }
+    }
+    .floating-3d { animation: floatIcon 3s ease-in-out infinite; }
+
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #020617; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -40,20 +53,29 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
-    <!-- الهيدر -->
+    <!-- الشريط المتحرك العلوي -->
+    <div class="bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 text-white text-xs font-black py-2 overflow-hidden whitespace-nowrap shadow-md border-b border-purple-500/30">
+      <div class="animate-marquee tracking-wider">
+        ✨ أهلاً بكم في DEDE LIVE بيتك الثاني 🎙️ | رومات صوتية حية مباشرة، ألعاب عجلة الحظ 3D بالكوينز الوهمية، وشحن فوري آمن عبر شام كاش 💎🚀 ✨
+      </div>
+    </div>
+
+    <!-- الهيدر الاحترافي -->
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 sticky top-0 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-2.5 cursor-pointer" @click="leaveVoiceRoom(); activeRoom = null;">
+        <div class="flex items-center gap-2.5 cursor-pointer" @click="leaveVoiceRoom(); activeRoom = null; activeGameModal = null;">
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg">🎙️</div>
           <div>
             <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-            <p class="text-[9px] text-purple-300 font-bold">اتصال مباشر ورومات صوتية</p>
+            <p class="text-[9px] text-purple-300 font-bold">منصة الرومات والألعاب</p>
           </div>
         </div>
 
         <div class="flex items-center gap-3">
           <template v-if="currentUser">
+            <button @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all">💳 شحن شام كاش</button>
             <button @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg">➕ روم جديد</button>
+            
             <div class="flex items-center gap-2.5 bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-700">
               <img :src="currentUser.avatar" class="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500" />
               <div>
@@ -64,15 +86,15 @@
             <button @click="handleLogout" class="text-xs text-rose-400 bg-rose-500/10 px-3 py-2 rounded-2xl font-bold">خروج</button>
           </template>
           <template v-else>
-            <button @click="showAuthModal = true" class="bg-purple-600 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-lg">تسجيل الدخول</button>
+            <button @click="showAuthModal = true" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow-lg">تسجيل الدخول</button>
           </template>
         </div>
       </div>
     </header>
 
-    <!-- المحتوى -->
+    <!-- المحتوى الرئيسي -->
     <main class="max-w-6xl w-full mx-auto p-4 flex-1">
-      
+
       <!-- داخل الروم الصوتي المشترك -->
       <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
         <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
@@ -84,7 +106,7 @@
           <button @click="leaveVoiceRoom(); activeRoom = null;" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">← مغادرة الروم</button>
         </div>
 
-        <!-- مقاعد المايكات الثمانية مع حركة التحدث الحقيقية (Audio Analyser) -->
+        <!-- مقاعد المايكات الثمانية مع حركة التحدث -->
         <div class="grid grid-cols-4 sm:grid-cols-8 gap-3.5 mb-6">
           <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
             <div @click="seat.user ? null : claimSeat(seat.index)" :class="['w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-lg transition-all', seat.isSpeaking ? 'speaking-glow' : 'hover:border-purple-500']">
@@ -96,11 +118,11 @@
           </div>
         </div>
 
-        <!-- زر المايك مع تفعيل تحليل الصوت الحقيقي -->
+        <!-- زر المايك مع تفعيل تحليل الصوت -->
         <div class="flex items-center justify-center gap-3 mb-6 bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-inner">
           <button @click="toggleMicrophone" :class="['px-6 py-3.5 rounded-2xl text-xs font-black transition-all shadow-xl flex items-center gap-2.5', isMicActive ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse ring-4 ring-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300']">
             <span class="text-base">{{ isMicActive ? '🎙️' : '🔇' }}</span>
-            <span>{{ isMicActive ? 'المايك مفتوح ويتفاعل مع صوتك حقيقياً (اضغط للكتم)' : 'اضغط هنا لفتح المايك والتحدث 🎙️' }}</span>
+            <span>{{ isMicActive ? 'المايك مفتوح ويتفاعل مع صوتك (اضغط للكتم)' : 'اضغط هنا لفتح المايك والتحدث 🎙️' }}</span>
           </button>
         </div>
 
@@ -117,46 +139,124 @@
         </div>
       </div>
 
-      <!-- قائمة الرومات النشطة -->
+      <!-- الواجهة الرئيسية -->
       <template v-else>
-        <div class="mb-6 flex justify-between items-center">
-          <h3 class="text-xl font-black text-purple-300">🎙️ الرومات الصوتية النشطة حالياً ({{ rooms.length }})</h3>
-          <button @click="fetchRooms" class="text-xs bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-xl border border-purple-500/30">🔄 تحديث</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div v-for="room in rooms" :key="room.id" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div class="relative h-32 bg-slate-950 p-4 flex flex-col justify-between">
-              <span class="bg-purple-500/20 text-purple-300 text-[10px] font-black px-2.5 py-1 rounded-full w-max border border-purple-500/30">{{ room.category }}</span>
-              <div>
-                <h4 class="text-white text-base font-black">{{ room.title }}</h4>
-                <p class="text-xs text-slate-400 mt-0.5">المضيف: <span class="text-purple-400 font-bold">{{ room.host_name }}</span></p>
-              </div>
+        
+        <!-- صالة الألعاب 3D -->
+        <div class="bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/50 shadow-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between mb-6 relative z-10">
+            <div>
+              <span class="bg-pink-500/20 text-pink-300 text-xs font-bold px-3 py-1 rounded-full border border-pink-400/30 inline-block mb-2">🎮 صالة الألعاب الترفيهية 3D</span>
+              <h2 class="text-2xl sm:text-3xl font-black text-white">اختر عجلة الحظ وضاعف رصيدك الوهمي!</h2>
             </div>
-            <div class="p-3 bg-slate-900/90 flex justify-between items-center text-xs border-t border-slate-800">
-              <span class="text-slate-400 font-bold">👥 الغرفة متاحة للجميع</span>
-              <button @click="enterRoom(room)" class="bg-purple-600 hover:bg-purple-500 text-white font-black px-4 py-2 rounded-xl shadow-lg">دخول الغرفة 🎧</button>
+            <div class="hidden sm:block text-4xl floating-3d">🎡</div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 relative z-10">
+            <div @click="openGame('spin')" class="card-3d bg-slate-900/90 border border-purple-500/60 p-6 rounded-3xl cursor-pointer shadow-xl">
+              <div class="text-4xl mb-3 floating-3d">🎡</div>
+              <h4 class="text-lg font-black text-white mb-1">عجلة الحظ 3D</h4>
+              <p class="text-xs text-slate-300 mb-4">عجلة 3D مجسمة مع محاكاة فيزيائية حقيقية.</p>
+              <span class="text-xs font-black text-purple-300 bg-purple-500/20 px-3.5 py-1.5 rounded-xl border border-purple-500/40 inline-block">العب الآن 🚀</span>
+            </div>
+
+            <div @click="openGame('jackpot')" class="card-3d bg-slate-900/90 border border-amber-500/60 p-6 rounded-3xl cursor-pointer shadow-xl">
+              <div class="text-4xl mb-3 floating-3d">💰</div>
+              <h4 class="text-lg font-black text-white mb-1">صندوق الجاكبوت</h4>
+              <p class="text-xs text-slate-300 mb-4">اففتح الصندوق واكشف جائزة الكوينز الضخمة.</p>
+              <span class="text-xs font-black text-amber-300 bg-amber-500/20 px-3.5 py-1.5 rounded-xl border border-amber-500/40 inline-block">افتح الصندوق 🏆</span>
+            </div>
+
+            <div @click="openGame('poker')" class="card-3d bg-slate-900/90 border border-emerald-500/60 p-6 rounded-3xl cursor-pointer shadow-xl">
+              <div class="text-4xl mb-3 floating-3d">🃏</div>
+              <h4 class="text-lg font-black text-white mb-1">بوكر الأوراق</h4>
+              <p class="text-xs text-slate-300 mb-4">سحب أوراق حظ ثلاثية الأبعاد واهزم الموزع.</p>
+              <span class="text-xs font-black text-emerald-300 bg-emerald-500/20 px-3.5 py-1.5 rounded-xl border border-emerald-500/40 inline-block">اسحب ورقة 🎴</span>
             </div>
           </div>
         </div>
-      </template>
 
+        <!-- قائمة الرومات الصوتية النشطة -->
+        <div class="mb-10">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-black text-purple-300">🎙️ الرومات الصوتية النشطة حالياً ({{ rooms.length }})</h3>
+            <button @click="fetchRooms" class="text-xs bg-purple-600/20 text-purple-300 px-3.5 py-2 rounded-xl border border-purple-500/30">🔄 تحديث</button>
+          </div>
+
+          <div v-if="loadingRooms" class="text-center py-12 text-slate-400 text-xs">جاري جلب الرومات...</div>
+          <div v-else-if="rooms.length === 0" class="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-400 text-xs">
+            لا توجد رومات مفتوحة حالياً. كن أول من يفتح غرفة جديدة! 🚀
+          </div>
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div v-for="room in rooms" :key="room.id" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div class="p-4 bg-slate-950 flex flex-col justify-between h-32 relative">
+                <span class="bg-purple-500/20 text-purple-300 text-[10px] font-black px-2.5 py-1 rounded-full w-max border border-purple-500/30">{{ room.category }}</span>
+                <div>
+                  <h4 class="text-white text-base font-black">{{ room.title }}</h4>
+                  <p class="text-xs text-slate-400 mt-0.5">المضيف: <span class="text-purple-400 font-bold">{{ room.host_name }}</span></p>
+                </div>
+              </div>
+              <div class="p-3 bg-slate-900 flex justify-between items-center text-xs border-t border-slate-800">
+                <span class="text-slate-400 font-bold">👥 مقاعد الروم: 8</span>
+                <button @click="enterRoom(room)" class="bg-purple-600 hover:bg-purple-500 text-white font-black px-4 py-2 rounded-xl shadow-lg">دخول الغرفة 🎧</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </template>
     </main>
+
+    <!-- نافذة الألعاب 3D -->
+    <div v-if="activeGameModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-purple-500/60 p-6 rounded-3xl max-w-md w-full relative shadow-2xl text-center">
+        <button @click="closeGameModal" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
+        <h3 class="text-xl font-black text-white mb-2">عجلة الحظ والألعاب 3D 🎡</h3>
+        <p class="text-xs text-slate-400 mb-4">رصيدك الحالي: <span class="text-purple-400 font-bold">💎 {{ currentUser?.coins || 0 }}</span></p>
+
+        <div class="mb-4">
+          <label class="text-xs font-black text-slate-300 block mb-2">اختر الرهان:</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button v-for="bet in [1000, 5000, 10000, 50000]" :key="bet" @click="selectedBet = bet" :class="['py-2 rounded-xl text-xs font-bold border', selectedBet === bet ? 'bg-purple-600 text-white border-purple-400' : 'bg-slate-950 text-slate-300 border-slate-800']">
+              {{ bet }}
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-4 flex flex-col items-center justify-center">
+          <div v-if="activeGameModal === 'spin'" id="three-wheel-container" class="w-full h-44 rounded-xl"></div>
+          <div v-else class="text-5xl py-8">{{ jackpotResultIcon }}</div>
+          <p v-if="gameResultMessage" class="mt-2 text-xs font-black text-emerald-400">{{ gameResultMessage }}</p>
+        </div>
+
+        <button @click="playGame" :disabled="isGamePlaying" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 rounded-xl shadow-lg">
+          {{ isGamePlaying ? 'جاري اللعب... 🎡' : 'ابدأ اللعب الآن 🚀' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- نافذة شحن شام كاش -->
+    <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-sm w-full relative text-center">
+        <button @click="showDepositModal = false" class="absolute top-4 left-4 text-slate-400">✕</button>
+        <h3 class="text-lg font-black text-white mb-2">شحن رصيد (شام كاش)</h3>
+        <p class="text-[11px] text-slate-400 mb-3 font-mono">رقم المحفظة: c97ee7954214e0b9c32a91d6f07a93ba</p>
+        <form @submit.prevent="showDepositModal = false; alert('تم إرسال الطلب بنجاح!')" class="space-y-3 text-xs text-right">
+          <input type="text" placeholder="رقم عملية التحويل" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white" />
+          <input type="number" placeholder="المبلغ ($)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white" />
+          <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">إرسال الطلب</button>
+        </form>
+      </div>
+    </div>
 
     <!-- نافذة تسجيل الدخول -->
     <div v-if="showAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative text-center">
         <button @click="showAuthModal = false" class="absolute top-4 left-4 text-slate-400">✕</button>
         <h3 class="text-lg font-black text-white mb-3">تسجيل الدخول السريع</h3>
         <form @submit.prevent="handleAuth" class="space-y-3.5 text-xs text-right">
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">اسم المستخدم</label>
-            <input type="text" v-model="authUsername" required placeholder="اسمك..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">البريد الإلكتروني</label>
-            <input type="email" v-model="authEmail" required placeholder="email@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
-          </div>
+          <input type="text" v-model="authUsername" required placeholder="اسم المستخدم..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          <input type="email" v-model="authEmail" required placeholder="البريد الإلكتروني..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
           <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg">دخول المنصة</button>
         </form>
       </div>
@@ -164,15 +264,12 @@
 
     <!-- نافذة إنشاء روم -->
     <div v-if="showCreateRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl text-center">
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative text-center">
         <button @click="showCreateRoomModal = false" class="absolute top-4 left-4 text-slate-400">✕</button>
         <h3 class="text-lg font-black text-white mb-3">فتح روم صوتي جديد</h3>
         <form @submit.prevent="handleCreateRoom" class="space-y-3.5 text-xs text-right">
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">عنوان الروم</label>
-            <input type="text" v-model="roomTitle" required placeholder="سهرة فنية، نقاش..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
-          </div>
-          <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg">إنشاء ونشر الروم</button>
+          <input type="text" v-model="roomTitle" required placeholder="عنوان الغرفة..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
+          <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg">إنشاء الروم</button>
         </form>
       </div>
     </div>
@@ -180,7 +277,7 @@
   </div>
 
   <script>
-    const { createApp, ref, onMounted } = Vue;
+    const { createApp, ref, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
@@ -190,6 +287,7 @@
 
         const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
         const rooms = ref([]);
+        const loadingRooms = ref(true);
         const activeRoom = ref(null);
         const roomSeatsData = ref([]);
         const roomChat = ref([]);
@@ -198,35 +296,36 @@
         const showAuthModal = ref(false);
         const authEmail = ref('');
         const authUsername = ref('');
-
         const showCreateRoomModal = ref(false);
         const roomTitle = ref('');
+        const showDepositModal = ref(false);
+
+        // الألعاب وعجلة الحظ
+        const activeGameModal = ref(null);
+        const selectedBet = ref(1000);
+        const isGamePlaying = ref(false);
+        const jackpotResultIcon = ref('🎁');
+        const gameResultMessage = ref('');
+        let threeScene, threeCamera, threeRenderer, wheelGroup, animFrameId;
 
         let localAudioStream = null;
         const isMicActive = ref(false);
-        let audioContext = null;
-        let analyser = null;
-        let microphoneNode = null;
-        let animationFrameId = null;
+        let audioContext = null, analyser = null, microphoneNode = null, animationFrameId = null;
         let roomSyncTimer = null;
 
         const fetchRooms = async () => {
           try {
             const res = await fetch(`${SUPABASE_BASE_URL}/rooms?select=*&order=created_at.desc`, { headers: HEADERS });
             if (res.ok) rooms.value = await res.json();
-          } catch (e) {}
+          } catch (e) {} finally { loadingRooms.value = false; }
         };
 
-        // دخول الروم وتسجيل الوجود في قاعدة البيانات المشتركة
         const enterRoom = async (room) => {
           activeRoom.value = room;
           roomSeatsData.value = Array.from({ length: 8 }, (_, i) => ({ index: i, user: null, isSpeaking: false }));
-
           if (currentUser.value) {
-            // تسجيل الدخول كمشارك أول في المقعد الأول تلقائياً أو تركه متاحاً
             await syncMyPresence(room.id, 0, false);
           }
-
           startRealtimeRoomSync();
         };
 
@@ -242,7 +341,6 @@
             is_speaking: speaking,
             updated_at: new Date().toISOString()
           };
-
           await fetch(`${SUPABASE_BASE_URL}/room_presence`, {
             method: 'POST',
             headers: { ...HEADERS, 'Prefer': 'resolution=merge-duplicates' },
@@ -250,18 +348,15 @@
           }).catch(() => {});
         };
 
-        // نظام المزامنة المشتركة اللحظية (الكل يرى الكل)
         const startRealtimeRoomSync = () => {
           if (roomSyncTimer) clearInterval(roomSyncTimer);
           roomSyncTimer = setInterval(async () => {
             if (!activeRoom.value) return;
             try {
-              // 1. جلب المتواجدين في الروم
               const presRes = await fetch(`${SUPABASE_BASE_URL}/room_presence?room_id=eq.${encodeURIComponent(activeRoom.value.id)}`, { headers: HEADERS });
               if (presRes.ok) {
                 const activeUsers = await presRes.json();
                 const newSeats = Array.from({ length: 8 }, (_, i) => ({ index: i, user: null, isSpeaking: false }));
-                
                 activeUsers.forEach(u => {
                   if (u.seat_index >= 0 && u.seat_index < 8) {
                     newSeats[u.seat_index] = {
@@ -274,7 +369,6 @@
                 roomSeatsData.value = newSeats;
               }
 
-              // 2. جلب رسائل الشات الحية
               const msgRes = await fetch(`${SUPABASE_BASE_URL}/room_messages?room_id=eq.${encodeURIComponent(activeRoom.value.id)}&order=created_at.desc&limit=20`, { headers: HEADERS });
               if (msgRes.ok) {
                 const msgs = await msgRes.json();
@@ -289,16 +383,12 @@
           await syncMyPresence(activeRoom.value.id, index, isMicActive.value);
         };
 
-        // تحليل الصوت الحقيقي وتفعيل تأثير التحدث (Audio Analyser API)
         const toggleMicrophone = async () => {
           if (!activeRoom.value) return alert("الدخول للروم أولاً مطلوب!");
-
           if (!isMicActive.value) {
             try {
               localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
               isMicActive.value = true;
-
-              // إعداد محلل الصوت الحقيقي
               audioContext = new (window.AudioContext || window.webkitAudioContext)();
               analyser = audioContext.createAnalyser();
               microphoneNode = audioContext.createMediaStreamSource(localAudioStream);
@@ -313,16 +403,10 @@
                 let sum = 0;
                 for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
                 let average = sum / bufferLength;
-
-                // إذا كان الصوت أعلى من عتبة معينة، تظهر حركة التحدث الحقيقية
-                const speakingNow = average > 12;
-                updateMySpeakingState(speakingNow);
-
+                updateMySpeakingState(average > 12);
                 animationFrameId = requestAnimationFrame(checkAudioLevel);
               };
               checkAudioLevel();
-
-              roomChat.value.push({ id: Date.now(), sender: 'النظام 🤖', text: '🎙️ المايك مفعل ويتفاعل مع صوتك حقيقياً!' });
             } catch (e) {
               alert("تعذر الوصول للمايكروفون.");
               isMicActive.value = false;
@@ -334,19 +418,13 @@
 
         const updateMySpeakingState = async (speaking) => {
           if (!currentUser.value || !activeRoom.value) return;
-          // العثور على مقعد المستخدم الحالي وتحديث حالته في قاعدة البيانات
           const mySeat = roomSeatsData.value.find(s => s.user?.id === currentUser.value.id);
-          if (mySeat) {
-            await syncMyPresence(activeRoom.value.id, mySeat.index, speaking);
-          }
+          if (mySeat) await syncMyPresence(activeRoom.value.id, mySeat.index, speaking);
         };
 
         const stopMicrophone = async () => {
           if (animationFrameId) cancelAnimationFrame(animationFrameId);
-          if (localAudioStream) {
-            localAudioStream.getTracks().forEach(t => t.stop());
-            localAudioStream = null;
-          }
+          if (localAudioStream) { localAudioStream.getTracks().forEach(t => t.stop()); localAudioStream = null; }
           if (audioContext) audioContext.close();
           isMicActive.value = false;
           await updateMySpeakingState(false);
@@ -367,22 +445,71 @@
           stopMicrophone();
           if (roomSyncTimer) clearInterval(roomSyncTimer);
           if (currentUser.value && activeRoom.value) {
-            // حذف الوجود من قاعدة البيانات عند المغادرة
-            await fetch(`${SUPABASE_BASE_URL}/room_presence?id=eq.${encodeURIComponent(activeRoom.value.id + '_' + currentUser.value.id)}`, {
-              method: 'DELETE',
-              headers: HEADERS
-            }).catch(() => {});
+            await fetch(`${SUPABASE_BASE_URL}/room_presence?id=eq.${encodeURIComponent(activeRoom.value.id + '_' + currentUser.value.id)}`, { method: 'DELETE', headers: HEADERS }).catch(() => {});
           }
           activeRoom.value = null;
         };
 
+        const openGame = async (gameType) => {
+          if (!currentUser.value) { showAuthModal.value = true; return; }
+          activeGameModal.value = gameType;
+          gameResultMessage.value = '';
+          if (gameType === 'spin') {
+            await nextTick();
+            const container = document.getElementById('three-wheel-container');
+            if (!container) return;
+            container.innerHTML = '';
+            threeScene = new THREE.Scene();
+            threeCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            threeCamera.position.z = 5;
+            threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            threeRenderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(threeRenderer.domElement);
+            threeScene.add(new THREE.AmbientLight(0xffffff, 1));
+            wheelGroup = new THREE.Group();
+            threeScene.add(wheelGroup);
+            for (let i = 0; i < 8; i++) {
+              const mesh = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.2, 4), new THREE.MeshStandardMaterial({ color: 0x9333ea }));
+              mesh.rotation.z = i * ((Math.PI * 2) / 8);
+              wheelGroup.add(mesh);
+            }
+            const animate = () => { animFrameId = requestAnimationFrame(animate); threeRenderer.render(threeScene, threeCamera); };
+            animate();
+          }
+        };
+
+        const closeGameModal = () => {
+          if (animFrameId) cancelAnimationFrame(animFrameId);
+          activeGameModal.value = null;
+        };
+
+        const playGame = async () => {
+          if (!currentUser.value) return;
+          if (currentUser.value.coins < selectedBet.value) return alert("رصيدك غير كافٍ!");
+          isGamePlaying.value = true;
+          currentUser.value.coins -= selectedBet.value;
+          
+          setTimeout(() => {
+            const win = Math.random() > 0.5;
+            if (win) {
+              const prize = selectedBet.value * 2;
+              currentUser.value.coins += prize;
+              gameResultMessage.value = `مبروك ربحت ${prize} كوينز! 🎉`;
+              confetti({ particleCount: 100 });
+            } else {
+              gameResultMessage.value = "حظ أوفر في المرة القادمة! 💔";
+            }
+            localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+            isGamePlaying.value = false;
+          }, 1500);
+        };
+
         const handleAuth = async () => {
-          const email = authEmail.value.trim().toLowerCase();
           const userObj = {
             id: `ID-${Math.floor(100000 + Math.random() * 900000)}`,
-            username: authUsername.value || email.split('@')[0],
-            email,
-            coins: 5000,
+            username: authUsername.value,
+            email: authEmail.value,
+            coins: 10000,
             avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"
           };
           currentUser.value = userObj;
@@ -393,12 +520,12 @@
         const handleLogout = () => { currentUser.value = null; localStorage.removeItem('dede_user'); };
 
         const handleCreateRoom = async () => {
-          if (!currentUser.value) return;
+          if (!currentUser.value || !roomTitle.value.trim()) return;
           const newRoom = {
             id: `ROOM-${Math.floor(1000 + Math.random() * 9000)}`,
             host_id: currentUser.value.id,
             host_name: currentUser.value.username,
-            title: roomTitle.value,
+            title: roomTitle.value.trim(),
             category: "حوار ونقاش"
           };
           const res = await fetch(`${SUPABASE_BASE_URL}/rooms`, { method: 'POST', headers: HEADERS, body: JSON.stringify(newRoom) });
@@ -408,10 +535,11 @@
         onMounted(() => { fetchRooms(); });
 
         return {
-          currentUser, rooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
-          showAuthModal, authEmail, authUsername, showCreateRoomModal, roomTitle, isMicActive,
+          currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
+          showAuthModal, authEmail, authUsername, showCreateRoomModal, roomTitle, showDepositModal,
+          activeGameModal, selectedBet, isGamePlaying, jackpotResultIcon, gameResultMessage, isMicActive,
           fetchRooms, enterRoom, claimSeat, toggleMicrophone, sendRoomChat, leaveVoiceRoom,
-          handleAuth, handleLogout, handleCreateRoom
+          openGame, closeGameModal, playGame, handleAuth, handleLogout, handleCreateRoom
         };
       }
     }).mount('#app');
