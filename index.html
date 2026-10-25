@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <!-- مكتبة Supabase الرسمية -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- مكتبة ZEGOCLOUD الصوتية الرسمية للويب (محدثة ومستقرة) -->
+  <!-- مكتبة ZEGOCLOUD الصوتية الرسمية للويب -->
   <script src="https://unpkg.com/zego-express-engine-webrtc/index.js"></script>
 
   <style>
@@ -161,10 +161,9 @@
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-purple-500/30 mb-1 inline-block">{{ activeRoom.category }}</span>
             <h2 class="text-xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ النظام الصوتي متصل</span></p>
+            <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🎙️ نظام الصوت متصل</span></p>
           </div>
           <div class="flex items-center gap-2">
-            <!-- أزرار التحكم بالمايك -->
             <button v-if="isMicOn" @click="toggleMic(false)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🔇 كتم المايك</button>
             <button v-else @click="toggleMic(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md">🎙️ فتح المايك</button>
             <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">← خروج</button>
@@ -414,7 +413,7 @@
                   </div>
                 </div>
                 <form @submit.prevent="sendPrivateMessage" class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
-                  <input type="text" v-model="privateMsgInput" placeholder="اكتب رسالتك..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+                  <input type="text" v-model="privateMsgInput" placeholder="اكتب رسالتك..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-purple-500" />
                   <button type="submit" class="bg-purple-600 hover:bg-purple-500 font-bold px-4 py-2 rounded-xl transition-all">إرسال</button>
                 </form>
               </template>
@@ -659,13 +658,16 @@
         const toggleMic = async (turnOn) => {
           if (!currentUser.value) return alert("سجل الدخول أولاً!");
           try {
+            if (!zegoClient && activeRoom.value) {
+              await initZegoEngine(activeRoom.value.id);
+            }
+
             if (!zegoClient) {
               alert("نظام الصوت لم يتصل بعد بالروم، يرجى إعادة دخول الروم.");
               return;
             }
 
             if (turnOn) {
-              // طلب إذن المايك صراحة من المتصفح أولاً
               await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
               localStream = await zegoClient.createZegoStream({ camera: { audio: true, video: false } });
