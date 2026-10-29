@@ -72,13 +72,56 @@
       </div>
     </div>
 
-    <!-- رسالة التنبيه العامة (الشرق الأوسط / الكازينو / إنشاء غرفة) -->
+    <!-- رسالة التنبيه العامة (الكازينو الخارجي) -->
     <div v-if="generalAlertMsg" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-purple-500/50 p-8 rounded-3xl max-w-md w-full text-center shadow-2xl slide-down">
         <div class="w-16 h-16 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 font-black">⚠️</div>
         <h3 class="text-xl font-black text-white mb-3">تنبيه النظام</h3>
         <p class="text-sm text-slate-200 mb-6 leading-relaxed font-medium">{{ generalAlertMsg }}</p>
         <button @click="generalAlertMsg = null" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold py-3.5 rounded-2xl transition-all shadow-lg">حسناً</button>
+      </div>
+    </div>
+
+    <!-- نافذة إنشاء روم صوتي جديدة -->
+    <div v-if="showCreateRoomModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[120] flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-purple-500/40 p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl text-right">
+        <button @click="showCreateRoomModal = false" class="absolute top-6 left-6 text-slate-400 hover:text-white text-lg">✕</button>
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-2xl">🎙️</div>
+          <div>
+            <h3 class="text-lg font-black text-white">إنشاء روم صوتي جديد</h3>
+            <p class="text-xs text-purple-400 font-bold mt-1">ابدأ غرفتك الخاصة واجعل الآخرين ينضمون إليك</p>
+          </div>
+        </div>
+        <form @submit.prevent="handleCreateRoom" class="space-y-4 text-xs sm:text-sm">
+          <div>
+            <label class="font-bold text-slate-200 block mb-1.5">عنوان الروم</label>
+            <input type="text" v-model="newRoomTitle" required placeholder="مثال: سهرة طرب وسوالف..." class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-200 block mb-1.5">الفئة / التصنيف</label>
+            <select v-model="newRoomCategory" class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold outline-none">
+              <option value="عامة ودردشة">عامة ودردشة</option>
+              <option value="جلسات موسيقية">جلسات موسيقية</option>
+              <option value="نقاشات وأفكار">نقاشات وأفكار</option>
+              <option value="VIP دولية">VIP دولية</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-200 block mb-1.5">عدد المقاعد الصوتية</label>
+            <select v-model.number="newRoomSeats" class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold outline-none">
+              <option :value="4">4 مقاعد</option>
+              <option :value="8">8 مقاعد</option>
+              <option :value="12">12 مقعداً</option>
+              <option :value="16">16 مقعداً</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-200 block mb-1.5">رابط صورة الغلاف (اختياري)</label>
+            <input type="url" v-model="newRoomCover" placeholder="https://..." class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-medium" />
+          </div>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg mt-2">إنشاء الروم الآن 🚀</button>
+        </form>
       </div>
     </div>
 
@@ -159,7 +202,7 @@
             <button @click="openSocialModal" :class="['relative bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
               <span>💬 الرسائل</span> <span v-if="totalUnreadCount > 0" class="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce font-bold">{{ totalUnreadCount }}</span>
             </button>
-            <button @click="triggerMiddleEastAlert" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-purple-600/20">➕ روم</button>
+            <button @click="openCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-purple-600/20">➕ فتح روم</button>
             
             <div class="flex items-center gap-3 bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700/60 shadow-xl">
               <img :src="currentUser.avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
@@ -303,7 +346,7 @@
               <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base px-7 py-4 rounded-2xl shadow-xl whitespace-nowrap transition-all">
                 💳 طلب شحن رصيد
               </button>
-              <button v-if="currentUser" @click="triggerMiddleEastAlert" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-sm sm:text-base px-7 py-4 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
+              <button v-if="currentUser" @click="openCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-sm sm:text-base px-7 py-4 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
                 🎙️ فتح روم صوتي
               </button>
             </div>
@@ -337,9 +380,9 @@
               <p class="text-xs sm:text-sm text-slate-300 font-medium">اضغط لعرض الملفات والتقارير الاحترافية الشاملة</p>
             </div>
 
-            <div @click="triggerMiddleEastAlert" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-6 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
+            <div @click="openCreateRoomModal = true" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-6 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
               <div class="w-14 h-14 bg-pink-500/20 text-pink-400 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 font-black">🌍</div>
-              <h4 class="text-base font-black text-white mb-2">الغرف العالمية الصوتية (اختر بلدك )</h4>
+              <h4 class="text-base font-black text-white mb-2">الغرف العالمية الصوتية (أنشئ رومك الآن)</h4>
               <p class="text-xs sm:text-sm text-slate-300 font-medium">English, Français & Western Rooms (VIP)</p>
             </div>
 
@@ -427,7 +470,7 @@
               </div>
               <div class="p-4 bg-slate-900 flex justify-between items-center text-xs sm:text-sm border-t border-slate-800">
                 <span class="text-slate-300 font-bold">🎙️ مقاعد الروم: {{ room.max_seats || 8 }}</span>
-                <button @click="triggerMiddleEastAlert" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4.5 py-2 rounded-xl transition-all shadow-md">دخول الروم ←</button>
+                <button @click="enterRoom(room)" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4.5 py-2 rounded-xl transition-all shadow-md">دخول الروم ←</button>
               </div>
             </div>
           </div>
@@ -717,6 +760,13 @@
         const roomChatInput = ref('');
         let currentRoomChannel = null;
 
+        // متغيرات إنشاء الروم الجديدة
+        const showCreateRoomModal = ref(false);
+        const newRoomTitle = ref('');
+        const newRoomCategory = ref('عامة ودردشة');
+        const newRoomSeats = ref(8);
+        const newRoomCover = ref('');
+
         const localStream = ref(null);
         const peerConnections = ref({});
         const isMicMuted = ref(false);
@@ -905,7 +955,7 @@
         const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
 
         const triggerMiddleEastAlert = () => {
-          generalAlertMsg.value = "غير متوفر حاليا جاري تفعيل الموقع للمستخدمين في الشرق الاوسط";
+          generalAlertMsg.value = "يرجى تسجيل الدخول وإنشاء روم مباشر خاص بك عبر زر فتح روم في الأعلى!";
         };
 
         const openFakeFile = () => {
@@ -924,6 +974,48 @@
             const res = await fetch(`${SUPABASE_BASE_URL}/rooms?select=*`, { headers: HEADERS });
             if (res.ok) rooms.value = await res.json();
           } catch (e) {} finally { loadingRooms.value = false; }
+        };
+
+        // دالة إنشاء الروم الفعلي وإضافته لقاعدة بيانات Supabase
+        const handleCreateRoom = async () => {
+          if (!currentUser.value) {
+            showCreateRoomModal.value = false;
+            showAuthModal.value = true;
+            return;
+          }
+          if (!newRoomTitle.value.trim()) return;
+
+          const roomId = `room_${Math.random().toString(36.substring(2, 9))}`;
+          const newRoomObj = {
+            id: roomId,
+            title: newRoomTitle.value.trim(),
+            category: newRoomCategory.value,
+            max_seats: newRoomSeats.value,
+            host_id: currentUser.value.id,
+            host_name: currentUser.value.username,
+            host_avatar: currentUser.value.avatar,
+            cover_image: newRoomCover.value.trim() || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"
+          };
+
+          try {
+            const res = await fetch(`${SUPABASE_BASE_URL}/rooms`, {
+              method: 'POST',
+              headers: HEADERS,
+              body: JSON.stringify(newRoomObj)
+            });
+
+            if (res.ok) {
+              showCreateRoomModal.value = false;
+              newRoomTitle.value = '';
+              newRoomCover.value = '';
+              await fetchRooms();
+              enterRoom(newRoomObj);
+            } else {
+              alert("تعذر إنشاء الروم في قاعدة البيانات.");
+            }
+          } catch (err) {
+            alert("حدث خطأ أثناء الاتصال بقاعدة البيانات.");
+          }
         };
 
         const fetchAdminDeposits = async () => {
@@ -1368,7 +1460,6 @@
         };
 
         const handleAuth = async () => {
-          // تشغيل الأغنية فور الضغط على زر الدخول أو إنشاء الحساب لتجاوز قيود المتصفح
           const music = document.getElementById('bg-music');
           if (music) {
             music.play().catch(e => console.log("Audio play error:", e));
@@ -1475,6 +1566,7 @@
           isMicMuted, isSpeakerMuted, speakingUsers, toggleMic, toggleSpeaker,
           generalAlertMsg, showFakeFileModal, currentLanguage, fakeCasinoGames, fakeActiveLadies,
           globalManagersList, liveWinningTicker,
+          showCreateRoomModal, newRoomTitle, newRoomCategory, newRoomSeats, newRoomCover, handleCreateRoom,
           triggerMiddleEastAlert, openFakeFile, redirectToWhatsApp,
           fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout,
           openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
