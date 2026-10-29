@@ -721,6 +721,7 @@
     createApp({
       setup() {
         const AGORA_APP_ID = "56b142882c364c5aa9e4a219c9c98b04"; // تم إضافة الـ App ID الخاص بك هنا
+        const AGORA_TOKEN = "007eJxTYOjt5fgu7Rlmuczs5pEph2aYSm55zrjy+IXzyXP5hCc1b9NTYDA1SzI0MbKwMEo2NjNJNk1MtEw1STQytEwGQoskA5PLex9nNQQyMkzUO83ExMAIhiA+I4MhAwMTnMvCYGhgYAgA2qogDA=="; // التوكن الخاص بك
         const SUPABASE_URL_HOST = "https://yhsehpcosswgehonzzcq.supabase.co";
         const SUPABASE_BASE_URL = `${SUPABASE_URL_HOST}/rest/v1`;
         const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
@@ -891,13 +892,13 @@
           }
         };
 
-        // الربط الصوتي أوتوماتيكياً عبر Agora SDK
+        // الربط الصوتي أوتوماتيكياً عبر Agora SDK مع التوكن المرفق
         const initAgoraAudio = async (channelName) => {
           try {
             agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
             
-            // الانضمام لقناة الصوت في أجورا
-            await agoraClient.join(AGORA_APP_ID, channelName, null, null);
+            // الانضمام لقناة الصوت في أجورا بـ App ID والـ Token المرفق
+            await agoraClient.join(AGORA_APP_ID, channelName, AGORA_TOKEN, null);
 
             // تفعيل المايك للعميل ونشره
             localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
