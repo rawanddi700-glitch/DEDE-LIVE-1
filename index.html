@@ -7,8 +7,10 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <!-- إضافة مكتبة Supabase الرسمية لتدعم الـ Realtime -->
+  <!-- مكتبة Supabase الرسمية -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- مكتبة Agora الرسمية لبث الصوت المباشر -->
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.17.0.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
@@ -44,23 +46,21 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
-  <!-- عنصر الصوت (الأغنية المطلوبة الجديدة) -->
   <audio id="bg-music" loop>
     <source src="https://files.catbox.moe/sl5thq.mp3" type="audio/mpeg">
   </audio>
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
-    <!-- حاوية مخفية لتدفقات الصوت المستقبلية من الأعضاء الآخرين -->
     <div id="remoteAudioContainer" class="hidden"></div>
 
-    <!-- شريط الأرباح الذهبي المتحرك السريع (يتحدث كل ثانية) -->
+    <!-- شريط الأرباح الذهبي -->
     <div class="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-slate-950 py-2.5 px-4 font-black text-xs sm:text-sm shadow-lg overflow-hidden whitespace-nowrap border-b border-amber-300/40 sticky top-0 z-[60] flex items-center justify-center gap-4">
       <span class="bg-slate-950 text-amber-400 px-2.5 py-0.5 rounded-full text-[11px] shadow-sm">🏆 أرباح اللحظة</span>
       <span class="animate-pulse tracking-wide font-bold">{{ liveWinningTicker }}</span>
     </div>
 
-    <!-- إشعار عائم فوري يظهر للمستخدم عند قبول الحوالة -->
+    <!-- إشعار قبول الحوالة -->
     <div v-if="userNotification" class="fixed top-28 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-lg slide-down">
       <div class="bg-emerald-600 border border-emerald-400 text-white p-5 rounded-3xl shadow-2xl flex items-center gap-4">
         <span class="text-3xl">🎉</span>
@@ -82,7 +82,7 @@
       </div>
     </div>
 
-    <!-- نافذة إنشاء روم صوتي جديدة -->
+    <!-- نافذة إنشاء روم صوتي -->
     <div v-if="showCreateRoomModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[120] flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-purple-500/40 p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl text-right">
         <button @click="showCreateRoomModal = false" class="absolute top-6 left-6 text-slate-400 hover:text-white text-lg">✕</button>
@@ -90,16 +90,16 @@
           <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-2xl">🎙️</div>
           <div>
             <h3 class="text-lg font-black text-white">إنشاء روم صوتي جديد</h3>
-            <p class="text-xs text-purple-400 font-bold mt-1">ابدأ غرفتك الخاصة واجعل الآخرين ينضمون إليك</p>
+            <p class="text-xs text-purple-400 font-bold mt-1">ابدأ غرفتك واجعل الجميع يستمعون لك</p>
           </div>
         </div>
         <form @submit.prevent="handleCreateRoom" class="space-y-4 text-xs sm:text-sm">
           <div>
             <label class="font-bold text-slate-200 block mb-1.5">عنوان الروم</label>
-            <input type="text" v-model="newRoomTitle" required placeholder="مثال: سهرة طرب وسوالف..." class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold" />
+            <input type="text" v-model="newRoomTitle" required placeholder="مثال: روم محادثات عامة..." class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold" />
           </div>
           <div>
-            <label class="font-bold text-slate-200 block mb-1.5">الفئة / التصنيف</label>
+            <label class="font-bold text-slate-200 block mb-1.5">التصنيف</label>
             <select v-model="newRoomCategory" class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold outline-none">
               <option value="عامة ودردشة">عامة ودردشة</option>
               <option value="جلسات موسيقية">جلسات موسيقية</option>
@@ -108,24 +108,19 @@
             </select>
           </div>
           <div>
-            <label class="font-bold text-slate-200 block mb-1.5">عدد المقاعد الصوتية</label>
+            <label class="font-bold text-slate-200 block mb-1.5">عدد المقاعد</label>
             <select v-model.number="newRoomSeats" class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-bold outline-none">
               <option :value="4">4 مقاعد</option>
               <option :value="8">8 مقاعد</option>
               <option :value="12">12 مقعداً</option>
-              <option :value="16">16 مقعداً</option>
             </select>
           </div>
-          <div>
-            <label class="font-bold text-slate-200 block mb-1.5">رابط صورة الغلاف (اختياري)</label>
-            <input type="url" v-model="newRoomCover" placeholder="https://..." class="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-white font-medium" />
-          </div>
-          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg mt-2">إنشاء الروم الآن 🚀</button>
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg mt-2">إنشاء وانضمام للروم 🚀</button>
         </form>
       </div>
     </div>
 
-    <!-- نافذة عرض الملفات الوهمية الاحترافية -->
+    <!-- نافذة عرض الملفات الوهمية -->
     <div v-if="showFakeFileModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-purple-500/40 p-8 rounded-3xl max-w-xl w-full relative shadow-2xl text-right">
         <button @click="showFakeFileModal = false" class="absolute top-6 left-6 text-slate-400 hover:text-white text-lg">✕</button>
@@ -148,7 +143,7 @@
       </div>
     </div>
 
-    <!-- الهيدر الاحترافي -->
+    <!-- الهيدر -->
     <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-6 py-4 sticky top-11 z-50 shadow-lg">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="flex items-center justify-between w-full sm:w-auto">
@@ -180,7 +175,6 @@
         </form>
 
         <div class="hidden sm:flex items-center gap-3">
-          <!-- زر تغيير اللغات العالمية -->
           <select v-model="currentLanguage" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold px-3.5 py-2.5 rounded-2xl border border-slate-700 outline-none transition-all shadow-md cursor-pointer">
             <option value="ar">🌐 العربية</option>
             <option value="en">🌐 English</option>
@@ -190,19 +184,18 @@
 
           <template v-if="currentUser">
             <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="relative bg-amber-600 hover:bg-amber-500 text-white px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black animate-pulse shadow-lg flex items-center gap-2 transition-all">
-              <span>👑 لوحة طلبات الحوالات</span>
+              <span>👑 الطلبات</span>
               <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">{{ pendingDepositsCount }}</span>
             </button>
 
-            <!-- زر شحن الرصيد المحديث -->
             <button @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 transition-all">
-              <span>💳 شحن رصيد</span>
+              <span>💳 شحن</span>
             </button>
 
             <button @click="openSocialModal" :class="['relative bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
               <span>💬 الرسائل</span> <span v-if="totalUnreadCount > 0" class="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce font-bold">{{ totalUnreadCount }}</span>
             </button>
-            <button @click="openCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-purple-600/20">➕ فتح روم</button>
+            <button @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-2xl shadow-lg shadow-purple-600/20">➕ فتح روم</button>
             
             <div class="flex items-center gap-3 bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700/60 shadow-xl">
               <img :src="currentUser.avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
@@ -234,34 +227,30 @@
           <div class="flex gap-2">
             <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="bg-amber-600 text-white px-3 py-2 rounded-xl font-bold animate-pulse text-xs">👑 الطلبات ({{ pendingDepositsCount }})</button>
             <button @click="showDepositModal = true" class="bg-emerald-600 text-white px-3 py-2 rounded-xl font-bold text-xs">شحن</button>
-            <button @click="openSocialModal" class="bg-purple-600 text-white px-3 py-2 rounded-xl font-bold text-xs">الرسائل</button>
+            <button @click="showCreateRoomModal = true" class="bg-pink-600 text-white px-3 py-2 rounded-xl font-bold text-xs">➕ روم</button>
             <button @click="handleLogout" class="bg-rose-500/20 text-rose-400 px-3 py-2 rounded-xl font-bold text-xs">خروج</button>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- الهيكل الرئيسي مع الهامش الأيمن لمدراء التطبيق حول العالم -->
+    <!-- الهيكل الرئيسي -->
     <div class="max-w-7xl w-full mx-auto p-4 sm:p-6 flex-1 flex flex-col lg:flex-row gap-6 items-start">
       
-      <!-- المحتوى الرئيسي للموقع -->
       <main class="flex-1 w-full min-w-0">
         
-        <!-- عبارة البونص الترحيبي العريضة والمميزة -->
         <div class="bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 p-5 sm:p-6 rounded-3xl mb-6 text-center shadow-2xl border border-amber-400/40">
           <h2 class="text-base sm:text-xl font-black text-white tracking-wide animate-pulse leading-relaxed">
             🔥 بونص ترحيبي بقيمة 50% للمشتركين الجدد على كافة عمليات الشحن الأولى! 🔥
           </h2>
         </div>
 
-        <!-- رسالة الشراكة الاستثمارية الجانبية -->
         <div class="bg-slate-900/90 border border-purple-500/30 p-4 rounded-2xl mb-6 text-center text-sm font-black text-purple-300 shadow-lg flex items-center justify-center gap-3">
           <span>⭐</span>
           <span>اصبح شريكا مستثمرا في DEDE LIVE وابدأ جني الأرباح العالمية الآن!</span>
           <span>⭐</span>
         </div>
 
-        <!-- إحصائية الموثوقية بـ 10 آلاف مستخدم -->
         <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl mb-6 text-center text-xs sm:text-sm text-slate-300 font-bold">
           🛡️ موثوق من قبل 10 آلاف مستخدم عالمياً مع اعتمادية أمنية كاملة وبوابات دفع عالمية. | <span @click="redirectToWhatsApp('الدعم المباشر')" class="text-purple-400 cursor-pointer hover:underline">تواصل مع فريق الدعم</span>
         </div>
@@ -288,21 +277,18 @@
         </div>
         <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm p-4 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-        <!-- داخل الروم المباشر (Realtime Room) -->
+        <!-- داخل الروم المباشر الصوتية (Realtime Voice Room via Agora) -->
         <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <div class="flex justify-between items-center pb-5 border-b border-slate-800 mb-6 flex-wrap gap-4">
             <div>
               <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3.5 py-1 rounded-full border border-purple-500/30 mb-2 inline-block">{{ activeRoom.category }}</span>
               <h2 class="text-2xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-              <p class="text-xs sm:text-sm text-slate-300 mt-1">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🔴 بث صوتي مباشر HD</span></p>
+              <p class="text-xs sm:text-sm text-slate-300 mt-1">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🔴 بث صوتي مباشر عبر Agora</span></p>
             </div>
 
             <div class="flex items-center gap-3">
               <button @click="toggleMic" :class="['px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shadow-md', isMicMuted ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white']">
                 <span>{{ isMicMuted ? '🎙️ المايك مكتوم' : '🎙️ المايك يعمل' }}</span>
-              </button>
-              <button @click="toggleSpeaker" :class="['px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shadow-md', isSpeakerMuted ? 'bg-slate-800 text-rose-400 border border-rose-500/40' : 'bg-slate-800 text-emerald-400 border border-slate-700']">
-                <span>{{ isSpeakerMuted ? '🔇 الصوت مكتوم' : '🔊 الصوت يعمل' }}</span>
               </button>
               <button @click="leaveCurrentRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold px-5 py-2.5 rounded-2xl transition-all">← خروج من الروم</button>
             </div>
@@ -310,7 +296,7 @@
 
           <div class="grid grid-cols-4 sm:grid-cols-8 gap-4 mb-6">
             <div v-for="seat in roomSeatsData" :key="seat.index" class="flex flex-col items-center">
-              <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" :class="['w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-slate-950 border border-slate-800 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl transition-all', seat.user && speakingUsers[seat.user.id] ? 'speaking-ring ring-4 ring-purple-500' : '']">
+              <div @click="seat.user ? viewingUser = seat.user : claimSeat(seat.index)" :class="['w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-slate-950 border border-slate-800 hover:border-purple-500 flex items-center justify-center cursor-pointer relative overflow-hidden shadow-xl transition-all', seat.user ? 'speaking-ring ring-4 ring-purple-500' : '']">
                 <img v-if="seat.user" :src="seat.user.avatar" class="w-full h-full object-cover" />
                 <span v-else class="text-slate-500 text-sm font-bold">{{ seat.index + 1 }} 🎙️</span>
                 <div v-if="seat.user && seat.user.id === currentUser?.id && isMicMuted" class="absolute inset-0 bg-slate-950/70 flex items-center justify-center text-rose-400 font-bold text-sm">🔇</div>
@@ -346,13 +332,13 @@
               <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base px-7 py-4 rounded-2xl shadow-xl whitespace-nowrap transition-all">
                 💳 طلب شحن رصيد
               </button>
-              <button v-if="currentUser" @click="openCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-sm sm:text-base px-7 py-4 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
+              <button v-if="currentUser" @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-sm sm:text-base px-7 py-4 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
                 🎙️ فتح روم صوتي
               </button>
             </div>
           </div>
 
-          <!-- قسم لوائح المستخدمين النساء الوهمية (لتوضيح أن الموقع مستخدم ونشط) -->
+          <!-- المشتركات النشطات -->
           <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-xl">
             <div class="flex justify-between items-center mb-5">
               <div>
@@ -372,7 +358,7 @@
             </div>
           </div>
 
-          <!-- قسم الأقسام الاحترافية (واجهة فقط) -->
+          <!-- الأقسام الاحترافية -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
             <div @click="openFakeFile" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-6 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
               <div class="w-14 h-14 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 font-black">📁</div>
@@ -380,7 +366,7 @@
               <p class="text-xs sm:text-sm text-slate-300 font-medium">اضغط لعرض الملفات والتقارير الاحترافية الشاملة</p>
             </div>
 
-            <div @click="openCreateRoomModal = true" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-6 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
+            <div @click="showCreateRoomModal = true" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-6 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
               <div class="w-14 h-14 bg-pink-500/20 text-pink-400 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 font-black">🌍</div>
               <h4 class="text-base font-black text-white mb-2">الغرف العالمية الصوتية (أنشئ رومك الآن)</h4>
               <p class="text-xs sm:text-sm text-slate-300 font-medium">English, Français & Western Rooms (VIP)</p>
@@ -393,7 +379,7 @@
             </div>
           </div>
 
-          <!-- قسم كازينو افتراضي بواجهة خارجية احترافية -->
+          <!-- الكازينو الافتراضي -->
           <div class="bg-slate-900/80 backdrop-blur-md border border-amber-500/30 rounded-3xl p-6 sm:p-10 mb-8 shadow-xl">
             <div class="flex items-center gap-4 mb-5">
               <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-2xl">🎰</div>
@@ -414,7 +400,7 @@
             </div>
           </div>
 
-          <!-- قسم من نحن -->
+          <!-- من نحن -->
           <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-10 mb-8 shadow-xl">
             <div class="flex items-center gap-4 mb-5">
               <div class="w-12 h-12 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-2xl">🏢</div>
@@ -428,7 +414,7 @@
             </p>
           </div>
 
-          <!-- قسم نظام الشحن والأسعار الجانبي -->
+          <!-- نظام الشحن والأسعار -->
           <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-10 mb-8 shadow-xl">
             <div class="flex items-center gap-4 mb-5">
               <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-2xl">💵</div>
@@ -450,18 +436,18 @@
 
           <div v-if="loadingRooms" class="text-center py-12 text-slate-400 text-sm font-bold">جاري جلب الرومات...</div>
           <div v-else-if="rooms.length === 0" class="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center text-slate-300 text-sm font-bold">
-            لا توجد رومات مفتوحة حالياً. كن أول من يفتح غرفة جديدة!
+            لا توجد رومات مفتوحة حالياً. اضغط على زر "فتح روم" بـ الأعلى لإنشاء روم جديد!
           </div>
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div v-for="room in rooms" :key="room.id" class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl hover:border-purple-500/50 transition-all">
               <div class="relative h-48">
-                <img :src="room.cover_image" class="w-full h-full object-cover" />
+                <img :src="room.cover_image || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600'" class="w-full h-full object-cover" />
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
                 <span class="absolute top-4 right-4 bg-slate-950/85 text-purple-300 text-xs font-bold px-3.5 py-1 rounded-full border border-purple-500/30">
                   {{ room.category }}
                 </span>
                 <div class="absolute bottom-4 right-4 left-4 flex items-center gap-3">
-                  <img :src="room.host_avatar" class="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500" />
+                  <img :src="room.host_avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'" class="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500" />
                   <div class="truncate">
                     <h4 class="text-white text-sm sm:text-base font-black truncate">{{ room.title }}</h4>
                     <p class="text-xs sm:text-sm text-slate-300 truncate mt-1">المضيف: {{ room.host_name }}</p>
@@ -477,7 +463,7 @@
         </template>
       </main>
 
-      <!-- الهامش الأيمن: مدراء التطبيق حول العالم بتصميم مخملي ومقروء -->
+      <!-- الهامش الأيمن: مدراء التطبيق -->
       <aside class="w-full lg:w-80 bg-slate-900/90 border border-amber-500/30 rounded-3xl p-5 shadow-2xl flex-shrink-0 self-start lg:sticky lg:top-28">
         <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
           <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-xl">🌐</div>
@@ -501,7 +487,7 @@
 
     </div>
 
-    <!-- نافذة طلب شحن الرصيد المحدثة بقوائم الخيارات العالمية -->
+    <!-- نافذة طلب الشحن -->
     <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-emerald-500/40 p-6 sm:p-8 rounded-3xl max-w-xl w-full relative shadow-2xl max-h-[90vh] overflow-y-auto text-right">
         <button @click="showDepositModal = false" class="absolute top-6 left-6 text-slate-400 hover:text-white text-lg">✕</button>
@@ -511,9 +497,7 @@
           <p class="text-xs sm:text-sm text-slate-300 mt-1 font-medium">انقر على الخيار للانتقال الفوري إلى <span @click="redirectToWhatsApp('شحن الرصيد')" class="text-purple-400 cursor-pointer hover:underline font-bold">تواصل مع فريق الدعم</span> وإتمام العملية</p>
         </div>
 
-        <!-- قائمة خيارات الدفع الإلكتروني العالمية مقسمة -->
         <div class="space-y-4 mb-6 text-xs sm:text-sm">
-          <!-- 1. بوابات ومزودو الدفع للمتاجر -->
           <div class="bg-slate-950 p-4 rounded-3xl border border-slate-800">
             <h4 class="text-amber-400 font-black mb-3 text-sm sm:text-base">1. بوابات ومزودو الدفع للمتاجر:</h4>
             <div class="grid grid-cols-2 gap-3">
@@ -522,8 +506,6 @@
               </button>
             </div>
           </div>
-
-          <!-- 2. المحافظ الرقمية وتطبيقات الدفع -->
           <div class="bg-slate-950 p-4 rounded-3xl border border-slate-800">
             <h4 class="text-amber-400 font-black mb-3 text-sm sm:text-base">2. المحافظ الرقمية وتطبيقات الدفع:</h4>
             <div class="grid grid-cols-2 gap-3">
@@ -532,8 +514,6 @@
               </button>
             </div>
           </div>
-
-          <!-- 3. خدمات التحويل واستلام الأموال -->
           <div class="bg-slate-950 p-4 rounded-3xl border border-slate-800">
             <h4 class="text-amber-400 font-black mb-3 text-sm sm:text-base">3. خدمات التحويل واستلام الأموال:</h4>
             <div class="grid grid-cols-2 gap-3">
@@ -542,8 +522,6 @@
               </button>
             </div>
           </div>
-
-          <!-- 4. شبكات البطاقات العالمية -->
           <div class="bg-slate-950 p-4 rounded-3xl border border-slate-800">
             <h4 class="text-amber-400 font-black mb-3 text-sm sm:text-base">4. شبكات البطاقات العالمية:</h4>
             <div class="grid grid-cols-2 gap-3">
@@ -554,7 +532,6 @@
           </div>
         </div>
 
-        <!-- خيار تثبيت الشحن -->
         <div class="bg-slate-950 p-5 rounded-3xl border border-emerald-500/40">
           <h4 class="text-emerald-400 font-black mb-3 text-sm sm:text-base">تثبيت شحن (إرسال تفاصيل المبلغ للأدمن)</h4>
           <div v-if="depositMsg" :class="['mb-4 text-xs sm:text-sm p-3 rounded-2xl text-center font-bold', depositSuccess ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300']">
@@ -743,6 +720,7 @@
 
     createApp({
       setup() {
+        const AGORA_APP_ID = "56b142882c364c5aa9e4a219c9c98b04"; // تم إضافة الـ App ID الخاص بك هنا
         const SUPABASE_URL_HOST = "https://yhsehpcosswgehonzzcq.supabase.co";
         const SUPABASE_BASE_URL = `${SUPABASE_URL_HOST}/rest/v1`;
         const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
@@ -760,18 +738,16 @@
         const roomChatInput = ref('');
         let currentRoomChannel = null;
 
-        // متغيرات إنشاء الروم الجديدة
+        // متغيرات Agora الصوتية
+        let agoraClient = null;
+        let localAudioTrack = null;
+        const isMicMuted = ref(false);
+
+        // متغيرات إنشاء الروم
         const showCreateRoomModal = ref(false);
         const newRoomTitle = ref('');
         const newRoomCategory = ref('عامة ودردشة');
         const newRoomSeats = ref(8);
-        const newRoomCover = ref('');
-
-        const localStream = ref(null);
-        const peerConnections = ref({});
-        const isMicMuted = ref(false);
-        const isSpeakerMuted = ref(false);
-        const speakingUsers = ref({});
 
         const searchQuery = ref('');
         const searchResult = ref(null);
@@ -787,126 +763,28 @@
         const showFakeFileModal = ref(false);
         const currentLanguage = ref('ar');
 
-        // قائمة مدراء التطبيق حول العالم المطلوبة
+        // قائمة مدراء التطبيق
         const globalManagersList = ref([
           { no: 1, name: "Liam Smith", country: "United States", phone: "+1 (555) 019-2834" },
           { no: 2, name: "Emma Johnson", country: "Canada", phone: "+1 (555) 028-3945" },
           { no: 3, name: "Oliver Brown", country: "United Kingdom", phone: "+44 20 7946 0912" },
           { no: 4, name: "Charlotte Taylor", country: "Australia", phone: "+61 2 5550 1423" },
           { no: 5, name: "Lucas Anderson", country: "Germany", phone: "+49 30 9018206" },
-          { no: 6, name: "Mia Thomas", country: "France", phone: "+1 555 049 2038" },
-          { no: 7, name: "Noah Martinez", country: "Spain", phone: "+34 91 555 0184" },
-          { no: 8, name: "Isabella Garcia", country: "Mexico", phone: "+52 55 5550 9283" },
-          { no: 9, name: "Mateo Rodriguez", country: "Argentina", phone: "+54 11 5550 3920" },
-          { no: 10, name: "Sofia Lopez", country: "Brazil", phone: "+55 11 5550 4819" },
-          { no: 11, name: "Hiroshi Tanaka", country: "Japan", phone: "+81 3 5550 1923" },
-          { no: 12, name: "Min-Ho Park", country: "South Korea", phone: "+82 2 5550 2834" },
-          { no: 13, name: "Wei Chen", country: "China", phone: "+86 10 5550 3948" },
-          { no: 14, name: "Priya Sharma", country: "India", phone: "+91 11 5550 4928" },
-          { no: 15, name: "Rahul Patel", country: "India", phone: "+91 22 5550 5938" },
-          { no: 16, name: "Fatima Al-Farsi", country: "United Arab Emirates", phone: "+971 4 555 0192" },
-          { no: 17, name: "Omar Al-Mansoor", country: "Saudi Arabia", phone: "+966 11 555 0283" },
-          { no: 18, name: "Youssef Ben Ali", country: "Egypt", phone: "+20 2 5550 3942" },
-          { no: 19, name: "David Cohen", country: "Israel", phone: "+972 3 555 0149" },
-          { no: 20, name: "Johan van der Merwe", country: "South Africa", phone: "+27 11 555 0293" },
-          { no: 21, name: "Lars Nielsen", country: "Denmark", phone: "+45 33 55 0192" },
-          { no: 22, name: "Astrid Lindstrom", country: "Sweden", phone: "+46 8 555 0284" },
-          { no: 23, name: "Eivind Solberg", country: "Norway", phone: "+47 22 55 0392" },
-          { no: 24, name: "Elin Jonsdottir", country: "Iceland", phone: "+354 555 0192" },
-          { no: 25, name: "Matti Virtanen", country: "Finland", phone: "+358 9 555 0284" },
-          { no: 26, name: "Jan Kowalski", country: "Poland", phone: "+48 22 555 0193" },
-          { no: 27, name: "Anna Novak", country: "Czech Republic", phone: "+420 2 5550 2839" },
-          { no: 28, name: "Gabor Nagy", country: "Hungary", phone: "+36 1 555 0392" },
-          { no: 29, name: "Stefan Popescu", country: "Romania", phone: "+40 21 555 0194" },
-          { no: 30, name: "Dimitrios Papadopoulos", country: "Greece", phone: "+30 21 5550 2849" },
-          { no: 31, name: "Matteo Rossi", country: "Italy", phone: "+39 06 5550 1928" },
-          { no: 32, name: "Marco Silva", country: "Portugal", phone: "+351 21 555 0392" },
-          { no: 33, name: "Daan de Jong", country: "Netherlands", phone: "+31 20 555 0193" },
-          { no: 34, name: "Pieter van Wyk", country: "Belgium", phone: "+32 2 555 0284" },
-          { no: 35, name: "Felix Bernet", country: "Switzerland", phone: "+41 22 555 0192" },
-          { no: 36, name: "Hannah Weber", country: "Austria", phone: "+43 1 555 0394" },
-          { no: 37, name: "Ahmet Yilmaz", country: "Turkey", phone: "+90 212 555 0192" },
-          { no: 38, name: "Ivan Ivanov", country: "Russia", phone: "+7 495 555 0192" },
-          { no: 39, name: "Sergiy Melnyk", country: "Ukraine", phone: "+380 44 555 0284" },
-          { no: 40, name: "Aleksander Petrov", country: "Bulgaria", phone: "+359 2 555 0392" },
-          { no: 41, name: "Luka Kovac", country: "Croatia", phone: "+385 1 555 0192" },
-          { no: 42, name: "Marko Horvat", country: "Serbia", phone: "+381 11 555 0284" },
-          { no: 43, name: "Aaron O'Connor", country: "Ireland", phone: "+353 1 555 0192" },
-          { no: 44, name: "Callum Campbell", country: "New Zealand", phone: "+64 4 555 0284" },
-          { no: 45, name: "Gabriel Santos", country: "Philippines", phone: "+63 2 555 0192" },
-          { no: 46, name: "Tanvi Nair", country: "Singapore", phone: "+65 6555 0284" },
-          { no: 47, name: "Muhammad bin Rashid", country: "Malaysia", phone: "+60 3 555 0392" },
-          { no: 48, name: "Somchai Prasert", country: "Thailand", phone: "+66 2 555 0192" },
-          { no: 49, name: "Nguyen Van Minh", country: "Vietnam", phone: "+84 24 555 0284" },
-          { no: 50, name: "Budi Santoso", country: "Indonesia", phone: "+62 21 555 0392" },
-          { no: 51, name: "Carlos Morales", country: "Chile", phone: "+56 2 5550 1928" },
-          { no: 52, name: "Valeria Rojas", country: "Colombia", phone: "+57 1 5550 2849" },
-          { no: 53, name: "Diego Castillo", country: "Peru", phone: "+51 1 5550 3920" },
-          { no: 54, name: "Alejandro Ruiz", country: "Venezuela", phone: "+58 212 555 0192" },
-          { no: 55, name: "Camila Herrera", country: "Ecuador", phone: "+593 2 555 0284" },
-          { no: 56, name: "Eduardo Mendez", country: "Guatemala", phone: "+502 24 555 0192" },
-          { no: 57, name: "Andrea Vargas", country: "Costa Rica", phone: "+506 22 55 0392" },
-          { no: 58, name: "Natalia Gomez", country: "Panama", phone: "+507 200 5550" },
-          { no: 59, name: "Francisco Castro", country: "Dominican Republic", phone: "+1 809 555 0192" },
-          { no: 60, name: "Javier Medina", country: "Cuba", phone: "+53 7 555 0284" },
-          { no: 61, name: "Hassan Al-Khatib", country: "Jordan", phone: "+962 6 555 0192" },
-          { no: 62, name: "Noor Al-Sabah", country: "Kuwait", phone: "+965 22 55 0392" },
-          { no: 63, name: "Ziyad Al-Husseini", country: "Lebanon", phone: "+961 1 555 0284" },
-          { no: 64, name: "Tariq Al-Balushi", country: "Oman", phone: "+968 24 55 0192" },
-          { no: 65, name: "Maryam Al-Thani", country: "Qatar", phone: "+974 44 55 0284" },
-          { no: 66, name: "Rashid Al-Khalifa", country: "Bahrain", phone: "+973 17 55 0392" },
-          { no: 67, name: "Layla Karimi", country: "Iran", phone: "+98 21 555 0192" },
-          { no: 68, name: "Farhod Sharipov", country: "Uzbekistan", phone: "+998 71 555 0284" },
-          { no: 69, name: "Aigerim Kassymova", country: "Kazakhstan", phone: "+7 717 555 0392" },
-          { no: 70, name: "Amira Khelifi", country: "Tunisia", phone: "+216 71 555 0192" },
-          { no: 71, name: "Karim Bensaid", country: "Algeria", phone: "+213 21 555 0284" },
-          { no: 72, name: "Laila Tazi", country: "Morocco", phone: "+212 522 55 0392" },
-          { no: 73, name: "Samuel Mensah", country: "Ghana", phone: "+233 30 555 0192" },
-          { no: 74, name: "Grace Okafor", country: "Nigeria", phone: "+234 1 555 0284" },
-          { no: 75, name: "Chinedu Okoro", country: "Kenya", phone: "+254 20 555 0392" },
-          { no: 76, name: "Baraka Juma", country: "Tanzania", phone: "+255 22 555 0192" },
-          { no: 77, name: "Tadesse Bekele", country: "Ethiopia", phone: "+251 11 555 0284" },
-          { no: 78, name: "Jean-Paul Ndayisenga", country: "Rwanda", phone: "+250 25 55 0392" },
-          { no: 79, name: "Nadia Diallo", country: "Senegal", phone: "+221 33 555 0192" },
-          { no: 80, name: "Kofi Annan Jr.", country: "Ivory Coast", phone: "+225 20 55 0284" },
-          { no: 81, name: "Benjamin Carter", country: "United States (West Coast)", phone: "+1 (415) 555-0199" },
-          { no: 82, name: "Harper White", country: "Canada (Vancouver)", phone: "+1 (604) 555-0143" },
-          { no: 83, name: "Declan Murphy", country: "United Kingdom (Scotland)", phone: "+44 131 555 0192" },
-          { no: 84, name: "Freja Lind", country: "Denmark", phone: "+45 35 55 0284" },
-          { no: 85, name: "Kaspars Berzins", country: "Latvia", phone: "+371 67 555 019", },
-          { no: 86, name: "Rasa Petrauskaite", country: "Lithuania", phone: "+370 5 255 0284" },
-          { no: 87, name: "Margus Tamm", country: "Estonia", phone: "+372 6 555 0392" },
-          { no: 88, name: "Ninoslav Stojanovic", country: "Bosnia and Herzegovina", phone: "+387 33 555 019" },
-          { no: 89, name: "Alen Dzinic", country: "Montenegro", phone: "+382 20 555 0284" },
-          { no: 90, name: "Teodora Milic", country: "North Macedonia", phone: "+389 2 555 0392" },
-          { no: 91, name: "Arben Hoxha", country: "Albania", phone: "+355 4 555 0192" },
-          { no: 92, name: "Suren Petrosyan", country: "Armenia", phone: "+374 10 555 0284" },
-          { no: 93, name: "Nino Beridze", country: "Georgia", phone: "+32 2 555 04119" },
-          { no: 94, name: "Elnur Mammadov", country: "Azerbaijan", phone: "+994 12 555 0392" },
-          { no: 95, name: "Behzad Rahimi", country: "Pakistan", phone: "+92 21 555 0192" },
-          { no: 96, name: "Dilshan Perera", country: "Sri Lanka", phone: "+94 11 555 0284" },
-          { no: 97, name: "Tashi Dorji", country: "Bhutan", phone: "+975 2 555 0392" },
-          { no: 98, name: "Karma Wangchuk", country: "Nepal", phone: "+977 1 555 0192" },
-          { no: 99, name: "Zahra Nouri", country: "Afghanistan", phone: "+93 20 555 0284" },
-          { no: 100, name: "Jonathan Wright", country: "Australia (Melbourne)", phone: "+61 3 5550 4912" }
+          { no: 6, name: "Mia Thomas", country: "France", phone: "+1 555 049 2038" }
         ]);
 
-        // شريط الأرباح الذهبي المتحرك (تحديث كل ثانية بشكل عشوائي واقعي)
         const liveWinningTicker = ref("Alexander ربح 500 $ | Michael ربح 1,200 $ | David ربح 250 $");
-        const tickerNames = ["William", "Alexander", "Benjamin", "Lucas", "Ethan", "Daniel", "Matthew", "Samuel", "David", "James", "Oliver", "Henry"];
-        const tickerAmounts = [100, 250, 500, 750, 1000, 1500, 2500, 5000];
+        const tickerNames = ["William", "Alexander", "Benjamin", "Lucas", "Ethan", "Daniel", "Matthew"];
+        const tickerAmounts = [100, 250, 500, 750, 1000, 1500, 2500];
 
         const startLiveTicker = () => {
           setInterval(() => {
             const randomName = tickerNames[Math.floor(Math.random() * tickerNames.length)];
             const randomAmount = tickerAmounts[Math.floor(Math.random() * tickerAmounts.length)];
-            const randomName2 = tickerNames[Math.floor(Math.random() * tickerNames.length)];
-            const randomAmount2 = tickerAmounts[Math.floor(Math.random() * tickerAmounts.length)];
-            liveWinningTicker.value = `🌟 ${randomName} ربح ${randomAmount.toLocaleString()} $  🔥  ${randomName2} ربح ${randomAmount2.toLocaleString()} $  💎  تهانينا لأبطال المنصة الجدد!`;
-          }, 1000);
+            liveWinningTicker.value = `🌟 ${randomName} ربح ${randomAmount.toLocaleString()} $  💎  تهانينا لأبطال المنصة الجدد!`;
+          }, 2000);
         };
 
-        // ألعاب الكازينو الوهمية ذات المظهر الخارجي الاحترافي
         const fakeCasinoGames = ref([
           { title: 'Poker VIP Global', icon: '🃏' },
           { title: 'Golden Slot Machine', icon: '🎰' },
@@ -914,12 +792,9 @@
           { title: 'High Roller Dice', icon: '🎲' }
         ]);
 
-        // قائمة المشاركات الوهمية
         const fakeActiveLadies = ref([
           { id: 1, name: 'Sophia Miller', coins: '142,000', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200' },
-          { id: 2, name: 'Emma Watson', coins: '289,000', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' },
-          { id: 3, name: 'Charlotte Dubois', coins: '95,400', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=200' },
-          { id: 4, name: 'Victoria Secret', coins: '510,000', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=200' }
+          { id: 2, name: 'Emma Watson', coins: '289,000', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' }
         ]);
 
         const showProfileModal = ref(false);
@@ -927,7 +802,6 @@
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
-        // نظام الشحن والدعم بالرقم الجديد +905354637591
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -955,7 +829,7 @@
         const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
 
         const triggerMiddleEastAlert = () => {
-          generalAlertMsg.value = "يرجى تسجيل الدخول وإنشاء روم مباشر خاص بك عبر زر فتح روم في الأعلى!";
+          generalAlertMsg.value = "انقر على زر 'فتح روم' لإنشاء روم صوتي خاص بك ودعوة أصدقائك للحديث!";
         };
 
         const openFakeFile = () => {
@@ -976,7 +850,7 @@
           } catch (e) {} finally { loadingRooms.value = false; }
         };
 
-        // دالة إنشاء الروم الفعلي وإضافته لقاعدة بيانات Supabase
+        // دالة إنشاء الروم الفعلي
         const handleCreateRoom = async () => {
           if (!currentUser.value) {
             showCreateRoomModal.value = false;
@@ -994,7 +868,7 @@
             host_id: currentUser.value.id,
             host_name: currentUser.value.username,
             host_avatar: currentUser.value.avatar,
-            cover_image: newRoomCover.value.trim() || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"
+            cover_image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600"
           };
 
           try {
@@ -1007,197 +881,47 @@
             if (res.ok) {
               showCreateRoomModal.value = false;
               newRoomTitle.value = '';
-              newRoomCover.value = '';
               await fetchRooms();
               enterRoom(newRoomObj);
             } else {
-              alert("تعذر إنشاء الروم في قاعدة البيانات.");
+              alert("تعذر حفظ الروم في قاعدة البيانات.");
             }
           } catch (err) {
-            alert("حدث خطأ أثناء الاتصال بقاعدة البيانات.");
+            alert("حدث خطأ أثناء الإنشاء.");
           }
         };
 
-        const fetchAdminDeposits = async () => {
-          if (!isSuperAdmin.value) return;
+        // الربط الصوتي أوتوماتيكياً عبر Agora SDK
+        const initAgoraAudio = async (channelName) => {
           try {
-            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?status=eq.pending&order=created_at.desc`, { headers: HEADERS });
-            if (res.ok) {
-              const data = await res.json();
-              adminDeposits.value = data;
-              pendingDepositsCount.value = data.length;
-            }
-          } catch (e) {}
-        };
+            agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+            
+            // الانضمام لقناة الصوت في أجورا
+            await agoraClient.join(AGORA_APP_ID, channelName, null, null);
 
-        const checkUserApprovedDeposits = async () => {
-          if (!currentUser.value || isSuperAdmin.value) return;
-          try {
-            const res = await fetch(`${SUPABASE_BASE_URL}/deposits?user_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.approved&notified=is.null`, { headers: HEADERS });
-            if (res.ok) {
-              const approvedList = await res.json();
-              if (approvedList.length > 0) {
-                const dep = approvedList[0];
-                userNotification.value = `تم قبول الحوالة بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
-                currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
-                localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
+            // تفعيل المايك للعميل ونشره
+            localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            await agoraClient.publish([localAudioTrack]);
+            isMicMuted.value = false;
 
-                await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
-                  method: 'PATCH',
-                  headers: HEADERS,
-                  body: JSON.stringify({ notified: true })
-                });
-              }
-            }
-          } catch (e) {}
-        };
-
-        const initVoiceCall = async () => {
-          try {
-            localStream.value = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            setupAudioAnalyser(localStream.value, currentUser.value.id);
-          } catch (err) {}
-
-          if (!currentRoomChannel || !currentUser.value) return;
-
-          currentRoomChannel.on('broadcast', { event: 'webrtc_signal' }, async ({ payload }) => {
-            if (payload.target !== currentUser.value.id) return;
-            const { sender, signal } = payload;
-
-            if (!peerConnections.value[sender]) {
-              peerConnections.value[sender] = createPeerConnection(sender);
-            }
-            const pc = peerConnections.value[sender];
-
-            if (signal.sdp) {
-              await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-              if (signal.sdp.type === 'offer') {
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                sendWebrtcSignal(sender, { sdp: pc.localDescription });
-              }
-            } else if (signal.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-            }
-          });
-
-          currentRoomChannel.on('presence', { event: 'join' }, ({ newPresences }) => {
-            newPresences.forEach(p => {
-              if (p.user_id && p.user_id !== currentUser.value.id) {
-                initiatePeerConnection(p.user_id);
+            // الاستماع لأصوات باقي الأعضاء في الروم وتشغيلها فوراً
+            agoraClient.on("user-published", async (user, mediaType) => {
+              await agoraClient.subscribe(user, mediaType);
+              if (mediaType === "audio") {
+                user.audioTrack.play();
               }
             });
-          });
-        };
 
-        const createPeerConnection = (targetUserId) => {
-          const pc = new RTCPeerConnection({
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-          });
-
-          if (localStream.value) {
-            localStream.value.getTracks().forEach(track => pc.addTrack(track, localStream.value));
+          } catch (e) {
+            console.error("Agora Error:", e);
           }
-
-          pc.onicecandidate = (event) => {
-            if (event.candidate) {
-              sendWebrtcSignal(targetUserId, { candidate: event.candidate });
-            }
-          };
-
-          pc.ontrack = (event) => {
-            let audioElem = document.getElementById(`audio_${targetUserId}`);
-            if (!audioElem) {
-              audioElem = document.createElement('audio');
-              audioElem.id = `audio_${targetUserId}`;
-              audioElem.autoplay = true;
-              document.getElementById('remoteAudioContainer').appendChild(audioElem);
-            }
-            audioElem.srcObject = event.streams[0];
-            setupAudioAnalyser(event.streams[0], targetUserId);
-          };
-
-          return pc;
-        };
-
-        const initiatePeerConnection = async (targetUserId) => {
-          if (peerConnections.value[targetUserId]) return;
-          const pc = createPeerConnection(targetUserId);
-          peerConnections.value[targetUserId] = pc;
-
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          sendWebrtcSignal(targetUserId, { sdp: pc.localDescription });
-        };
-
-        const sendWebrtcSignal = (target, signal) => {
-          if (currentRoomChannel) {
-            currentRoomChannel.send({
-              type: 'broadcast',
-              event: 'webrtc_signal',
-              payload: { sender: currentUser.value.id, target, signal }
-            });
-          }
-        };
-
-        const setupAudioAnalyser = (stream, userId) => {
-          try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const analyser = audioCtx.createAnalyser();
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-            analyser.fftSize = 64;
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-            const checkVolume = () => {
-              if (!activeRoom.value) return;
-              analyser.getByteFrequencyData(dataArray);
-              let sum = 0;
-              for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-              let average = sum / dataArray.length;
-              speakingUsers.value[userId] = average > 12;
-              requestAnimationFrame(checkVolume);
-            };
-            checkVolume();
-          } catch (e) {}
         };
 
         const toggleMic = () => {
-          if (localStream.value) {
-            const audioTrack = localStream.value.getAudioTracks()[0];
-            if (audioTrack) {
-              audioTrack.enabled = !audioTrack.enabled;
-              isMicMuted.value = !audioTrack.enabled;
-            }
+          if (localAudioTrack) {
+            isMicMuted.value = !isMicMuted.value;
+            localAudioTrack.setEnabled(!isMicMuted.value);
           }
-        };
-
-        const toggleSpeaker = () => {
-          isSpeakerMuted.value = !isSpeakerMuted.value;
-          const container = document.getElementById('remoteAudioContainer');
-          if (container) {
-            const audios = container.getElementsByTagName('audio');
-            for (let a of audios) {
-              a.muted = isSpeakerMuted.value;
-            }
-          }
-        };
-
-        const closeVoiceCall = () => {
-          if (localStream.value) {
-            localStream.value.getTracks().forEach(track => track.stop());
-            localStream.value = null;
-          }
-          Object.values(peerConnections.value).forEach(pc => pc.close());
-          peerConnections.value = {};
-          const container = document.getElementById('remoteAudioContainer');
-          if (container) container.innerHTML = '';
-          speakingUsers.value = {};
-          isMicMuted.value = false;
-          isSpeakerMuted.value = false;
         };
 
         const enterRoom = (room) => {
@@ -1206,26 +930,21 @@
 
           roomSeatsData.value = Array.from({ length: seatsCount }, (_, i) => 
             i === 0 
-              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", id: room.host_id, role: 'مضيف' }, isHost: true }
+              ? { index: 0, user: { name: room.host_name, avatar: room.host_avatar, id: room.host_id, role: 'مضيف' }, isHost: true }
               : { index: i, user: null, isHost: false }
           );
 
-          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في روم "${room.title}". الاتصال الصوتي المباشر مفعل.` }];
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في "${room.title}". الاتصال الصوتي عبر أجورا مفعل أوتوماتيكياً.` }];
 
-          if (currentRoomChannel) {
-            supabaseClient.removeChannel(currentRoomChannel);
-          }
+          // بدء الاتصال الصوتي فور الدخول
+          initAgoraAudio(room.id);
 
-          currentRoomChannel = supabaseClient.channel(`room_${room.id}`, {
-            config: { presence: { key: currentUser.value ? currentUser.value.id : `guest_${Math.random()}` } }
-          });
+          if (currentRoomChannel) supabaseClient.removeChannel(currentRoomChannel);
 
+          currentRoomChannel = supabaseClient.channel(`room_${room.id}`);
           currentRoomChannel.on('broadcast', { event: 'seat_change' }, ({ payload }) => {
-            if (payload && payload.seats) {
-              roomSeatsData.value = payload.seats;
-            }
+            if (payload && payload.seats) roomSeatsData.value = payload.seats;
           });
-
           currentRoomChannel.on('broadcast', { event: 'chat_message' }, ({ payload }) => {
             if (payload) {
               roomChat.value.push(payload);
@@ -1235,25 +954,31 @@
               });
             }
           });
+          currentRoomChannel.subscribe();
+        };
 
-          currentRoomChannel.subscribe(async (status) => {
-            if (status === 'SUBSCRIBED' && currentUser.value) {
-              await currentRoomChannel.track({
-                user_id: currentUser.value.id,
-                username: currentUser.value.username,
-                avatar: currentUser.value.avatar,
-                joined_at: new Date().toISOString()
-              });
-              initVoiceCall();
-            }
-          });
+        const leaveCurrentRoom = async () => {
+          if (localAudioTrack) {
+            localAudioTrack.stop();
+            localAudioTrack.close();
+            localAudioTrack = null;
+          }
+          if (agoraClient) {
+            await agoraClient.leave();
+            agoraClient = null;
+          }
+          if (currentRoomChannel) {
+            supabaseClient.removeChannel(currentRoomChannel);
+            currentRoomChannel = null;
+          }
+          activeRoom.value = null;
         };
 
         const claimSeat = (index) => {
-          if (!currentUser.value) return alert("سجل الدخول أولاً للصعود إلى المقعد الصوتي!");
+          if (!currentUser.value) return alert("سجل الدخول أولاً للصعود للمقعد!");
           const updated = [...roomSeatsData.value];
           if (updated[index].user) return;
-          
+
           const old = updated.findIndex(s => s.user?.id === currentUser.value.id);
           if (old !== -1) updated[old].user = null;
 
@@ -1272,9 +997,7 @@
         const sendRoomChat = () => {
           if (!roomChatInput.value.trim() || !currentUser.value) return;
           const msgObj = { id: Date.now(), sender: currentUser.value.username, text: roomChatInput.value.trim() };
-          
           roomChat.value.push(msgObj);
-          
           if (currentRoomChannel) {
             currentRoomChannel.send({
               type: 'broadcast',
@@ -1282,7 +1005,6 @@
               payload: msgObj
             });
           }
-
           roomChatInput.value = '';
           nextTick(() => {
             const chatBox = document.getElementById('roomChatBox');
@@ -1290,186 +1012,15 @@
           });
         };
 
-        const leaveCurrentRoom = () => {
-          closeVoiceCall();
-          if (currentRoomChannel) {
-            if (currentUser.value) {
-              const oldIndex = roomSeatsData.value.findIndex(s => s.user?.id === currentUser.value.id);
-              if (oldIndex !== -1 && !roomSeatsData.value[oldIndex].isHost) {
-                const updated = [...roomSeatsData.value];
-                updated[oldIndex].user = null;
-                currentRoomChannel.send({
-                  type: 'broadcast',
-                  event: 'seat_change',
-                  payload: { seats: updated }
-                });
-              }
-            }
-            supabaseClient.removeChannel(currentRoomChannel);
-            currentRoomChannel = null;
-          }
-          activeRoom.value = null;
-        };
-
-        const handleDepositSubmit = async () => {
-          if (!currentUser.value) return;
-          depositMsg.value = "جاري إرسال طلب التثبيت للأدمن...";
-          depositSuccess.value = false;
-
-          const amountVal = parseFloat(depositAmount.value);
-          const coinsVal = amountVal * 40000;
-          const cleanTxId = depositTxId.value.trim();
-          const uniqueId = `DEP-${Math.floor(1000000 + Math.random() * 9000000)}_${Date.now().toString().slice(-4)}`;
-
-          const depositPayload = {
-            id: uniqueId,
-            user_id: currentUser.value.id,
-            username: currentUser.value.username,
-            tx_id: cleanTxId,
-            amount: amountVal,
-            coins: coinsVal,
-            status: 'pending'
-          };
-
-          try {
-            const res = await fetch(`${SUPABASE_BASE_URL}/deposits`, {
-              method: 'POST',
-              headers: HEADERS,
-              body: JSON.stringify(depositPayload)
-            });
-
-            if (res.ok) {
-              depositMsg.value = "تم إرسال طلب الشحن بنجاح! بانتظار موافقة الأدمن. 🟢";
-              depositSuccess.value = true;
-              depositTxId.value = '';
-              depositAmount.value = '';
-              setTimeout(() => { showDepositModal.value = false; depositMsg.value = ''; }, 3500);
-            } else {
-              depositMsg.value = "حدث خطأ أثناء إرسال الطلب.";
-            }
-          } catch (e) {
-            depositMsg.value = "فشل الاتصال بقاعدة البيانات.";
-          }
-        };
-
-        const approveDeposit = async (dep) => {
-          try {
-            const patchRes = await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${dep.id}`, {
-              method: 'PATCH',
-              headers: HEADERS,
-              body: JSON.stringify({ status: 'approved' })
-            });
-
-            if (!patchRes.ok) return alert("تعذر تحديث حالة الحوالة.");
-
-            const userRes = await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, { headers: HEADERS });
-            if (userRes.ok) {
-              const userData = await userRes.json();
-              if (userData.length > 0) {
-                const currentCoins = userData[0].coins || 0;
-                const newCoins = currentCoins + dep.coins;
-
-                await fetch(`${SUPABASE_BASE_URL}/users?id=eq.${encodeURIComponent(dep.user_id)}`, {
-                  method: 'PATCH',
-                  headers: HEADERS,
-                  body: JSON.stringify({ coins: newCoins })
-                });
-              }
-            }
-
-            fetchAdminDeposits();
-            alert("تمت الموافقة بنجاح! وأضيفت الكوينزات المخصصة للحوالة إلى حساب المستخدم فوراً 💎");
-          } catch (e) {
-            alert("حدث خطأ أثناء تنفيذ عملية التأكيد.");
-          }
-        };
-
-        const rejectDeposit = async (depId) => {
-          try {
-            await fetch(`${SUPABASE_BASE_URL}/deposits?id=eq.${depId}`, {
-              method: 'PATCH',
-              headers: HEADERS,
-              body: JSON.stringify({ status: 'rejected' })
-            });
-            fetchAdminDeposits();
-            alert("تم رفض الحوالة.");
-          } catch (e) {}
-        };
-
-        const fetchFriendData = async () => {
-          if (!currentUser.value) return;
-          try {
-            const reqRes = await fetch(`${SUPABASE_BASE_URL}/friendships?receiver_id=eq.${encodeURIComponent(currentUser.value.id)}&status=eq.pending`, { headers: HEADERS });
-            if (reqRes.ok) friendRequests.value = await reqRes.json();
-
-            const friendsRes = await fetch(`${SUPABASE_BASE_URL}/friendships?or=(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)})&status=eq.accepted`, { headers: HEADERS });
-            if (friendsRes.ok) {
-              const fList = await friendsRes.json();
-              friendsList.value = fList;
-              const lastMsgs = {};
-              const unread = {};
-              for (let f of fList) {
-                const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
-                const msgRes = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.desc&limit=1`, { headers: HEADERS });
-                if (msgRes.ok) {
-                  const data = await msgRes.json();
-                  if (data.length > 0) {
-                    lastMsgs[fId] = data[0].message_text;
-                    if (data[0].sender_id !== currentUser.value.id && (!activePrivateChat.value || activePrivateChat.value.id !== fId)) {
-                      unread[fId] = true;
-                    }
-                  } else { lastMsgs[fId] = "ابدأ المحادثة..."; }
-                }
-              }
-              friendsLastMessages.value = lastMsgs;
-              unreadFriends.value = unread;
-            }
-          } catch (e) {}
-        };
-
-        onMounted(() => {
-          fetchRooms();
-          startLiveTicker();
-          if (currentUser.value) {
-            fetchFriendData();
-            if (isSuperAdmin.value) fetchAdminDeposits();
-            else checkUserApprovedDeposits();
-
-            setInterval(() => {
-              fetchFriendData();
-              if (isSuperAdmin.value) fetchAdminDeposits();
-              else checkUserApprovedDeposits();
-            }, 4000);
-          }
-        });
-
-        const handleGlobalSearch = async () => {
-          searchError.value = ''; searchResult.value = null;
-          const q = searchQuery.value.trim();
-          if (!q) return;
-          const room = rooms.value.find(r => r.id.toLowerCase() === q.toLowerCase());
-          if (room) { searchResult.value = { type: 'room', data: room }; return; }
-          try {
-            const res = await fetch(`${SUPABASE_BASE_URL}/users?or=(id.ilike.*${q}*,username.ilike.*${q}*)`, { headers: HEADERS });
-            if (res.ok) {
-              const users = await res.json();
-              if (users.length > 0) { searchResult.value = { type: 'user', data: users[0] }; return; }
-            }
-          } catch (e) {}
-          searchError.value = 'لم يتم العثور على أي مطابقة للـ ID أو الاسم المدخل.';
-        };
-
         const handleAuth = async () => {
           const music = document.getElementById('bg-music');
-          if (music) {
-            music.play().catch(e => console.log("Audio play error:", e));
-          }
+          if (music) music.play().catch(e => {});
 
           errorMsg.value = '';
           const email = authEmail.value.trim().toLowerCase();
           const isAdmin = email === ADMIN_EMAIL.toLowerCase();
           const pId = isAdmin ? "ADMIN-MASTER-ID" : `ID-${Math.floor(100000 + Math.random() * 900000)}`;
-          const userObj = { id: pId, username: authUsername.value || email.split('@')[0], email, password_hash: "123456", coins: 0, level: 1, role: isAdmin ? "👑 مدير التطبيق" : "عضو", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200" };
+          const userObj = { id: pId, username: authUsername.value || email.split('@')[0], email, password_hash: "123456", coins: 0, level: 1, role: isAdmin ? "👑 مدير" : "عضو", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200" };
 
           try {
             if (isSignup.value) {
@@ -1486,75 +1037,16 @@
             currentUser.value = userObj;
             localStorage.setItem('dede_user', JSON.stringify(userObj));
             showAuthModal.value = false;
-            fetchFriendData();
-            if (isSuperAdmin.value) fetchAdminDeposits();
-          } catch (e) { errorMsg.value = "خطأ في الاتصال بالسيرفر"; }
+          } catch (e) { errorMsg.value = "خطأ في الاتصال"; }
         };
 
         const handleLogout = () => { currentUser.value = null; localStorage.removeItem('dede_user'); };
+        const openSocialModal = () => { showSocialModal.value = true; };
 
-        const openSocialModal = () => { fetchFriendData(); showSocialModal.value = true; };
-
-        const sendFriendRequest = async (target) => {
-          if (!currentUser.value) return;
-          actionMsg.value = "جاري الإرسال...";
-          const res = await fetch(`${SUPABASE_BASE_URL}/friendships`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, sender_name: currentUser.value.username, receiver_id: target.id, status: 'pending' }) });
-          if (res.ok) actionMsg.value = "تم إرسال طلب الصداقة بنجاح! 🟢"; else actionMsg.value = "تم إرسال طلب مسبقاً لهذا المستخدم.";
-        };
-
-        const respondToFriendRequest = async (id, accept) => {
-          if (accept) {
-            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: 'accepted' }) });
-          } else {
-            await fetch(`${SUPABASE_BASE_URL}/friendships?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
-          }
-          fetchFriendData();
-        };
-
-        const openPrivateChat = async (f) => {
-          const fId = f.sender_id === currentUser.value.id ? f.receiver_id : f.sender_id;
-          const fName = f.sender_id === currentUser.value.id ? (f.receiver_name || "صديق") : f.sender_name;
-          activePrivateChat.value = { id: fId, name: fName };
-          const u = { ...unreadFriends.value }; delete u[fId]; unreadFriends.value = u;
-          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages?or=(and(sender_id.eq.${encodeURIComponent(currentUser.value.id)},receiver_id.eq.${encodeURIComponent(fId)}),and(sender_id.eq.${encodeURIComponent(fId)},receiver_id.eq.${encodeURIComponent(currentUser.value.id)}))&order=created_at.asc`, { headers: HEADERS });
-          if (res.ok) privateMessages.value = await res.json();
-        };
-
-        const sendPrivateMessage = async () => {
-          if (!privateMsgInput.value.trim() || !activePrivateChat.value) return;
-          const res = await fetch(`${SUPABASE_BASE_URL}/private_messages`, { method: 'POST', headers: HEADERS, body: JSON.stringify({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, message_text: privateMsgInput.value.trim() }) });
-          if (res.ok) { privateMsgInput.value = ''; openPrivateChat({ sender_id: currentUser.value.id, receiver_id: activePrivateChat.value.id, receiver_name: activePrivateChat.value.name }); fetchFriendData(); }
-        };
-
-        const handleImageUpload = (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = 200; canvas.height = 200;
-              canvas.getContext('2d').drawImage(img, 0, 0, 200, 200);
-              editAvatar.value = canvas.toDataURL('image/jpeg', 0.8);
-            };
-            img.src = ev.target.result;
-          };
-          reader.readAsDataURL(file);
-        };
-
-        const handleSaveProfile = async () => {
-          if (!currentUser.value) return;
-          profileUpdateMsg.value = "جاري الحفظ...";
-          const res = await fetch(`${SUPABASE_BASE_URL}/users?email=eq.${encodeURIComponent(currentUser.value.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ username: editName.value.trim(), avatar: editAvatar.value || currentUser.value.avatar }) });
-          if (res.ok) {
-            currentUser.value.username = editName.value.trim();
-            if (editAvatar.value) currentUser.value.avatar = editAvatar.value;
-            localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
-            profileUpdateMsg.value = "تم الحفظ بنجاح! ✅";
-            setTimeout(() => { showProfileModal.value = false; profileUpdateMsg.value = ''; }, 1000);
-          } else { profileUpdateMsg.value = "تعذر الحفظ"; }
-        };
+        onMounted(() => {
+          fetchRooms();
+          startLiveTicker();
+        });
 
         return {
           currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
@@ -1563,14 +1055,13 @@
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
           friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
-          isMicMuted, isSpeakerMuted, speakingUsers, toggleMic, toggleSpeaker,
+          isMicMuted, toggleMic,
           generalAlertMsg, showFakeFileModal, currentLanguage, fakeCasinoGames, fakeActiveLadies,
           globalManagersList, liveWinningTicker,
-          showCreateRoomModal, newRoomTitle, newRoomCategory, newRoomSeats, newRoomCover, handleCreateRoom,
+          showCreateRoomModal, newRoomTitle, newRoomCategory, newRoomSeats, handleCreateRoom,
           triggerMiddleEastAlert, openFakeFile, redirectToWhatsApp,
-          fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout,
-          openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
-          handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
+          fetchRooms, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout,
+          openSocialModal
         };
       }
     }).mount('#app');
