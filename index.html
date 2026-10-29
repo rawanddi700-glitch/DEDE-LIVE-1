@@ -9,8 +9,8 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <!-- مكتبة Supabase الرسمية -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- مكتبة Agora الرسمية لبث الصوت المباشر -->
-  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.17.0.js"></script>
+  <!-- مكتبة PeerJS للاتصال الصوتي المباشر بدون توكنات -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
@@ -52,6 +52,7 @@
 
   <div id="app" class="min-h-screen flex flex-col justify-between">
     
+    <!-- حاوية الأصوات القادمة من المستخدمين الآخرين -->
     <div id="remoteAudioContainer" class="hidden"></div>
 
     <!-- شريط الأرباح الذهبي -->
@@ -277,13 +278,13 @@
         </div>
         <div v-if="searchError" class="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm p-4 rounded-2xl mb-6 text-center font-bold">{{ searchError }}</div>
 
-        <!-- داخل الروم المباشر الصوتية (Realtime Voice Room via Agora) -->
+        <!-- داخل الروم المباشر الصوتية (Realtime Voice Room via PeerJS) -->
         <div v-if="activeRoom" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <div class="flex justify-between items-center pb-5 border-b border-slate-800 mb-6 flex-wrap gap-4">
             <div>
               <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3.5 py-1 rounded-full border border-purple-500/30 mb-2 inline-block">{{ activeRoom.category }}</span>
               <h2 class="text-2xl font-black text-white mt-1">{{ activeRoom.title }}</h2>
-              <p class="text-xs sm:text-sm text-slate-300 mt-1">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🔴 بث صوتي مباشر عبر Agora</span></p>
+              <p class="text-xs sm:text-sm text-slate-300 mt-1">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400 font-bold">🔴 بث صوتي مباشر (PeerJS)</span></p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -720,8 +721,6 @@
 
     createApp({
       setup() {
-        const AGORA_APP_ID = "56b142882c364c5aa9e4a219c9c98b04"; 
-        const AGORA_TOKEN = "007eJxTYPi0+fIMd+YZVRGXOp7clLlmJbJN9fYRxy1lUZw3DqcffNylwGBqlmRoYmRhYZRsbGaSbJqYaJlqkmhkaJkMhBZJBiayhx5nNQQyMkzUO83ExMAIhiA+I4MhAwMTnMvCYGhgYAgA2qogDA=="; // التوكن الجديد المرفق
         const SUPABASE_URL_HOST = "https://yhsehpcosswgehonzzcq.supabase.co";
         const SUPABASE_BASE_URL = `${SUPABASE_URL_HOST}/rest/v1`;
         const SUPABASE_KEY = "sb_publishable_cbpNPEi4PWw8aKIjPN7HMg_zN2sChHr";
@@ -739,10 +738,11 @@
         const roomChatInput = ref('');
         let currentRoomChannel = null;
 
-        // متغيرات Agora الصوتية
-        let agoraClient = null;
-        let localAudioTrack = null;
+        // متغيرات PeerJS الصوتية المباشرة
+        let peer = null;
+        let localStream = null;
         const isMicMuted = ref(false);
+        let activePeerCalls = [];
 
         // متغيرات إنشاء الروم
         const showCreateRoomModal = ref(false);
@@ -851,7 +851,6 @@
           } catch (e) {} finally { loadingRooms.value = false; }
         };
 
-        // دالة إنشاء الروم الفعلي
         const handleCreateRoom = async () => {
           if (!currentUser.value) {
             showCreateRoomModal.value = false;
@@ -892,40 +891,63 @@
           }
         };
 
-        // الربط الصوتي أوتوماتيكياً عبر Agora SDK مع التوكن والـ UID (1)
-        const initAgoraAudio = async (channelName) => {
+        // الربط الصوتي المباشر عبر PeerJS بدون أي تعقيدات أو توكنات
+        const initPeerAudio = async (roomId) => {
           try {
-            agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-            
-            // الانضمام لقناة الصوت في أجورا باستخدام التوكن والـ UID = 1
-            await agoraClient.join(AGORA_APP_ID, channelName, AGORA_TOKEN, 1);
-
-            // تفعيل المايك للعميل ونشره
-            localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-            await agoraClient.publish([localAudioTrack]);
+            // التقاط الصوت من مايكروفون المستخدم
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             isMicMuted.value = false;
 
-            // الاستماع لأصوات باقي الأعضاء في الروم وتشغيلها فوراً
-            agoraClient.on("user-published", async (user, mediaType) => {
-              await agoraClient.subscribe(user, mediaType);
-              if (mediaType === "audio") {
-                user.audioTrack.play();
-              }
+            // إنشاء معرف فريد مبني على معرف المستخدم الحالي ورقم الروم
+            const uniquePeerId = `dede_${currentUser.value.id}_${Math.floor(Math.random() * 10000)}`;
+            peer = new Peer(uniquePeerId);
+
+            peer.on('open', (id) => {
+              console.log('Peer Connected with ID:', id);
+            });
+
+            // الرد على الاتصالات الواردة من بقية المستخدمين في الروم
+            peer.on('call', (call) => {
+              call.answer(localStream);
+              call.on('stream', (remoteStream) => {
+                playRemoteStream(remoteStream);
+              });
+              activePeerCalls.push(call);
             });
 
           } catch (e) {
-            console.error("Agora Error:", e);
+            console.error("Microphone or PeerJS Error:", e);
+            alert("تعذر الوصول إلى المايكروفون. يرجى السماح للمتصفح باستخدام المايك.");
+          }
+        };
+
+        // تشغيل صوت المستخدمين الآخرين
+        const playRemoteStream = (stream) => {
+          const audioContainer = document.getElementById('remoteAudioContainer');
+          if (audioContainer) {
+            const audioElement = document.createElement('audio');
+            audioElement.srcObject = stream;
+            audioElement.autoplay = true;
+            audioElement.controls = false;
+            audioContainer.appendChild(audioElement);
           }
         };
 
         const toggleMic = () => {
-          if (localAudioTrack) {
+          if (localStream) {
             isMicMuted.value = !isMicMuted.value;
-            localAudioTrack.setEnabled(!isMicMuted.value);
+            localStream.getAudioTracks().forEach(track => {
+              track.enabled = !isMicMuted.value;
+            });
           }
         };
 
         const enterRoom = (room) => {
+          if (!currentUser.value) {
+            showAuthModal.value = true;
+            return;
+          }
+
           activeRoom.value = room;
           const seatsCount = room.max_seats || 8;
 
@@ -935,10 +957,10 @@
               : { index: i, user: null, isHost: false }
           );
 
-          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في "${room.title}". الاتصال الصوتي عبر أجورا مفعل أوتوماتيكياً.` }];
+          roomChat.value = [{ id: 1, sender: 'النظام 🤖', text: `أهلاً بك في "${room.title}". الاتصال الصوتي المباشر مفعل.` }];
 
-          // بدء الاتصال الصوتي فور الدخول
-          initAgoraAudio(room.id);
+          // بدء تشغيل نظام الصوت المباشر
+          initPeerAudio(room.id);
 
           if (currentRoomChannel) supabaseClient.removeChannel(currentRoomChannel);
 
@@ -959,14 +981,15 @@
         };
 
         const leaveCurrentRoom = async () => {
-          if (localAudioTrack) {
-            localAudioTrack.stop();
-            localAudioTrack.close();
-            localAudioTrack = null;
+          if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
           }
-          if (agoraClient) {
-            await agoraClient.leave();
-            agoraClient = null;
+          activePeerCalls.forEach(call => call.close());
+          activePeerCalls = [];
+          if (peer) {
+            peer.destroy();
+            peer = null;
           }
           if (currentRoomChannel) {
             supabaseClient.removeChannel(currentRoomChannel);
