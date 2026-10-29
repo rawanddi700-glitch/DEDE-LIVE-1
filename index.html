@@ -93,7 +93,7 @@
           <p>• نسبة الأمان والتشفير: 256-bit SSL Secure Gateway لتأمين حسابات المستخدمين ضد أي اختراق.</p>
           <p>• تقارير الاستثمار والسيولة: تم اعتماد شراكات استراتيجية كبرى لضمان تدفقات مالية مستقرة وسحب فوري للمستثمرين.</p>
           <p>• السجل المالي للمستخدمين النشطين موثق بنسبة 99.8% عبر الشبكات العالمية.</p>
-          <p>• رقم الدعم الفني المعتمد للتحقق والتنسيق المباشر: +905354637591</p>
+          <p>• <span @click="redirectToWhatsApp('الدعم الفني العام')" class="text-purple-400 cursor-pointer hover:underline font-bold">تواصل مع فريق الدعم</span> للتحقق والتنسيق المباشر.</p>
         </div>
         <button @click="showFakeFileModal = false" class="w-full mt-6 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 rounded-2xl text-sm transition-all shadow-lg">إغلاق الملف</button>
       </div>
@@ -211,7 +211,7 @@
 
       <!-- إحصائية الموثوقية بـ 10 آلاف مستخدم -->
       <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl mb-6 text-center text-xs sm:text-sm text-slate-300 font-bold">
-        🛡️ موثوق من قبل 10 آلاف مستخدم عالمياً مع اعتمادية أمنية كاملة وبوابات دفع عالمية. | الدعم المباشر: +905354637591
+        🛡️ موثوق من قبل 10 آلاف مستخدم عالمياً مع اعتمادية أمنية كاملة وبوابات دفع عالمية. | <span @click="redirectToWhatsApp('الدعم المباشر')" class="text-purple-400 cursor-pointer hover:underline">تواصل مع فريق الدعم</span>
       </div>
 
       <div v-if="searchResult" class="bg-slate-900 border border-purple-500/40 rounded-3xl p-5 mb-6 shadow-xl">
@@ -386,7 +386,7 @@
             </div>
           </div>
           <p class="text-slate-200 text-sm sm:text-base leading-relaxed font-medium">
-            اختر طريقة الدفع المناسبة، تواصل مع الدعم عبر الواتساب على الرقم +905354637591 لإتمام التحويل، ثم قم بتثبيت الشحن بإدخال تفاصيل المبلغ ليقوم الأدمن بالاعتماد الفوري.
+            اختر طريقة الدفع المناسبة، <span @click="redirectToWhatsApp('الدعم الفني والتحويل')" class="text-purple-400 cursor-pointer hover:underline font-bold">تواصل مع فريق الدعم</span> لإتمام التحويل، ثم قم بتثبيت الشحن بإدخال تفاصيل المبلغ ليقوم الأدمن بالاعتماد الفوري.
           </p>
         </div>
 
@@ -432,7 +432,7 @@
         <div class="text-center mb-6">
           <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mx-auto mb-3 font-black">💳</div>
           <h3 class="text-lg sm:text-xl font-black text-white">اختر طريقة الشحن الإلكتروني العالمية</h3>
-          <p class="text-xs sm:text-sm text-slate-300 mt-1 font-medium">انقر على الخيار للانتقال الفوري إلى الواتساب وإتمام العملية عبر +905354637591</p>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1 font-medium">انقر على الخيار للانتقال الفوري إلى <span @click="redirectToWhatsApp('شحن الرصيد')" class="text-purple-400 cursor-pointer hover:underline font-bold">تواصل مع فريق الدعم</span> وإتمام العملية</p>
         </div>
 
         <!-- قائمة خيارات الدفع الإلكتروني العالمية مقسمة -->
