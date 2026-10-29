@@ -72,7 +72,7 @@
       </div>
     </div>
 
-    <!-- رسالة التنبيه العامة (الكازينو الخارجي) -->
+    <!-- رسالة التنبيه العامة -->
     <div v-if="generalAlertMsg" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-purple-500/50 p-8 rounded-3xl max-w-md w-full text-center shadow-2xl slide-down">
         <div class="w-16 h-16 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 font-black">⚠️</div>
@@ -985,7 +985,7 @@
           }
           if (!newRoomTitle.value.trim()) return;
 
-          const roomId = `room_${Math.random().toString(36.substring(2, 9))}`;
+          const roomId = `room_${Math.random().toString(36).substring(2, 9)}`;
           const newRoomObj = {
             id: roomId,
             title: newRoomTitle.value.trim(),
