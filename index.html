@@ -54,10 +54,43 @@
       <div class="bg-emerald-600 border border-emerald-400 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
         <span class="text-2xl">🎉</span>
         <div class="flex-1">
-          <h4 class="text-xs font-black">شام كاش - تم قبول الحوالة</h4>
+          <h4 class="text-xs font-black">DEDE LIVE - تم قبول الحوالة</h4>
           <p class="text-xs font-bold mt-0.5">{{ userNotification }}</p>
         </div>
         <button @click="userNotification = null" class="text-white hover:text-emerald-200 text-sm font-bold">✕</button>
+      </div>
+    </div>
+
+    <!-- رسالة التنبيه العامة (الشرق الأوسط / الكازينو / إنشاء غرفة) -->
+    <div v-if="generalAlertMsg" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-purple-500/50 p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl slide-down">
+        <div class="w-14 h-14 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 font-black">⚠️</div>
+        <h3 class="text-base font-black text-white mb-2">تنبيه النظام</h3>
+        <p class="text-xs text-slate-300 mb-5 leading-relaxed">{{ generalAlertMsg }}</p>
+        <button @click="generalAlertMsg = null" class="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-lg">حسناً</button>
+      </div>
+    </div>
+
+    <!-- نافذة عرض الملفات الوهمية الاحترافية -->
+    <div v-if="showFakeFileModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-purple-500/40 p-6 rounded-3xl max-w-lg w-full relative shadow-2xl text-right">
+        <button @click="showFakeFileModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white text-base">✕</button>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-lg">📄</div>
+          <div>
+            <h3 class="text-sm font-black text-white">ملف التوثيق والهوس المالي العالمي</h3>
+            <p class="text-[10px] text-purple-400 font-bold">معلومات الشحن، السجلات المعتمدة، والاستثمارات</p>
+          </div>
+        </div>
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-[11px] text-slate-300 space-y-2 max-h-64 overflow-y-auto leading-relaxed font-mono">
+          <p class="text-amber-400 font-bold">--- سجلات العمليات العالمية المؤرشفة ---</p>
+          <p>• تفاصيل هوس الشحن المالي: يتم معالجة أكثر من 45,000 عملية شحن يومياً عبر بوابات الدفع العالمية المعتمدة لضمان استقرار أرصدة الكوينز.</p>
+          <p>• نسبة الأمان والتشفير: 256-bit SSL Secure Gateway لتأمين حسابات المستخدمين ضد أي اختراق.</p>
+          <p>• تقارير الاستثمار والسيولة: تم اعتماد شراكات استراتيجية كبرى لضمان تدفقات مالية مستقرة وسحب فوري للمستثمرين.</p>
+          <p>• السجل المالي للمستخدمين النشطين موثق بنسبة 99.8% عبر الشبكات العالمية.</p>
+          <p>• رقم الدعم الفني المعتمد للتحقق والتنسيق المباشر: +905354637591</p>
+        </div>
+        <button @click="showFakeFileModal = false" class="w-full mt-4 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-lg">إغلاق الملف</button>
       </div>
     </div>
 
@@ -69,15 +102,21 @@
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg shadow-purple-600/30">🎙️</div>
             <div>
               <h1 class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</h1>
-              <p class="text-[9px] text-purple-300 font-bold tracking-wider">منصة الرومات الصوتية</p>
+              <p class="text-[9px] text-purple-300 font-bold tracking-wider">منصة الرومات الصوتية العالمية</p>
             </div>
           </div>
 
-          <div v-if="currentUser" class="flex sm:hidden items-center gap-2">
+          <div class="flex items-center gap-2 sm:hidden">
+            <select v-model="currentLanguage" class="bg-slate-800 text-white text-[10px] font-bold px-2 py-1.5 rounded-xl border border-slate-700 outline-none">
+              <option value="ar">العربية</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+            </select>
             <button @click="openSocialModal" :class="['relative bg-slate-800 p-2 rounded-xl', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
               💬 <span v-if="totalUnreadCount > 0" class="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">{{ totalUnreadCount }}</span>
             </button>
-            <img :src="currentUser.avatar" @click="showProfileModal = true" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
+            <img v-if="currentUser" :src="currentUser.avatar" @click="showProfileModal = true" class="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500" />
           </div>
         </div>
 
@@ -87,20 +126,29 @@
         </form>
 
         <div class="hidden sm:flex items-center gap-3">
+          <!-- زر تغيير اللغات العالمية -->
+          <select v-model="currentLanguage" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-2xl border border-slate-700 outline-none transition-all shadow-md cursor-pointer">
+            <option value="ar">🌐 العربية</option>
+            <option value="en">🌐 English</option>
+            <option value="fr">🌐 Français</option>
+            <option value="de">🌐 Deutsch</option>
+          </select>
+
           <template v-if="currentUser">
             <button v-if="isSuperAdmin" @click="fetchAdminDeposits(); showAdminPanel = true" class="relative bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-2xl text-xs font-black animate-pulse shadow-lg flex items-center gap-1.5 transition-all">
               <span>👑 لوحة طلبات الحوالات</span>
               <span v-if="pendingDepositsCount > 0" class="bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-md">{{ pendingDepositsCount }}</span>
             </button>
 
+            <!-- زر شحن الرصيد المحديث -->
             <button @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-1.5 transition-all">
-              <span>💳 شحن شام كاش</span>
+              <span>💳 شحن رصيد</span>
             </button>
 
             <button @click="openSocialModal" :class="['relative bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all', hasUnreadActivity ? 'border border-rose-500 bell-shake' : '']">
               <span>💬 الرسائل</span> <span v-if="totalUnreadCount > 0" class="absolute -top-1.5 -left-1.5 bg-rose-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce">{{ totalUnreadCount }}</span>
             </button>
-            <button @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg shadow-purple-600/20">➕ روم</button>
+            <button @click="triggerMiddleEastAlert" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg shadow-purple-600/20">➕ روم</button>
             
             <div class="flex items-center gap-2.5 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-slate-700/60 shadow-xl">
               <img :src="currentUser.avatar" class="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500" />
@@ -141,6 +189,26 @@
 
     <!-- المحتوى الرئيسي -->
     <main class="max-w-6xl w-full mx-auto p-4 flex-1">
+      
+      <!-- عبارة البونص الترحيبي العريضة والمميزة -->
+      <div class="bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 p-4 rounded-3xl mb-6 text-center shadow-2xl border border-amber-400/40">
+        <h2 class="text-sm sm:text-lg font-black text-white tracking-wide animate-pulse">
+          🔥 بونص ترحيبي بقيمة 50% للمشتركين الجدد على كافة عمليات الشحن الأولى! 🔥
+        </h2>
+      </div>
+
+      <!-- رسالة الشراكة الاستثمارية الجانبية -->
+      <div class="bg-slate-900/90 border border-purple-500/30 p-3 rounded-2xl mb-6 text-center text-xs font-black text-purple-300 shadow-lg flex items-center justify-center gap-2">
+        <span>⭐</span>
+        <span>اصبح شريكا مستثمرا في DEDE LIVE وابدأ جني الأرباح العالمية الآن!</span>
+        <span>⭐</span>
+      </div>
+
+      <!-- إحصائية الموثوقية بـ 10 آلاف مستخدم -->
+      <div class="bg-slate-900/60 border border-slate-800 p-3 rounded-2xl mb-6 text-center text-xs text-slate-300 font-bold">
+        🛡️ موثوق من قبل 10 آلاف مستخدم عالمياً مع اعتمادية أمنية كاملة وبوابات دفع عالمية. | الدعم المباشر: +905354637591
+      </div>
+
       <div v-if="searchResult" class="bg-slate-900 border border-purple-500/40 rounded-3xl p-4 mb-6 shadow-xl">
         <div class="flex justify-between items-center mb-2">
           <h3 class="text-xs font-bold text-purple-400">نتيجة البحث:</h3>
@@ -172,7 +240,6 @@
             <p class="text-xs text-slate-400">المضيف: <span class="text-purple-400 font-bold">{{ activeRoom.host_name }}</span> | <span class="text-emerald-400">🔴 بث صوتي مباشر HD</span></p>
           </div>
 
-          <!-- شريط التحكم الصوتي المباشر داخل الروم -->
           <div class="flex items-center gap-2">
             <button @click="toggleMic" :class="['px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md', isMicMuted ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white']">
               <span>{{ isMicMuted ? '🎙️ المايك مكتوم' : '🎙️ المايك يعمل' }}</span>
@@ -209,22 +276,84 @@
 
       <!-- الواجهة الرئيسية -->
       <template v-else>
-        <!-- بانر الترحيب والشحن -->
+        <!-- بانر الترحيب -->
         <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 mb-8 border border-purple-500/20 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-right">
           <div>
             <span class="bg-purple-500/20 text-purple-300 text-xs font-bold px-3 py-1 rounded-full border border-purple-400/30 inline-block mb-3">
-              ✨ المعاملات المالية عبر شام كاش (ShamCash)
+              ✨ المعاملات المالية عبر بوابات الدفع العالمية والمحافظ الرقمية
             </span>
             <h2 class="text-2xl sm:text-4xl font-black text-white mb-2">مرحباً بك في <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">DEDE LIVE</span></h2>
-            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان وسرعة عبر محفظة شام كاش الرسمية، وشارك في الرومات الصوتية.</p>
+            <p class="text-slate-300 text-xs sm:text-sm max-w-xl">اشحن محفظتك بكل أمان عبر بوابات الدفع والمحافظ الرقمية العالمية وشارك في الرومات والفعاليات الكبرى.</p>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <button v-if="currentUser" @click="showDepositModal = true" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl whitespace-nowrap transition-all">
-              💳 طلب شحن رصيد (شام كاش)
+              💳 طلب شحن رصيد
             </button>
-            <button v-if="currentUser" @click="showCreateRoomModal = true" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
+            <button v-if="currentUser" @click="triggerMiddleEastAlert" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 whitespace-nowrap transition-all">
               🎙️ فتح روم صوتي
             </button>
+          </div>
+        </div>
+
+        <!-- قسم لوائح المستخدمين النساء الوهمية (لتوضيح أن الموقع مستخدم ونشط) -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 mb-8 shadow-xl">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-base font-black text-white">أبرز المشتركات النشطات حالياً</h3>
+              <p class="text-[10px] text-purple-400 font-bold">نشاط المستخدمين العالميين على مدار الساعة</p>
+            </div>
+            <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2.5 py-1 rounded-full font-bold">متصل الآن 🟢</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div v-for="userLady in fakeActiveLadies" :key="userLady.id" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center gap-3">
+              <img :src="userLady.avatar" class="w-12 h-12 rounded-full object-cover ring-2 ring-purple-500 shadow-md" />
+              <div class="truncate">
+                <h4 class="text-white text-xs font-black truncate">{{ userLady.name }}</h4>
+                <p class="text-[9px] text-emerald-400 font-bold">💎 {{ userLady.coins }} كوينز</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- قسم الأقسام الاحترافية (واجهة فقط) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div @click="openFakeFile" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-5 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
+            <div class="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-xl mx-auto mb-3 font-black">📁</div>
+            <h4 class="text-sm font-black text-white mb-1">ملفات التوثيق والشحن</h4>
+            <p class="text-[10px] text-slate-400">اضغط لعرض الملفات والتقارير الاحترافية الشاملة</p>
+          </div>
+
+          <div @click="triggerMiddleEastAlert" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-5 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
+            <div class="w-12 h-12 bg-pink-500/20 text-pink-400 rounded-2xl flex items-center justify-center text-xl mx-auto mb-3 font-black">🌍</div>
+            <h4 class="text-sm font-black text-white mb-1">الغرف العالمية الوهمية</h4>
+            <p class="text-[10px] text-slate-400">English, Français & Western Rooms (VIP)</p>
+          </div>
+
+          <div @click="triggerMiddleEastAlert" class="bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-5 rounded-3xl cursor-pointer shadow-xl transition-all text-center">
+            <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center text-xl mx-auto mb-3 font-black">📜</div>
+            <h4 class="text-sm font-black text-white mb-1">شهادات التوثيق والاعتماد</h4>
+            <p class="text-[10px] text-slate-400">شهادات جودة عالمية واعتمادات أمنية موثوقة</p>
+          </div>
+        </div>
+
+        <!-- قسم كازينو افتراضي بواجهة خارجية احترافية -->
+        <div class="bg-slate-900/80 backdrop-blur-md border border-amber-500/30 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-lg">🎰</div>
+            <div>
+              <h3 class="text-lg font-black text-white">قسم الكازينو والألعاب الترفيهية الفاخرة</h3>
+              <p class="text-xs text-amber-400 font-bold">آلاف ألعاب المقامرة الترفيهية (واجهة خارجية احترافية)</p>
+            </div>
+          </div>
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            استمتع بتجربة ألعاب الكازينو الرقمية الخارجية ذات الأيقونات الاحترافية المصممة بعناية فائقة لتوفير تجربة مستخدم ترفيهية متكاملة.
+          </p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div v-for="(casinoGame, idx) in fakeCasinoGames" :key="idx" @click="triggerMiddleEastAlert" class="bg-slate-950 border border-slate-800 hover:border-amber-500/50 p-4 rounded-2xl cursor-pointer text-center transition-all shadow-lg flex flex-col items-center">
+              <div class="text-3xl mb-2">{{ casinoGame.icon }}</div>
+              <h5 class="text-xs font-black text-white mb-1">{{ casinoGame.title }}</h5>
+              <span class="text-[9px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">تشغيل اللعبة</span>
+            </div>
           </div>
         </div>
 
@@ -238,21 +367,21 @@
             </div>
           </div>
           <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
-            تعتبر منصة <strong class="text-purple-400 font-bold">DEDE LIVE</strong> الوجهة الأولى والأكثر تطوراً لعشاق التواصل الصوتي التفاعلي. نحن نجمع بين تقنيات البث الصوتي الفائق والشفافة المالية المطلقة المدعومة حصرياً عبر محفظة <span class="text-emerald-400 font-bold">شام كاش (ShamCash)</span> لضمان إيداع وسحب آمن وسلس.
+            تعتبر منصة <strong class="text-purple-400 font-bold">DEDE LIVE</strong> الوجهة الأولى والأكثر تطوراً لعشاق التواصل الصوتي التفاعلي عبر آلاف المجموعات العالمية والإنجليزية والفرنسية. نحن نجمع بين تقنيات البث الصوتي الفائق والشفافة المالية المطلقة المدعومة عبر أحدث بوابات الدفع الإلكتروني والمافظ الرقمية.
           </p>
         </div>
 
-        <!-- قسم نظام الشحن والأسعار -->
+        <!-- قسم نظام الشحن والأسعار الجانبي -->
         <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg">💵</div>
             <div>
-              <h3 class="text-lg font-black text-white">نظام الكوينز عبر شام كاش (أسعار الصرف الرسمية)</h3>
-              <p class="text-xs text-emerald-400 font-bold">1 دولار = 40,000 كوينز</p>
+              <h3 class="text-lg font-black text-white">نظام الكوينز وأسعار الصرف الرسمية</h3>
+              <p class="text-xs text-emerald-400 font-bold">كل 1 دولار تساوي 40 الف كوينز | 10 دولار 400 الف | 100 دولار 4 مليون</p>
             </div>
           </div>
-          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
-            بعد التحويل إلى محفظتنا الرسمية، أدخل رقم العملية والمبلغ هنا داخل الموقع، وسيقوم الأدمن بمراجعتها واعتمادها لتنضاف الكوينزات لحسابك فوراً.
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+            اختر طريقة الدفع المناسبة، تواصل مع الدعم عبر الواتساب على الرقم +905354637591 لإتمام التحويل، ثم قم بتثبيت الشحن بإدخال تفاصيل المبلغ ليقوم الأدمن بالاعتماد الفوري.
           </p>
         </div>
 
@@ -284,45 +413,85 @@
             </div>
             <div class="p-3 bg-slate-900 flex justify-between items-center text-xs border-t border-slate-800">
               <span class="text-slate-400 font-bold">🎙️ مقاعد الروم: {{ room.max_seats || 8 }}</span>
-              <button @click="enterRoom(room)" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md">دخول الروم ←</button>
+              <button @click="triggerMiddleEastAlert" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md">دخول الروم ←</button>
             </div>
           </div>
         </div>
       </template>
     </main>
 
-    <!-- نافذة طلب شحن شام كاش -->
+    <!-- نافذة طلب شحن الرصيد المحدثة بقوائم الخيارات العالمية -->
     <div v-if="showDepositModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-sm w-full relative shadow-2xl">
+      <div class="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl max-w-lg w-full relative shadow-2xl max-h-[90vh] overflow-y-auto text-right">
         <button @click="showDepositModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
         <div class="text-center mb-4">
           <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mx-auto mb-2 font-black">💳</div>
-          <h3 class="text-lg font-black text-white">إيداع رصيد عبر شام كاش</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">محفظة الإيداع الرسمية والحصرية للمنصة</p>
+          <h3 class="text-lg font-black text-white">اختر طريقة الشحن الإلكتروني العالمية</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">انقر على الخيار للانتقال الفوري إلى الواتساب وإتمام العملية عبر +905354637591</p>
         </div>
 
-        <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 mb-4 text-center">
-          <span class="text-[10px] text-slate-400 block mb-1">رقم محفظة شام كاش للتحويل:</span>
-          <span class="text-xs font-mono font-black text-emerald-400 select-all bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20 inline-block break-all">c97ee7954214e0b9c32a91d6f07a93ba</span>
-          <p class="text-[10px] text-slate-500 mt-2">قم بالتحويل أولاً إلى هذا الرقم، ثم أدخل رقم العملية والمبلغ أدناه.</p>
-        </div>
-
-        <div v-if="depositMsg" :class="['mb-3 text-xs p-2.5 rounded-xl text-center font-bold', depositSuccess ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300']">
-          {{ depositMsg }}
-        </div>
-
-        <form @submit.prevent="handleDepositSubmit" class="space-y-3.5 text-xs text-right">
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">رقم العملية / الحوالة</label>
-            <input type="text" v-model="depositTxId" required placeholder="مثال: SC-982104" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono font-bold" />
+        <!-- قائمة خيارات الدفع الإلكتروني العالمية مقسمة -->
+        <div class="space-y-4 mb-6 text-xs">
+          <!-- 1. بوابات ومزودو الدفع للمتاجر -->
+          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+            <h4 class="text-amber-400 font-black mb-2">1. بوابات ومزودو الدفع للمتاجر:</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="item in ['PayPal', 'Stripe', '2Checkout (Verifone)', 'Adyen', 'Authorize.Net', 'Square', 'Worldpay', 'Checkout.com']" :key="item" @click="redirectToWhatsApp(item)" class="bg-slate-900 hover:bg-purple-600/30 text-slate-200 font-bold p-2 rounded-xl border border-slate-800 text-right transition-all">
+                • {{ item }} ➔
+              </button>
+            </div>
           </div>
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">المبلغ المحول ($)</label>
-            <input type="number" v-model="depositAmount" required min="1" placeholder="مثال: 10 أو 50" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
-            <p class="text-[10px] text-purple-400 mt-1">ستحصل على: <span class="font-bold">{{ (depositAmount || 0) * 40000 }}</span> كوينز</p>
+
+          <!-- 2. المحافظ الرقمية وتطبيقات الدفع -->
+          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+            <h4 class="text-amber-400 font-black mb-2">2. المحافظ الرقمية وتطبيقات الدفع:</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="item in ['Apple Pay', 'Google Pay', 'Samsung Pay', 'Shop Pay (Shopify)', 'Venmo', 'Alipay', 'WeChat Pay']" :key="item" @click="redirectToWhatsApp(item)" class="bg-slate-900 hover:bg-purple-600/30 text-slate-200 font-bold p-2 rounded-xl border border-slate-800 text-right transition-all">
+                • {{ item }} ➔
+              </button>
+            </div>
           </div>
-          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">إرسال طلب التحويل للأدمن 🚀</button>
-        </form>
+
+          <!-- 3. خدمات التحويل واستلام الأموال -->
+          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+            <h4 class="text-amber-400 font-black mb-2">3. خدمات التحويل واستلام الأموال:</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="item in ['Wise', 'Payoneer', 'Skrill', 'Neteller', 'Revolut', 'Western Union Online', 'MoneyGram Online']" :key="item" @click="redirectToWhatsApp(item)" class="bg-slate-900 hover:bg-purple-600/30 text-slate-200 font-bold p-2 rounded-xl border border-slate-800 text-right transition-all">
+                • {{ item }} ➔
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. شبكات البطاقات العالمية -->
+          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800">
+            <h4 class="text-amber-400 font-black mb-2">4. شبكات البطاقات العالمية:</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="item in ['Visa', 'Mastercard', 'American Express (Amex)', 'Discover / Diners Club', 'UnionPay']" :key="item" @click="redirectToWhatsApp(item)" class="bg-slate-900 hover:bg-purple-600/30 text-slate-200 font-bold p-2 rounded-xl border border-slate-800 text-right transition-all">
+                • {{ item }} ➔
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- خيار تثبيت الشحن -->
+        <div class="bg-slate-950 p-4 rounded-2xl border border-emerald-500/40">
+          <h4 class="text-emerald-400 font-black mb-3">تثبيت شحن (إرسال تفاصيل المبلغ للأدمن)</h4>
+          <div v-if="depositMsg" :class="['mb-3 text-xs p-2.5 rounded-xl text-center font-bold', depositSuccess ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300']">
+            {{ depositMsg }}
+          </div>
+          <form @submit.prevent="handleDepositSubmit" class="space-y-3">
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">رقم العملية أو المرجع</label>
+              <input type="text" v-model="depositTxId" required placeholder="مثال: REF-99214" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono font-bold text-xs" />
+            </div>
+            <div>
+              <label class="font-bold text-slate-300 block mb-1">المبلغ الذي شحنته ($)</label>
+              <input type="number" v-model="depositAmount" required min="1" placeholder="مثال: 10 أو 100" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold text-xs" />
+              <p class="text-[10px] text-purple-400 mt-1">ستحصل على: <span class="font-bold">{{ (depositAmount || 0) * 40000 }}</span> كوينز</p>
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-xs">إرسال طلب التثبيت للأدمن 🚀</button>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -345,7 +514,7 @@
           <div v-for="dep in adminDeposits" :key="dep.id" class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-black text-amber-400">رقم الحوالة: {{ dep.tx_id }}</span>
+                <span class="text-xs font-black text-amber-400">رقم المرجع: {{ dep.tx_id }}</span>
                 <span class="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-black">المستخدم: {{ dep.username }} (ID: {{ dep.user_id }})</span>
               </div>
               <p class="text-xs text-slate-300 font-bold">المبلغ: <span class="text-emerald-400 font-mono">${{ dep.amount }}</span> | الكوينز المستحقة: <span class="text-purple-400 font-mono">{{ dep.coins.toLocaleString() }} 💎</span></p>
@@ -440,30 +609,6 @@
       </div>
     </div>
 
-    <!-- نافذة إنشاء روم -->
-    <div v-if="showCreateRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
-        <button @click="showCreateRoomModal = false" class="absolute top-4 left-4 text-slate-400 hover:text-white">✕</button>
-        <h3 class="text-lg font-black text-white mb-3 text-center">إنشاء روم صوتي</h3>
-        <div v-if="createRoomError" class="text-xs text-rose-400 mb-3 text-center font-bold bg-rose-500/10 p-2 rounded-xl">{{ createRoomError }}</div>
-        <form @submit.prevent="handleCreateRoom" class="space-y-3.5 text-xs text-right">
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">عنوان الروم</label>
-            <input type="text" v-model="roomTitle" required placeholder="عنوان الغرفة..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-300 block mb-1">التصنيف</label>
-            <select v-model="roomCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-bold">
-              <option value="حوار ونقاش">حوار ونقاش</option>
-              <option value="موسيقى وغناء">موسيقى وغناء</option>
-              <option value="ألعاب وجيمينج">ألعاب وجيمينج</option>
-            </select>
-          </div>
-          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg">نشر الروم الآن</button>
-        </form>
-      </div>
-    </div>
-
     <!-- نافذة تسجيل الدخول -->
     <div v-if="showAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xs w-full relative shadow-2xl">
@@ -507,7 +652,7 @@
 
     <!-- الفوتر -->
     <footer class="border-t border-slate-800/80 py-6 bg-slate-900/40 mt-12 text-center text-xs text-slate-400">
-      DEDE LIVE © 2026 - جميع الحقوق محفوظة
+      DEDE LIVE © 2026 - جميع الحقوق محفوظة | موثوق من قبل 10 آلاف مستخدم عالمياً
     </footer>
 
   </div>
@@ -523,7 +668,6 @@
         const ADMIN_EMAIL = "zzx640616@gmail.com";
         const HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' };
 
-        // تهيئة عميل Supabase للبث المباشر Realtime
         const supabaseClient = window.supabase.createClient(SUPABASE_URL_HOST, SUPABASE_KEY);
 
         const currentUser = ref(JSON.parse(localStorage.getItem('dede_user') || 'null'));
@@ -533,9 +677,8 @@
         const roomSeatsData = ref([]);
         const roomChat = ref([]);
         const roomChatInput = ref('');
-        let currentRoomChannel = null; // القناة الفورية للروم الحالي
+        let currentRoomChannel = null;
 
-        // --- محرك الاتصال الصوتي WebRTC Voice Call ---
         const localStream = ref(null);
         const peerConnections = ref({});
         const isMicMuted = ref(false);
@@ -552,17 +695,32 @@
         const authUsername = ref('');
         const errorMsg = ref('');
 
-        const showCreateRoomModal = ref(false);
-        const roomTitle = ref('');
-        const roomCategory = ref('حوار ونقاش');
-        const createRoomError = ref('');
+        const generalAlertMsg = ref(null);
+        const showFakeFileModal = ref(false);
+        const currentLanguage = ref('ar');
+
+        // ألعاب الكازينو الوهمية ذات المظهر الخارجي الاحترافي
+        const fakeCasinoGames = ref([
+          { title: 'Poker VIP Global', icon: '🃏' },
+          { title: 'Golden Slot Machine', icon: '🎰' },
+          { title: 'Royal Roulette', icon: '🎯' },
+          { title: 'High Roller Dice', icon: '🎲' }
+        ]);
+
+        // قائمة المشاركات الوهمية
+        const fakeActiveLadies = ref([
+          { id: 1, name: 'Sophia Miller', coins: '142,000', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200' },
+          { id: 2, name: 'Emma Watson', coins: '289,000', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200' },
+          { id: 3, name: 'Charlotte Dubois', coins: '95,400', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=200' },
+          { id: 4, name: 'Victoria Secret', coins: '510,000', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=200' }
+        ]);
 
         const showProfileModal = ref(false);
         const editName = ref(currentUser.value?.username || '');
         const editAvatar = ref(currentUser.value?.avatar || '');
         const profileUpdateMsg = ref('');
 
-        // نظام الحوالات وشام كاش
+        // نظام الشحن والدعم بالرقم الجديد +905354637591
         const showDepositModal = ref(false);
         const depositTxId = ref('');
         const depositAmount = ref('');
@@ -588,6 +746,20 @@
         const totalUnreadCount = computed(() => Object.keys(unreadFriends.value).length + friendRequests.value.length);
         const hasUnreadActivity = computed(() => totalUnreadCount.value > 0);
         const isSuperAdmin = computed(() => currentUser.value?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
+
+        const triggerMiddleEastAlert = () => {
+          generalAlertMsg.value = "غير متوفر حاليا جاري تفعيل الموقع للمستخدمين في الشرق الاوسط";
+        };
+
+        const openFakeFile = () => {
+          showFakeFileModal.value = true;
+        };
+
+        const redirectToWhatsApp = (optionName) => {
+          const targetPhone = "+905354637591";
+          const message = encodeURIComponent(`اريد الشحن عبر الخيار يلي اختاره: ${optionName}`);
+          window.open(`https://wa.me/${targetPhone}?text=${message}`, '_blank');
+        };
 
         const fetchRooms = async () => {
           loadingRooms.value = true;
@@ -617,7 +789,7 @@
               const approvedList = await res.json();
               if (approvedList.length > 0) {
                 const dep = approvedList[0];
-                userNotification.value = `تم قبول حوالتك بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
+                userNotification.value = `تم قبول الحوالة بقيمة $${dep.amount} وتمت إضافة ${dep.coins.toLocaleString()} كوينز إلى رصيدك!`;
                 currentUser.value.coins = (currentUser.value.coins || 0) + dep.coins;
                 localStorage.setItem('dede_user', JSON.stringify(currentUser.value));
 
@@ -631,19 +803,14 @@
           } catch (e) {}
         };
 
-        // --- 🎙️ تفعيل نظام الصوت والـ Realtime Signaling ---
-
         const initVoiceCall = async () => {
           try {
             localStream.value = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setupAudioAnalyser(localStream.value, currentUser.value.id);
-          } catch (err) {
-            console.warn("تعذر الوصول للميكروفون أو لم يتم منح الإذن:", err);
-          }
+          } catch (err) {}
 
           if (!currentRoomChannel || !currentUser.value) return;
 
-          // استقبال الإشارات والاتصالات من المستخدمين الآخرين في الروم
           currentRoomChannel.on('broadcast', { event: 'webrtc_signal' }, async ({ payload }) => {
             if (payload.target !== currentUser.value.id) return;
             const { sender, signal } = payload;
@@ -665,7 +832,6 @@
             }
           });
 
-          // عند انضمام مستخدم جديد للقناة، نقوم ببدء الاتصال معه
           currentRoomChannel.on('presence', { event: 'join' }, ({ newPresences }) => {
             newPresences.forEach(p => {
               if (p.user_id && p.user_id !== currentUser.value.id) {
@@ -785,8 +951,6 @@
           isSpeakerMuted.value = false;
         };
 
-        // --- إدارة الدخول والخروج من الرومات ---
-
         const enterRoom = (room) => {
           activeRoom.value = room;
           const seatsCount = room.max_seats || 8;
@@ -831,7 +995,6 @@
                 avatar: currentUser.value.avatar,
                 joined_at: new Date().toISOString()
               });
-              // بدء الاتصال الصوتي بعد الانضمام للقناة
               initVoiceCall();
             }
           });
@@ -899,11 +1062,9 @@
           activeRoom.value = null;
         };
 
-        // --- باقي الوظائف (الحوالات، الحسابات، الأصدقاء) ---
-
         const handleDepositSubmit = async () => {
           if (!currentUser.value) return;
-          depositMsg.value = "جاري إرسال طلب التحويل للأدمن...";
+          depositMsg.value = "جاري إرسال طلب التثبيت للأدمن...";
           depositSuccess.value = false;
 
           const amountVal = parseFloat(depositAmount.value);
@@ -1077,15 +1238,6 @@
 
         const handleLogout = () => { currentUser.value = null; localStorage.removeItem('dede_user'); };
 
-        const handleCreateRoom = async () => {
-          createRoomError.value = '';
-          if (!currentUser.value) return;
-          const newRoom = { id: `ROOM-${Math.floor(1000 + Math.random() * 9000)}`, host_id: currentUser.value.id, host_name: currentUser.value.username, host_avatar: currentUser.value.avatar, title: roomTitle.value, category: roomCategory.value, cover_image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=600", max_seats: 8, listeners_count: 1 };
-          const res = await fetch(`${SUPABASE_BASE_URL}/rooms`, { method: 'POST', headers: HEADERS, body: JSON.stringify(newRoom) });
-          if (res.ok) { showCreateRoomModal.value = false; roomTitle.value = ''; fetchRooms(); }
-          else { createRoomError.value = "فشل إنشاء الروم"; }
-        };
-
         const openSocialModal = () => { fetchFriendData(); showSocialModal.value = true; };
 
         const sendFriendRequest = async (target) => {
@@ -1152,12 +1304,14 @@
         return {
           currentUser, rooms, loadingRooms, activeRoom, roomSeatsData, roomChat, roomChatInput,
           searchQuery, searchResult, searchError, showAuthModal, isSignup, authEmail, authUsername, errorMsg,
-          showCreateRoomModal, roomTitle, roomCategory, createRoomError, showProfileModal, editName, editAvatar, profileUpdateMsg,
+          showProfileModal, editName, editAvatar, profileUpdateMsg,
           showDepositModal, depositTxId, depositAmount, depositMsg, depositSuccess, showAdminPanel, adminDeposits, pendingDepositsCount, userNotification,
           viewingUser, friendRequests, friendsList, showSocialModal, activeTab, activePrivateChat, privateMessages, privateMsgInput, actionMsg,
           friendsLastMessages, totalUnreadCount, hasUnreadActivity, isSuperAdmin,
           isMicMuted, isSpeakerMuted, speakingUsers, toggleMic, toggleSpeaker,
-          fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout, handleCreateRoom,
+          generalAlertMsg, showFakeFileModal, currentLanguage, fakeCasinoGames, fakeActiveLadies,
+          triggerMiddleEastAlert, openFakeFile, redirectToWhatsApp,
+          fetchRooms, handleGlobalSearch, enterRoom, leaveCurrentRoom, claimSeat, sendRoomChat, handleAuth, handleLogout,
           openSocialModal, sendFriendRequest, respondToFriendRequest, openPrivateChat, sendPrivateMessage, handleImageUpload, handleSaveProfile,
           handleDepositSubmit, fetchAdminDeposits, approveDeposit, rejectDeposit
         };
